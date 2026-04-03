@@ -1,0 +1,68 @@
+# Dependencies
+node_modules/
+npm-debug.log
+npm-error.log
+yarn-error.log
+yarn-debug.log
+package-lock.json
+yarn.lock
+
+# Environment variables (NEVER commit sensitive data)
+.env
+.env.local
+.env.*.local
+.env.backup
+
+# Uploaded files
+uploads/
+/uploads
+
+# Build/Output
+dist/
+build/
+.build/
+
+# IDE & Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+*.sublime-project
+*.sublime-workspace
+
+# Logs
+logs/
+*.log
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Testing
+coverage/
+.nyc_output/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# OS files
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+
+# Database
+*.sqlite
+*.sqlite3
+*.db
+
+# Process managers
+pm2-logs/
+pm2-monit/
