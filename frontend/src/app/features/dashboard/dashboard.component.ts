@@ -67,4 +67,20 @@ export class DashboardComponent implements OnInit, OnDestroy {
         return 'Manual Capture';
     }
   }
+
+  displayImageUrl(imagePath: string | null | undefined): string {
+    if (!imagePath) {
+      return '';
+    }
+
+    if (imagePath.startsWith('/')) {
+      return `${window.location.origin}${imagePath}`;
+    }
+
+    if (window.location.protocol === 'https:' && imagePath.startsWith('http://')) {
+      return imagePath.replace(/^http:\/\//i, 'https://');
+    }
+
+    return imagePath;
+  }
 }

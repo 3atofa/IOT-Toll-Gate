@@ -37,4 +37,20 @@ export class CapturesComponent implements OnInit {
       },
     });
   }
+
+  displayImageUrl(imagePath: string | null | undefined): string {
+    if (!imagePath) {
+      return '';
+    }
+
+    if (imagePath.startsWith('/')) {
+      return `${window.location.origin}${imagePath}`;
+    }
+
+    if (window.location.protocol === 'https:' && imagePath.startsWith('http://')) {
+      return imagePath.replace(/^http:\/\//i, 'https://');
+    }
+
+    return imagePath;
+  }
 }

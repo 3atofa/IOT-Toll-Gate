@@ -6,7 +6,15 @@ const { getSocket } = require('../services/socket.service');
 const toPublicImageUrl = (req, absolutePath) => {
   const uploadsRoot = path.join(process.cwd(), 'uploads');
   const rel = path.relative(uploadsRoot, absolutePath).replace(/\\/g, '/');
-  return `${req.protocol}://${req.get('host')}/uploads/${rel}`;
+  const forwardedProto = String(req.get('x-forwarded-proto') || '').split(',')[0].trim();
+  const protocol = forwardedProto || req.protocol || 'https';
+  const host = req.get('x-forwarded-host') || req.get('host');
+
+  if (host) {
+    return `${protocol}://${host}/uploads/${rel}`;
+  }
+
+  return `/uploads/${rel}`;
 };
 
 const buildCapturePayload = (req, imagePath) => ({

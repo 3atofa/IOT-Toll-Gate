@@ -23,7 +23,7 @@
     <div *ngIf="!loading && latestCapture" class="grid gap-6 lg:grid-cols-[1fr_300px]">
       <article class="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
         <img
-          [src]="latestCapture.imagePath"
+          [src]="displayImageUrl(latestCapture.imagePath)"
           alt="Latest gate capture"
           class="h-[480px] w-full object-cover"
         />
