@@ -1,4 +1,5 @@
 const path = require('path');
+const fs = require('fs/promises');
 const { GateCapture } = require('../models');
 const { getSocket } = require('../services/socket.service');
 
@@ -8,6 +9,25 @@ const toPublicImageUrl = (req, absolutePath) => {
   return `${req.protocol}://${req.get('host')}/uploads/${rel}`;
 };
 
+const buildCapturePayload = (req, imagePath) => ({
+  gateId: req.body?.gateId || req.query.gateId || req.get('x-gate-id') || 'gate-1',
+  eventType: req.body?.eventType || req.query.eventType || req.get('x-event-type') || 'access_granted',
+  cardUid: req.body?.cardUid || req.query.cardUid || req.get('x-card-uid') || null,
+  imagePath,
+  capturedAt: req.body?.capturedAt
+    ? new Date(req.body.capturedAt)
+    : req.query.capturedAt
+      ? new Date(req.query.capturedAt)
+      : new Date(),
+});
+
+const emitCapture = (capture) => {
+  const io = getSocket();
+  if (io) {
+    io.emit('new_capture', capture);
+  }
+};
+
 const createCapture = async (req, res, next) => {
   try {
     if (!req.file) {
@@ -15,19 +35,36 @@ const createCapture = async (req, res, next) => {
     }
 
     const payload = {
-      gateId: req.body.gateId || 'gate-1',
-      eventType: req.body.eventType || 'access_granted',
-      cardUid: req.body.cardUid || null,
-      imagePath: toPublicImageUrl(req, req.file.path),
-      capturedAt: req.body.capturedAt ? new Date(req.body.capturedAt) : new Date(),
+      ...buildCapturePayload(req, toPublicImageUrl(req, req.file.path)),
     };
 
     const capture = await GateCapture.create(payload);
+    emitCapture(capture);
 
-    const io = getSocket();
-    if (io) {
-      io.emit('new_capture', capture);
+    return res.status(201).json(capture);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+const createRawCapture = async (req, res, next) => {
+  try {
+    const imageBuffer = req.body;
+
+    if (!Buffer.isBuffer(imageBuffer) || imageBuffer.length === 0) {
+      return res.status(400).json({ message: 'JPEG binary body is required' });
     }
+
+    const uploadsDir = path.join(process.cwd(), 'uploads', 'gate');
+    await fs.mkdir(uploadsDir, { recursive: true });
+
+    const fileName = `gate_${Date.now()}_${Math.round(Math.random() * 1e6)}.jpg`;
+    const absolutePath = path.join(uploadsDir, fileName);
+    await fs.writeFile(absolutePath, imageBuffer);
+
+    const payload = buildCapturePayload(req, toPublicImageUrl(req, absolutePath));
+    const capture = await GateCapture.create(payload);
+    emitCapture(capture);
 
     return res.status(201).json(capture);
   } catch (error) {
@@ -73,6 +110,7 @@ const getLatestCapture = async (req, res, next) => {
 
 module.exports = {
   createCapture,
+  createRawCapture,
   getCaptures,
   getLatestCapture,
 };

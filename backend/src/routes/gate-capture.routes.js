@@ -4,6 +4,7 @@ const multer = require('multer');
 const { requireGateApiKey } = require('../middlewares/api-key.middleware');
 const {
   createCapture,
+  createRawCapture,
   getCaptures,
   getLatestCapture,
 } = require('../controllers/gate-capture.controller');
@@ -26,7 +27,16 @@ const upload = multer({
   limits: { fileSize: 8 * 1024 * 1024 },
 });
 
+const rawImageUpload = express.raw({
+  limit: '8mb',
+  type: (req) => {
+    const contentType = String(req.headers['content-type'] || '').toLowerCase();
+    return contentType.includes('image/jpeg') || contentType.includes('application/octet-stream');
+  },
+});
+
 router.post('/', requireGateApiKey, upload.single('image'), createCapture);
+router.post('/raw', requireGateApiKey, rawImageUpload, createRawCapture);
 router.get('/', getCaptures);
 router.get('/latest', getLatestCapture);
 
