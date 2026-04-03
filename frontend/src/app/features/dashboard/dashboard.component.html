@@ -1,0 +1,64 @@
+<section class="min-h-screen bg-slate-100 p-4 md:p-8">
+  <div class="mx-auto max-w-6xl">
+    <header class="mb-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <p class="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Toll Gate IoT</p>
+          <h1 class="mt-1 text-3xl font-black text-slate-900">Live Capture Dashboard</h1>
+        </div>
+        <a
+          routerLink="/captures"
+          class="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
+        >
+          <i class="fa-solid fa-clock-rotate-left"></i>
+          View History
+        </a>
+      </div>
+    </header>
+
+    <div *ngIf="loading" class="rounded-2xl bg-white p-6 text-center shadow-sm ring-1 ring-slate-200">
+      <p class="text-slate-600">Loading latest capture...</p>
+    </div>
+
+    <div *ngIf="!loading && latestCapture" class="grid gap-6 lg:grid-cols-[1fr_300px]">
+      <article class="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+        <img
+          [src]="latestCapture.imagePath"
+          alt="Latest gate capture"
+          class="h-[480px] w-full object-cover"
+        />
+      </article>
+
+      <aside class="space-y-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+        <h2 class="text-lg font-bold text-slate-900">Capture Details</h2>
+
+        <div class="rounded-xl bg-slate-100 p-3">
+          <p class="text-xs uppercase tracking-wide text-slate-500">Event</p>
+          <p class="mt-1 text-sm font-semibold text-slate-900">{{ getStatusLabel(latestCapture.eventType) }}</p>
+        </div>
+
+        <div class="rounded-xl bg-slate-100 p-3">
+          <p class="text-xs uppercase tracking-wide text-slate-500">Gate ID</p>
+          <p class="mt-1 text-sm font-semibold text-slate-900">{{ latestCapture.gateId }}</p>
+        </div>
+
+        <div class="rounded-xl bg-slate-100 p-3">
+          <p class="text-xs uppercase tracking-wide text-slate-500">Card UID</p>
+          <p class="mt-1 text-sm font-semibold text-slate-900">{{ latestCapture.cardUid || 'N/A' }}</p>
+        </div>
+
+        <div class="rounded-xl bg-slate-100 p-3">
+          <p class="text-xs uppercase tracking-wide text-slate-500">Captured At</p>
+          <p class="mt-1 text-sm font-semibold text-slate-900">
+            {{ latestCapture.capturedAt | date: 'MMM d, y, h:mm:ss a' }}
+          </p>
+        </div>
+      </aside>
+    </div>
+
+    <div *ngIf="!loading && !latestCapture" class="rounded-2xl bg-white p-10 text-center shadow-sm ring-1 ring-slate-200">
+      <i class="fa-solid fa-camera text-4xl text-slate-400"></i>
+      <p class="mt-4 text-slate-600">No capture found yet. Trigger an image from your gate device.</p>
+    </div>
+  </div>
+</section>
