@@ -7,6 +7,8 @@ const {
   createRawCapture,
   getCaptures,
   getLatestCapture,
+  updateCaptureOcr,
+  retryCaptureOcr,
 } = require('../controllers/gate-capture.controller');
 
 const router = express.Router();
@@ -37,6 +39,8 @@ const rawImageUpload = express.raw({
 
 router.post('/', requireGateApiKey, upload.single('image'), createCapture);
 router.post('/raw', requireGateApiKey, rawImageUpload, createRawCapture);
+router.patch('/:id/ocr', updateCaptureOcr);
+router.post('/:id/ocr/retry', retryCaptureOcr);
 router.get('/', getCaptures);
 router.get('/latest', getLatestCapture);
 

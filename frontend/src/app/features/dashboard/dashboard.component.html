@@ -48,6 +48,21 @@
         </div>
 
         <div class="rounded-xl bg-slate-100 p-3">
+          <p class="text-xs uppercase tracking-wide text-slate-500">Plate</p>
+          <p class="mt-1 text-sm font-semibold text-slate-900">{{ latestCapture.plateText || 'Not read yet' }}</p>
+        </div>
+
+        <div class="rounded-xl bg-slate-100 p-3">
+          <p class="text-xs uppercase tracking-wide text-slate-500">OCR Status</p>
+          <p class="mt-1 text-sm font-semibold" [ngClass]="ocrStatusTextClass(latestCapture.ocrStatus)">
+            {{ (latestCapture.ocrStatus || 'pending') | uppercase }}
+            <span *ngIf="latestCapture.plateConfidence != null" class="text-slate-500">
+              ({{ latestCapture.plateConfidence | number:'1.2-2' }})
+            </span>
+          </p>
+        </div>
+
+        <div class="rounded-xl bg-slate-100 p-3">
           <p class="text-xs uppercase tracking-wide text-slate-500">Captured At</p>
           <p class="mt-1 text-sm font-semibold text-slate-900">
             {{ latestCapture.capturedAt | date: 'MMM d, y, h:mm:ss a' }}

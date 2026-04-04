@@ -20,6 +20,8 @@
           <tr class="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
             <th class="pb-3 pr-4">Image</th>
             <th class="pb-3 pr-4">Event</th>
+            <th class="pb-3 pr-4">Plate</th>
+            <th class="pb-3 pr-4">OCR</th>
             <th class="pb-3 pr-4">Gate</th>
             <th class="pb-3 pr-4">Card UID</th>
             <th class="pb-3">Captured At</th>
@@ -31,6 +33,16 @@
               <img [src]="displayImageUrl(item.imagePath)" alt="capture" class="h-20 w-28 rounded-lg object-cover ring-1 ring-slate-200" />
             </td>
             <td class="py-4 pr-4 text-sm font-semibold text-slate-900">{{ item.eventType }}</td>
+            <td class="py-4 pr-4 text-sm font-semibold text-slate-900">{{ item.plateText || 'Not read' }}</td>
+            <td class="py-4 pr-4 text-sm">
+              <span class="rounded-full px-2 py-1 text-xs font-semibold"
+                    [ngClass]="ocrStatusClass(item.ocrStatus)">
+                {{ (item.ocrStatus || 'pending') | uppercase }}
+              </span>
+              <span *ngIf="item.plateConfidence != null" class="ml-2 text-xs text-slate-500">
+                {{ item.plateConfidence | number:'1.2-2' }}
+              </span>
+            </td>
             <td class="py-4 pr-4 text-sm text-slate-700">{{ item.gateId }}</td>
             <td class="py-4 pr-4 text-sm text-slate-700">{{ item.cardUid || 'N/A' }}</td>
             <td class="py-4 text-sm text-slate-700">{{ item.capturedAt | date: 'MMM d, y, h:mm:ss a' }}</td>

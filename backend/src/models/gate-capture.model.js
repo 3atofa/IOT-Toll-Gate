@@ -27,6 +27,27 @@ module.exports = (sequelize) => {
         type: DataTypes.TEXT,
         allowNull: false,
       },
+      plateText: {
+        type: DataTypes.STRING(32),
+        allowNull: true,
+      },
+      plateConfidence: {
+        type: DataTypes.FLOAT,
+        allowNull: true,
+      },
+      ocrStatus: {
+        type: DataTypes.ENUM('pending', 'processing', 'done', 'review_required', 'failed'),
+        allowNull: false,
+        defaultValue: 'pending',
+      },
+      ocrProcessedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
+      ocrError: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
       capturedAt: {
         type: DataTypes.DATE,
         allowNull: false,

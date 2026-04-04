@@ -68,6 +68,21 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
   }
 
+  ocrStatusTextClass(status: GateCapture['ocrStatus']): string {
+    switch (status) {
+      case 'done':
+        return 'text-green-700';
+      case 'review_required':
+        return 'text-yellow-700';
+      case 'failed':
+        return 'text-red-700';
+      case 'processing':
+        return 'text-blue-700';
+      default:
+        return 'text-slate-700';
+    }
+  }
+
   displayImageUrl(imagePath: string | null | undefined): string {
     if (!imagePath) {
       return '';

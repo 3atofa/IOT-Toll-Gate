@@ -2,6 +2,7 @@ const path = require('path');
 const fs = require('fs/promises');
 const { GateCapture } = require('../models');
 const { getSocket } = require('../services/socket.service');
+const { enqueueCaptureForAlpr } = require('../services/alpr.service');
 
 const toPublicImageUrl = (req, absolutePath) => {
   const uploadsRoot = path.join(process.cwd(), 'uploads');
@@ -22,6 +23,11 @@ const buildCapturePayload = (req, imagePath) => ({
   eventType: req.body?.eventType || req.query.eventType || req.get('x-event-type') || 'access_granted',
   cardUid: req.body?.cardUid || req.query.cardUid || req.get('x-card-uid') || null,
   imagePath,
+  plateText: null,
+  plateConfidence: null,
+  ocrStatus: 'pending',
+  ocrProcessedAt: null,
+  ocrError: null,
   capturedAt: req.body?.capturedAt
     ? new Date(req.body.capturedAt)
     : req.query.capturedAt
@@ -36,6 +42,10 @@ const emitCapture = (capture) => {
   }
 };
 
+const runAlprAsync = (captureId) => {
+  enqueueCaptureForAlpr(captureId);
+};
+
 const createCapture = async (req, res, next) => {
   try {
     if (!req.file) {
@@ -48,6 +58,7 @@ const createCapture = async (req, res, next) => {
 
     const capture = await GateCapture.create(payload);
     emitCapture(capture);
+    runAlprAsync(capture.id);
 
     return res.status(201).json(capture);
   } catch (error) {
@@ -73,8 +84,51 @@ const createRawCapture = async (req, res, next) => {
     const payload = buildCapturePayload(req, toPublicImageUrl(req, absolutePath));
     const capture = await GateCapture.create(payload);
     emitCapture(capture);
+    runAlprAsync(capture.id);
 
     return res.status(201).json(capture);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+const updateCaptureOcr = async (req, res, next) => {
+  try {
+    const capture = await GateCapture.findByPk(req.params.id);
+    if (!capture) {
+      return res.status(404).json({ message: 'Capture not found' });
+    }
+
+    const plateText = String(req.body.plateText || '').toUpperCase().replace(/\s+/g, '') || null;
+    const confidence = req.body.plateConfidence == null ? null : Number(req.body.plateConfidence);
+
+    await capture.update({
+      plateText,
+      plateConfidence: Number.isFinite(confidence) ? confidence : null,
+      ocrStatus: req.body.ocrStatus || (plateText ? 'done' : 'review_required'),
+      ocrError: req.body.ocrError || null,
+      ocrProcessedAt: new Date(),
+    });
+
+    emitCapture(capture);
+    return res.json(capture);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+const retryCaptureOcr = async (req, res, next) => {
+  try {
+    const capture = await GateCapture.findByPk(req.params.id);
+    if (!capture) {
+      return res.status(404).json({ message: 'Capture not found' });
+    }
+
+    await capture.update({ ocrStatus: 'pending', ocrError: null });
+    emitCapture(capture);
+    runAlprAsync(capture.id);
+
+    return res.json({ message: 'OCR retry enqueued', id: capture.id });
   } catch (error) {
     return next(error);
   }
@@ -121,4 +175,6 @@ module.exports = {
   createRawCapture,
   getCaptures,
   getLatestCapture,
+  updateCaptureOcr,
+  retryCaptureOcr,
 };

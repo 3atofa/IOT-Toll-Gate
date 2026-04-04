@@ -53,4 +53,19 @@ export class CapturesComponent implements OnInit {
 
     return imagePath;
   }
+
+  ocrStatusClass(status: GateCapture['ocrStatus']): string {
+    switch (status) {
+      case 'done':
+        return 'bg-green-100 text-green-800';
+      case 'review_required':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'failed':
+        return 'bg-red-100 text-red-800';
+      case 'processing':
+        return 'bg-blue-100 text-blue-800';
+      default:
+        return 'bg-slate-100 text-slate-700';
+    }
+  }
 }
