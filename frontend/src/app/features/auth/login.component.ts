@@ -47,7 +47,7 @@ import { FeedbackService } from '../../core/services/feedback.service';
                   type="email"
                   required
                   class="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="admin@tollgate.iot"
+                  placeholder="admin&#64;tollgate.iot"
                 />
               </div>
 
@@ -75,8 +75,8 @@ import { FeedbackService } from '../../core/services/feedback.service';
 
             <div class="mt-6 rounded-2xl bg-slate-50 border border-slate-200 p-4 text-sm text-slate-600">
               <p class="font-semibold text-slate-700 mb-2">Default demo account</p>
-              <p>Email: admin@tollgate.iot</p>
-              <p>Password: Admin@123456</p>
+              <p>Email: admin&#64;tollgate.iot</p>
+              <p>Password: Admin&#64;123456</p>
             </div>
           </div>
         </div>

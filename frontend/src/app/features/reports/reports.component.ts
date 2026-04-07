@@ -150,7 +150,7 @@ export class ReportsComponent implements OnInit {
     });
   }
 
-  decisionClass(decision: string): string {
+  decisionClass(decision?: string | null): string {
     switch (decision) {
       case 'allow':
         return 'bg-emerald-100 text-emerald-800';
