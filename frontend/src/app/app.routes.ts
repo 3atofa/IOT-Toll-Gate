@@ -7,6 +7,7 @@ import { GateControlComponent } from './features/gate-control/gate-control.compo
 import { VehiclesComponent } from './features/vehicles/vehicles.component';
 import { CardsComponent } from './features/cards/cards.component';
 import { WantedCarsComponent } from './features/wanted-cars/wanted-cars.component';
+import { WantedPersonsComponent } from './features/wanted-persons/wanted-persons.component';
 import { ReportsComponent } from './features/reports/reports.component';
 import { LoginComponent } from './features/auth/login.component';
 import { UsersComponent } from './features/users/users.component';
@@ -24,6 +25,7 @@ export const routes: Routes = [
       { path: 'gate-control', component: GateControlComponent },
       { path: 'vehicles', component: VehiclesComponent },
       { path: 'cards', component: CardsComponent },
+      { path: 'wanted-persons', component: WantedPersonsComponent },
       { path: 'wanted-cars', component: WantedCarsComponent },
       { path: 'captures', component: CapturesComponent },
       { path: 'reports', component: ReportsComponent },

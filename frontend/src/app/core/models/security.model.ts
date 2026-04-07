@@ -9,6 +9,17 @@ export interface StolenCar {
   updatedAt?: string;
 }
 
+export interface WantedPerson {
+  id: number;
+  fullName: string;
+  faceImagePath?: string | null;
+  faceLabel?: string | null;
+  status: 'active' | 'inactive';
+  notes?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface SecurityAlert {
   id: number;
   captureId: number;

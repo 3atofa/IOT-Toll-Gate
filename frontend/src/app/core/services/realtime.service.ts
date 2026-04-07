@@ -3,6 +3,7 @@ import { Observable } from 'rxjs';
 import { io, Socket } from 'socket.io-client';
 import { API_CONFIG } from '../config/api.config';
 import { GateCapture } from '../models/gate-capture.model';
+import { SecurityAlert } from '../models/security.model';
 
 interface GateStatus {
   gateId: string;
@@ -63,6 +64,20 @@ export class RealtimeService {
 
       return () => {
         this.socket?.off('vehicle_passage');
+      };
+    });
+  }
+
+  onSecurityAlert(): Observable<SecurityAlert> {
+    this.connect();
+
+    return new Observable<SecurityAlert>((observer) => {
+      this.socket?.on('security_alert', (payload: SecurityAlert) => {
+        observer.next(payload);
+      });
+
+      return () => {
+        this.socket?.off('security_alert');
       };
     });
   }
