@@ -4,7 +4,9 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
-    "build": "ng build",
+    "build": "ng build && node scripts/deploy.mjs",
+    "build:local": "ng build",
+    "deploy": "node scripts/deploy.mjs",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },
