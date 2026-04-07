@@ -22,11 +22,14 @@ const bootstrap = async () => {
   await sequelize.createDatabaseIfNotExists();
 
   await sequelize.authenticate();
+  const shouldForceSync = String(process.env.DB_SYNC_FORCE || 'false').toLowerCase() === 'true';
+  if (shouldForceSync) {
+    console.warn('WARNING: DB_SYNC_FORCE=true, syncing with force will drop and recreate tables.');
+  }
+
   await sequelize.sync({
     alter: false,
-    force: process.env.NODE_ENV === 'development'
-      ? true
-      : String(process.env.DB_SYNC_FORCE).toLowerCase() === 'true',
+    force: shouldForceSync,
   });
 
   const adminEmail = String(process.env.ADMIN_EMAIL || '').trim().toLowerCase();
