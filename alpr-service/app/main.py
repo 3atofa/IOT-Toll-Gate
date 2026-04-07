@@ -15,6 +15,7 @@ load_dotenv()
 ALPR_API_KEY = os.getenv("ALPR_API_KEY", "")
 ALPR_REQUEST_TIMEOUT = float(os.getenv("ALPR_REQUEST_TIMEOUT", "8"))
 ALPR_MIN_CONFIDENCE = float(os.getenv("ALPR_MIN_CONFIDENCE", "0.75"))
+ALPR_FACE_MIN_CONFIDENCE = float(os.getenv("ALPR_FACE_MIN_CONFIDENCE", "0.55"))
 ALPR_PLATE_REGEX = os.getenv("ALPR_PLATE_REGEX", r"^[A-Z0-9-]{4,12}$")
 ALPR_BASE_URL = os.getenv("ALPR_BASE_URL", "")
 
@@ -31,13 +32,23 @@ class RecognizeRequest(BaseModel):
     imagePath: str
     gateId: Optional[str] = None
     capturedAt: Optional[str] = None
+    wantedPersons: List[Dict[str, Any]] = Field(default_factory=list)
+    stolenCars: List[Dict[str, Any]] = Field(default_factory=list)
 
 
 class RecognizeResponse(BaseModel):
     plateText: Optional[str] = None
-    confidence: Optional[float] = None
+    plateConfidence: Optional[float] = None
+    faceName: Optional[str] = None
+    faceConfidence: Optional[float] = None
+    faceDetected: bool = False
+    faceReviewRequired: bool = True
     strategy: str = "easyocr"
     reviewRequired: bool = True
+    securityDecision: str = "review"
+    securityReason: Optional[str] = None
+    wantedPersonMatch: Optional[str] = None
+    stolenCarMatch: Optional[str] = None
     candidates: List[Dict[str, Any]] = Field(default_factory=list)
 
 
@@ -122,6 +133,120 @@ def pick_best(candidates: List[Tuple[str, float]]) -> Tuple[Optional[str], Optio
     return best_plate, round(best_conf, 4), review_required, response_candidates
 
 
+def get_face_cascade() -> cv2.CascadeClassifier:
+    cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+    cascade = cv2.CascadeClassifier(cascade_path)
+    if cascade.empty():
+        raise RuntimeError("Failed to load Haar cascade for face detection")
+    return cascade
+
+
+def detect_largest_face(image: np.ndarray) -> Optional[np.ndarray]:
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    cascade = get_face_cascade()
+    faces = cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(80, 80))
+    if len(faces) == 0:
+        return None
+
+    x, y, w, h = sorted(faces, key=lambda rect: rect[2] * rect[3], reverse=True)[0]
+    crop = gray[y:y + h, x:x + w]
+    if crop.size == 0:
+        return None
+    crop = cv2.resize(crop, (200, 200))
+    return crop
+
+
+def load_face_sample(image_url: str) -> Optional[np.ndarray]:
+    image = fetch_image(to_absolute_image_url(image_url))
+    return detect_largest_face(image)
+
+
+def build_face_model(wanted_persons: List[Dict[str, Any]]):
+    if not wanted_persons or not hasattr(cv2, "face"):
+        return None, {}, {}
+
+    samples: List[np.ndarray] = []
+    labels: List[int] = []
+    label_to_person: Dict[int, Dict[str, Any]] = {}
+    person_lookup: Dict[str, Dict[str, Any]] = {}
+
+    label_id = 0
+    for person in wanted_persons:
+        image_path = person.get("faceImagePath")
+        if not image_path:
+            continue
+
+        try:
+            face_sample = load_face_sample(image_path)
+        except Exception:
+            face_sample = None
+
+        if face_sample is None:
+            continue
+
+        samples.append(face_sample)
+        labels.append(label_id)
+        label_to_person[label_id] = person
+        person_lookup[str(label_id)] = person
+        label_id += 1
+
+    if not samples:
+        return None, label_to_person, person_lookup
+
+    recognizer = cv2.face.LBPHFaceRecognizer_create()
+    recognizer.train(samples, np.array(labels))
+    return recognizer, label_to_person, person_lookup
+
+
+def recognize_face(image: np.ndarray, wanted_persons: List[Dict[str, Any]]) -> Tuple[Optional[str], Optional[float], bool, Optional[str], bool]:
+    if not wanted_persons or not hasattr(cv2, "face"):
+        return None, None, True, None, False
+
+    live_face = detect_largest_face(image)
+    if live_face is None:
+        return None, None, True, None, False
+
+    recognizer, label_to_person, _ = build_face_model(wanted_persons)
+    if recognizer is None:
+        return None, None, True, None, True
+
+    label, distance = recognizer.predict(live_face)
+    person = label_to_person.get(int(label))
+    if not person:
+        return None, None, True, None, True
+
+    normalized_confidence = max(0.0, min(1.0, 1.0 - (float(distance) / 120.0)))
+    face_label = person.get("faceLabel") or person.get("fullName")
+    review_required = normalized_confidence < ALPR_FACE_MIN_CONFIDENCE
+    return face_label, round(normalized_confidence, 4), review_required, None, True
+
+
+def match_stolen_car(plate_text: Optional[str], stolen_cars: List[Dict[str, Any]]) -> Optional[str]:
+    normalized = normalize_plate(plate_text or "")
+    if not normalized:
+        return None
+
+    for car in stolen_cars:
+        car_plate = normalize_plate(car.get("plateNormalized") or car.get("plateNumber") or "")
+        if car_plate and car_plate == normalized:
+            return car.get("plateNumber") or normalized
+
+    return None
+
+
+def decide_security(plate_text: Optional[str], face_name: Optional[str], stolen_match: Optional[str], wanted_match: Optional[str], plate_review: bool, face_review: bool) -> Tuple[str, Optional[str]]:
+    if stolen_match:
+        return "block", f"Stolen car matched: {stolen_match}"
+
+    if wanted_match:
+        return "block", f"Wanted person matched: {wanted_match}"
+
+    if plate_review or face_review:
+        return "review", "Recognition requires manual review"
+
+    return "allow", None
+
+
 @app.get("/health")
 def health() -> Dict[str, str]:
     return {"status": "ok", "service": "alpr-service"}
@@ -140,10 +265,29 @@ def recognize(
 
     candidates = run_ocr(image)
     plate_text, confidence, review_required, response_candidates = pick_best(candidates)
+    face_name, face_confidence, face_review_required, face_error, face_detected = recognize_face(image, payload.wantedPersons)
+    stolen_match = match_stolen_car(plate_text, payload.stolenCars) if not review_required else None
+    wanted_match = face_name if not face_review_required else None
+    security_decision, security_reason = decide_security(
+        plate_text,
+        face_name,
+        stolen_match,
+        wanted_match,
+        review_required,
+        face_review_required,
+    )
 
     return RecognizeResponse(
         plateText=plate_text,
-        confidence=confidence,
+        plateConfidence=confidence,
+        faceName=face_name,
+        faceConfidence=face_confidence,
+        faceDetected=face_detected,
+        faceReviewRequired=face_review_required,
         reviewRequired=review_required,
+        securityDecision=security_decision,
+        securityReason=security_reason,
+        wantedPersonMatch=wanted_match,
+        stolenCarMatch=stolen_match,
         candidates=response_candidates,
     )

@@ -15,7 +15,7 @@ module.exports = (sequelize) => {
         defaultValue: 'gate-1',
       },
       eventType: {
-        type: DataTypes.ENUM('access_granted', 'access_denied', 'manual_capture'),
+        type: DataTypes.ENUM('access_granted', 'access_denied', 'manual_capture', 'security_check'),
         allowNull: false,
         defaultValue: 'access_granted',
       },
@@ -35,6 +35,23 @@ module.exports = (sequelize) => {
         type: DataTypes.FLOAT,
         allowNull: true,
       },
+      faceName: {
+        type: DataTypes.STRING(128),
+        allowNull: true,
+      },
+      faceConfidence: {
+        type: DataTypes.FLOAT,
+        allowNull: true,
+      },
+      faceStatus: {
+        type: DataTypes.ENUM('pending', 'processing', 'done', 'review_required', 'failed'),
+        allowNull: false,
+        defaultValue: 'pending',
+      },
+      faceError: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
       ocrStatus: {
         type: DataTypes.ENUM('pending', 'processing', 'done', 'review_required', 'failed'),
         allowNull: false,
@@ -45,6 +62,15 @@ module.exports = (sequelize) => {
         allowNull: true,
       },
       ocrError: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
+      securityDecision: {
+        type: DataTypes.ENUM('allow', 'block', 'review'),
+        allowNull: false,
+        defaultValue: 'review',
+      },
+      securityReason: {
         type: DataTypes.TEXT,
         allowNull: true,
       },

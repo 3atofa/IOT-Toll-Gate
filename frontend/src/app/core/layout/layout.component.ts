@@ -1,6 +1,8 @@
 import { Component } from '@angular/core';
+import { Router } from '@angular/router';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { AuthService } from '../services/auth.service';
 
 @Component({
   selector: 'app-layout',
@@ -68,12 +70,30 @@ import { CommonModule } from '@angular/common';
           </a>
 
           <a
+            routerLink="/wanted-cars"
+            routerLinkActive="bg-blue-600"
+            class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition"
+          >
+            <i class="fas fa-triangle-exclamation text-orange-400"></i>
+            <span>Wanted Cars</span>
+          </a>
+
+          <a
             routerLink="/reports"
             routerLinkActive="bg-blue-600"
             class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition"
           >
             <i class="fas fa-file-alt text-indigo-400"></i>
             <span>Reports</span>
+          </a>
+
+          <a
+            routerLink="/users"
+            routerLinkActive="bg-blue-600"
+            class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition"
+          >
+            <i class="fas fa-users text-cyan-400"></i>
+            <span>Users</span>
           </a>
 
           <a
@@ -90,9 +110,16 @@ import { CommonModule } from '@angular/common';
         <div class="p-4 border-t border-slate-700 text-sm text-slate-400">
           <p class="flex items-center gap-2">
             <i class="fas fa-user-circle"></i>
-            <span>Admin User</span>
+            <span>{{ currentUserName }}</span>
           </p>
-          <p class="text-xs mt-2 opacity-70">v1.0 | 2024</p>
+          <p class="text-xs mt-1 opacity-70 capitalize">{{ currentUserRole }}</p>
+          <button
+            type="button"
+            (click)="logout()"
+            class="mt-3 w-full rounded-lg bg-slate-800 hover:bg-slate-700 transition py-2 text-sm text-white"
+          >
+            Sign Out
+          </button>
         </div>
       </aside>
 
@@ -130,10 +157,26 @@ import { CommonModule } from '@angular/common';
 })
 export class LayoutComponent {
   currentTime = new Date();
+  currentUserName = 'Admin User';
+  currentUserRole = 'admin';
 
-  constructor() {
+  constructor(
+    private readonly auth: AuthService,
+    private readonly router: Router
+  ) {
+    const user = this.auth.currentUser;
+    if (user) {
+      this.currentUserName = user.fullName;
+      this.currentUserRole = user.role;
+    }
+
     setInterval(() => {
       this.currentTime = new Date();
     }, 1000);
+  }
+
+  logout(): void {
+    this.auth.logout();
+    this.router.navigate(['/login']);
   }
 }

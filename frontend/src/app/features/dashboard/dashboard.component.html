@@ -53,6 +53,11 @@
         </div>
 
         <div class="rounded-xl bg-slate-100 p-3">
+          <p class="text-xs uppercase tracking-wide text-slate-500">Face</p>
+          <p class="mt-1 text-sm font-semibold text-slate-900">{{ latestCapture.faceName || 'Not recognized yet' }}</p>
+        </div>
+
+        <div class="rounded-xl bg-slate-100 p-3">
           <p class="text-xs uppercase tracking-wide text-slate-500">OCR Status</p>
           <p class="mt-1 text-sm font-semibold" [ngClass]="ocrStatusTextClass(latestCapture.ocrStatus)">
             {{ (latestCapture.ocrStatus || 'pending') | uppercase }}
@@ -60,6 +65,14 @@
               ({{ latestCapture.plateConfidence | number:'1.2-2' }})
             </span>
           </p>
+        </div>
+
+        <div class="rounded-xl bg-slate-100 p-3">
+          <p class="text-xs uppercase tracking-wide text-slate-500">Security Decision</p>
+          <p class="mt-1 text-sm font-semibold" [ngClass]="latestCapture.securityDecision === 'block' ? 'text-red-600' : latestCapture.securityDecision === 'review' ? 'text-amber-600' : 'text-emerald-700'">
+            {{ (latestCapture.securityDecision || 'review') | uppercase }}
+          </p>
+          <p *ngIf="latestCapture.securityReason" class="mt-1 text-xs text-slate-500">{{ latestCapture.securityReason }}</p>
         </div>
 
         <div class="rounded-xl bg-slate-100 p-3">

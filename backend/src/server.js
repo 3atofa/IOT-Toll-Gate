@@ -5,8 +5,9 @@ const fs = require('fs');
 const path = require('path');
 const http = require('http');
 const { Server } = require('socket.io');
+const bcrypt = require('bcryptjs');
 const app = require('./app');
-const { sequelize } = require('./models');
+const { sequelize, User } = require('./models');
 const { initSocket } = require('./services/socket.service');
 
 const ensureUploadsDir = () => {
@@ -27,6 +28,25 @@ const bootstrap = async () => {
       ? true
       : String(process.env.DB_SYNC_FORCE).toLowerCase() === 'true',
   });
+
+  const adminEmail = String(process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+  const adminPassword = String(process.env.ADMIN_PASSWORD || '');
+  const adminName = String(process.env.ADMIN_NAME || 'Admin').trim();
+
+  if (adminEmail && adminPassword) {
+    const existingAdmin = await User.findOne({ where: { email: adminEmail } });
+    if (!existingAdmin) {
+      const passwordHash = await bcrypt.hash(adminPassword, 12);
+      await User.create({
+        fullName: adminName,
+        email: adminEmail,
+        passwordHash,
+        role: 'admin',
+        isActive: true,
+      });
+      console.log(`Seeded default admin user: ${adminEmail}`);
+    }
+  }
 
   const server = http.createServer(app);
   const io = new Server(server, {

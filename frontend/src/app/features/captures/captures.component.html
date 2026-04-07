@@ -21,7 +21,9 @@
             <th class="pb-3 pr-4">Image</th>
             <th class="pb-3 pr-4">Event</th>
             <th class="pb-3 pr-4">Plate</th>
+            <th class="pb-3 pr-4">Face</th>
             <th class="pb-3 pr-4">OCR</th>
+            <th class="pb-3 pr-4">Security</th>
             <th class="pb-3 pr-4">Gate</th>
             <th class="pb-3 pr-4">Card UID</th>
             <th class="pb-3">Captured At</th>
@@ -34,6 +36,9 @@
             </td>
             <td class="py-4 pr-4 text-sm font-semibold text-slate-900">{{ item.eventType }}</td>
             <td class="py-4 pr-4 text-sm font-semibold text-slate-900">{{ item.plateText || 'Not read' }}</td>
+            <td class="py-4 pr-4 text-sm font-semibold text-slate-900">
+              {{ item.faceName || 'Not recognized' }}
+            </td>
             <td class="py-4 pr-4 text-sm">
               <span class="rounded-full px-2 py-1 text-xs font-semibold"
                     [ngClass]="ocrStatusClass(item.ocrStatus)">
@@ -41,6 +46,12 @@
               </span>
               <span *ngIf="item.plateConfidence != null" class="ml-2 text-xs text-slate-500">
                 {{ item.plateConfidence | number:'1.2-2' }}
+              </span>
+            </td>
+            <td class="py-4 pr-4 text-sm">
+              <span class="rounded-full px-2 py-1 text-xs font-semibold"
+                    [ngClass]="item.securityDecision === 'block' ? 'bg-red-100 text-red-800' : item.securityDecision === 'review' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'">
+                {{ (item.securityDecision || 'review') | uppercase }}
               </span>
             </td>
             <td class="py-4 pr-4 text-sm text-slate-700">{{ item.gateId }}</td>

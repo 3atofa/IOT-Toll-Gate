@@ -63,6 +63,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
         return 'Access Granted';
       case 'access_denied':
         return 'Access Denied';
+      case 'security_check':
+        return 'Security Check';
       default:
         return 'Manual Capture';
     }

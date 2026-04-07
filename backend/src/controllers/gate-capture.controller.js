@@ -2,7 +2,7 @@ const path = require('path');
 const fs = require('fs/promises');
 const { GateCapture } = require('../models');
 const { getSocket } = require('../services/socket.service');
-const { enqueueCaptureForAlpr } = require('../services/alpr.service');
+const { enqueueCaptureForAlpr, processCaptureImmediately } = require('../services/alpr.service');
 
 const toPublicImageUrl = (req, absolutePath) => {
   const uploadsRoot = path.join(process.cwd(), 'uploads');
@@ -25,15 +25,27 @@ const buildCapturePayload = (req, imagePath) => ({
   imagePath,
   plateText: null,
   plateConfidence: null,
+  faceName: null,
+  faceConfidence: null,
+  faceStatus: 'pending',
+  faceError: null,
   ocrStatus: 'pending',
   ocrProcessedAt: null,
   ocrError: null,
+  securityDecision: 'review',
+  securityReason: null,
   capturedAt: req.body?.capturedAt
     ? new Date(req.body.capturedAt)
     : req.query.capturedAt
       ? new Date(req.query.capturedAt)
       : new Date(),
 });
+
+const isSecurityCheckRequest = (req) => {
+  const mode = String(req.query.mode || req.body?.mode || req.get('x-capture-mode') || '').toLowerCase();
+  const flag = String(req.query.securityCheck || req.body?.securityCheck || req.get('x-security-check') || '').toLowerCase();
+  return mode === 'security_check' || flag === 'true';
+};
 
 const emitCapture = (capture) => {
   const io = getSocket();
@@ -58,6 +70,11 @@ const createCapture = async (req, res, next) => {
 
     const capture = await GateCapture.create(payload);
     emitCapture(capture);
+    if (isSecurityCheckRequest(req)) {
+      const recognized = await processCaptureImmediately(capture.id);
+      return res.status(201).json(recognized);
+    }
+
     runAlprAsync(capture.id);
 
     return res.status(201).json(capture);
@@ -84,6 +101,11 @@ const createRawCapture = async (req, res, next) => {
     const payload = buildCapturePayload(req, toPublicImageUrl(req, absolutePath));
     const capture = await GateCapture.create(payload);
     emitCapture(capture);
+    if (isSecurityCheckRequest(req)) {
+      const recognized = await processCaptureImmediately(capture.id);
+      return res.status(201).json(recognized);
+    }
+
     runAlprAsync(capture.id);
 
     return res.status(201).json(capture);
@@ -101,12 +123,19 @@ const updateCaptureOcr = async (req, res, next) => {
 
     const plateText = String(req.body.plateText || '').toUpperCase().replace(/\s+/g, '') || null;
     const confidence = req.body.plateConfidence == null ? null : Number(req.body.plateConfidence);
+    const faceConfidence = req.body.faceConfidence == null ? null : Number(req.body.faceConfidence);
 
     await capture.update({
       plateText,
       plateConfidence: Number.isFinite(confidence) ? confidence : null,
+      faceName: req.body.faceName || null,
+      faceConfidence: Number.isFinite(faceConfidence) ? faceConfidence : null,
+      faceStatus: req.body.faceStatus || (req.body.faceName ? 'done' : 'review_required'),
+      faceError: req.body.faceError || null,
       ocrStatus: req.body.ocrStatus || (plateText ? 'done' : 'review_required'),
       ocrError: req.body.ocrError || null,
+      securityDecision: req.body.securityDecision || 'review',
+      securityReason: req.body.securityReason || null,
       ocrProcessedAt: new Date(),
     });
 

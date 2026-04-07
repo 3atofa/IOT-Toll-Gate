@@ -1,6 +1,6 @@
-# ALPR Service (Phase 2)
+# ALPR Service (Plate + Face Recognition)
 
-This service performs asynchronous plate OCR for toll gate captures.
+This service performs plate OCR, face recognition, and security decision scoring for toll gate captures.
 
 ## Endpoints
 
@@ -14,7 +14,19 @@ This service performs asynchronous plate OCR for toll gate captures.
   "captureId": 10,
   "imagePath": "https://example.com/uploads/gate/gate_123.jpg",
   "gateId": "gate-1",
-  "capturedAt": "2026-04-04T10:00:00.000Z"
+  "capturedAt": "2026-04-04T10:00:00.000Z",
+  "wantedPersons": [
+    {
+      "fullName": "John Doe",
+      "faceImagePath": "https://example.com/uploads/wanted/john.jpg"
+    }
+  ],
+  "stolenCars": [
+    {
+      "plateNumber": "ABC1234",
+      "plateNormalized": "ABC1234"
+    }
+  ]
 }
 ```
 
@@ -23,7 +35,10 @@ Returns:
 ```json
 {
   "plateText": "ABC1234",
-  "confidence": 0.88,
+  "plateConfidence": 0.88,
+  "faceName": "John Doe",
+  "faceConfidence": 0.91,
+  "securityDecision": "allow",
   "strategy": "easyocr",
   "reviewRequired": false,
   "candidates": []
