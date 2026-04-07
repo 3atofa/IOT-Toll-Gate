@@ -22,10 +22,6 @@ export interface UpdateWantedPersonPayload extends CreateWantedPersonPayload {
   faceImagePath?: string;
 }
 
-export interface UpdateWantedPersonPayload extends CreateWantedPersonPayload {
-  faceImagePath?: string;
-}
-
 @Injectable({ providedIn: 'root' })
 export class SecurityApiService {
   constructor(private readonly http: HttpClient) {}
@@ -65,41 +61,12 @@ export class SecurityApiService {
     return this.http.delete<{ message: string }>(`${API_CONFIG.baseUrl}/security/wanted-persons/${id}`);
   }
 
-  updateWantedPerson(id: number, payload: UpdateWantedPersonPayload, faceImage?: File | null): Observable<WantedPerson> {
-    const formData = new FormData();
-    formData.append('fullName', payload.fullName);
-    formData.append('status', payload.status || 'active');
-    formData.append('notes', payload.notes || '');
-
-    if (payload.faceImagePath) {
-      formData.append('faceImagePath', payload.faceImagePath);
-    }
-
-    if (faceImage) {
-      formData.append('faceImage', faceImage);
-    }
-
-    return this.http.put<WantedPerson>(`${API_CONFIG.baseUrl}/security/wanted-persons/${id}`, formData);
-  }
-
-  deleteWantedPerson(id: number): Observable<{ message: string }> {
-    return this.http.delete<{ message: string }>(`${API_CONFIG.baseUrl}/security/wanted-persons/${id}`);
-  }
-
   getStolenCars(): Observable<StolenCar[]> {
     return this.http.get<StolenCar[]>(`${API_CONFIG.baseUrl}/security/stolen-cars`);
   }
 
   createStolenCar(payload: CreateStolenCarPayload): Observable<StolenCar> {
     return this.http.post<StolenCar>(`${API_CONFIG.baseUrl}/security/stolen-cars`, payload);
-  }
-
-  updateStolenCar(id: number, payload: CreateStolenCarPayload): Observable<StolenCar> {
-    return this.http.put<StolenCar>(`${API_CONFIG.baseUrl}/security/stolen-cars/${id}`, payload);
-  }
-
-  deleteStolenCar(id: number): Observable<{ message: string }> {
-    return this.http.delete<{ message: string }>(`${API_CONFIG.baseUrl}/security/stolen-cars/${id}`);
   }
 
   updateStolenCar(id: number, payload: CreateStolenCarPayload): Observable<StolenCar> {
