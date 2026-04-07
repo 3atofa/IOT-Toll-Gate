@@ -32,7 +32,7 @@ import { StolenCar, SecurityAlert } from '../../core/models/security.model';
 
         <div class="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
           <article class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-            <h2 class="text-xl font-bold text-slate-900">Add Wanted Car</h2>
+            <h2 class="text-xl font-bold text-slate-900">{{ isEditing ? 'Edit Wanted Car' : 'Add Wanted Car' }}</h2>
             <p class="mt-1 text-sm text-slate-600">The plate will be compared with recognition results during security checks.</p>
 
             <form class="mt-6 space-y-4" (ngSubmit)="saveCar()">
@@ -86,7 +86,15 @@ import { StolenCar, SecurityAlert } from '../../core/models/security.model';
                   type="submit"
                   class="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
                 >
-                  Save Wanted Car
+                  {{ isEditing ? 'Update Wanted Car' : 'Save Wanted Car' }}
+                </button>
+                <button
+                  *ngIf="isEditing"
+                  type="button"
+                  (click)="cancelEdit()"
+                  class="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                  Cancel Edit
                 </button>
                 <button
                   type="button"
@@ -138,14 +146,15 @@ import { StolenCar, SecurityAlert } from '../../core/models/security.model';
         <section class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
           <h2 class="text-xl font-bold text-slate-900">Wanted Cars List</h2>
           <div class="mt-4 overflow-x-auto">
-            <table class="w-full min-w-[860px] border-collapse">
+            <table class="w-full min-w-[900px] border-collapse">
               <thead>
                 <tr class="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
                   <th class="pb-3 pr-4">Plate</th>
                   <th class="pb-3 pr-4">Type</th>
                   <th class="pb-3 pr-4">Status</th>
                   <th class="pb-3 pr-4">Notes</th>
-                  <th class="pb-3">Created</th>
+                  <th class="pb-3 pr-4">Created</th>
+                  <th class="pb-3 pr-4">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -159,7 +168,25 @@ import { StolenCar, SecurityAlert } from '../../core/models/security.model';
                     </span>
                   </td>
                   <td class="py-4 pr-4 text-sm text-slate-700">{{ car.notes || '—' }}</td>
-                  <td class="py-4 text-sm text-slate-600">{{ car.createdAt | date:'MMM d, y, h:mm a' }}</td>
+                  <td class="py-4 pr-4 text-sm text-slate-600">{{ car.createdAt | date:'MMM d, y, h:mm a' }}</td>
+                  <td class="py-4 pr-4 text-sm">
+                    <div class="flex items-center gap-2">
+                      <button
+                        type="button"
+                        (click)="startEdit(car)"
+                        class="rounded-lg border border-blue-200 px-3 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-50"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        (click)="deleteCar(car)"
+                        class="rounded-lg border border-red-200 px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-50"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -173,6 +200,8 @@ import { StolenCar, SecurityAlert } from '../../core/models/security.model';
 export class WantedCarsComponent implements OnInit {
   wantedCars: StolenCar[] = [];
   alerts: SecurityAlert[] = [];
+  isEditing = false;
+  editingId: number | null = null;
 
   form: CreateStolenCarPayload = {
     plateNumber: '',
@@ -228,17 +257,57 @@ export class WantedCarsComponent implements OnInit {
       notes: this.form.notes || '',
     };
 
-    this.securityApi.createStolenCar(payload).subscribe({
+    const request$ = this.isEditing && this.editingId != null
+      ? this.securityApi.updateStolenCar(this.editingId, payload)
+      : this.securityApi.createStolenCar(payload);
+
+    request$.subscribe({
       next: () => {
-        this.feedback.successToast('Wanted car saved successfully', 'Saved');
+        this.feedback.successToast(this.isEditing ? 'Wanted car updated successfully' : 'Wanted car saved successfully', 'Saved');
         this.resetForm();
         this.loadAll();
       },
-      error: () => this.feedback.errorToast('Failed to save wanted car', 'Error'),
+      error: () => this.feedback.errorToast(this.isEditing ? 'Failed to update wanted car' : 'Failed to save wanted car', 'Error'),
+    });
+  }
+
+  startEdit(car: StolenCar): void {
+    this.isEditing = true;
+    this.editingId = car.id;
+    this.form = {
+      plateNumber: car.plateNumber,
+      vehicleType: car.vehicleType || '',
+      status: car.status,
+      notes: car.notes || '',
+    };
+  }
+
+  cancelEdit(): void {
+    this.resetForm();
+  }
+
+  deleteCar(car: StolenCar): void {
+    this.feedback.confirmDelete(`Delete wanted car ${car.plateNumber}?`).then((confirmed) => {
+      if (!confirmed) {
+        return;
+      }
+
+      this.securityApi.deleteStolenCar(car.id).subscribe({
+        next: () => {
+          this.feedback.successToast('Wanted car deleted successfully', 'Deleted');
+          if (this.editingId === car.id) {
+            this.resetForm();
+          }
+          this.loadAll();
+        },
+        error: () => this.feedback.errorToast('Failed to delete wanted car', 'Error'),
+      });
     });
   }
 
   resetForm(): void {
+    this.isEditing = false;
+    this.editingId = null;
     this.form = {
       plateNumber: '',
       vehicleType: '',

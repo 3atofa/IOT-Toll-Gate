@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { FeedbackService } from '../../core/services/feedback.service';
-import { SecurityApiService, CreateWantedPersonPayload } from '../../core/services/security-api.service';
+import { SecurityApiService, CreateWantedPersonPayload, UpdateWantedPersonPayload } from '../../core/services/security-api.service';
 import { SecurityAlert, WantedPerson } from '../../core/models/security.model';
 
 @Component({
@@ -32,7 +32,7 @@ import { SecurityAlert, WantedPerson } from '../../core/models/security.model';
 
         <div class="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
           <article class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-            <h2 class="text-xl font-bold text-slate-900">Add Wanted Person</h2>
+            <h2 class="text-xl font-bold text-slate-900">{{ isEditing ? 'Edit Wanted Person' : 'Add Wanted Person' }}</h2>
             <p class="mt-1 text-sm text-slate-600">Provide a clear front-face image for better matching accuracy.</p>
 
             <form class="mt-6 space-y-4" (ngSubmit)="saveWantedPerson()">
@@ -70,9 +70,13 @@ import { SecurityAlert, WantedPerson } from '../../core/models/security.model';
                 </div>
               </div>
 
-              <div *ngIf="imagePreviewUrl" class="rounded-xl border border-slate-200 p-3">
-                <p class="mb-2 text-xs uppercase tracking-wide text-slate-500">Preview</p>
-                <img [src]="imagePreviewUrl" alt="Wanted person preview" class="max-h-52 rounded-lg object-cover" />
+              <div *ngIf="imagePreviewUrl || (isEditing && existingFaceImagePath)" class="rounded-xl border border-slate-200 p-3">
+                <p class="mb-2 text-xs uppercase tracking-wide text-slate-500">{{ imagePreviewUrl ? 'Preview' : 'Current Image' }}</p>
+                <img
+                  [src]="imagePreviewUrl || displayImageUrl(existingFaceImagePath)"
+                  alt="Wanted person preview"
+                  class="max-h-52 rounded-lg object-cover"
+                />
               </div>
 
               <div>
@@ -92,7 +96,15 @@ import { SecurityAlert, WantedPerson } from '../../core/models/security.model';
                   [disabled]="saving"
                   class="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-400"
                 >
-                  {{ saving ? 'Saving...' : 'Save Wanted Person' }}
+                  {{ saving ? 'Saving...' : (isEditing ? 'Update Wanted Person' : 'Save Wanted Person') }}
+                </button>
+                <button
+                  *ngIf="isEditing"
+                  type="button"
+                  (click)="cancelEdit()"
+                  class="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                  Cancel Edit
                 </button>
                 <button
                   type="button"
@@ -130,14 +142,15 @@ import { SecurityAlert, WantedPerson } from '../../core/models/security.model';
         <section class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
           <h2 class="text-xl font-bold text-slate-900">Wanted Persons List</h2>
           <div class="mt-4 overflow-x-auto">
-            <table class="w-full min-w-[860px] border-collapse">
+            <table class="w-full min-w-[980px] border-collapse">
               <thead>
                 <tr class="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
                   <th class="pb-3 pr-4">Photo</th>
                   <th class="pb-3 pr-4">Name</th>
                   <th class="pb-3 pr-4">Status</th>
                   <th class="pb-3 pr-4">Notes</th>
-                  <th class="pb-3">Created</th>
+                  <th class="pb-3 pr-4">Created</th>
+                  <th class="pb-3 pr-4">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -159,7 +172,25 @@ import { SecurityAlert, WantedPerson } from '../../core/models/security.model';
                     </span>
                   </td>
                   <td class="py-4 pr-4 text-sm text-slate-700">{{ person.notes || '—' }}</td>
-                  <td class="py-4 text-sm text-slate-600">{{ person.createdAt | date:'MMM d, y, h:mm a' }}</td>
+                  <td class="py-4 pr-4 text-sm text-slate-600">{{ person.createdAt | date:'MMM d, y, h:mm a' }}</td>
+                  <td class="py-4 pr-4 text-sm">
+                    <div class="flex items-center gap-2">
+                      <button
+                        type="button"
+                        (click)="startEdit(person)"
+                        class="rounded-lg border border-blue-200 px-3 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-50"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        (click)="deletePerson(person)"
+                        class="rounded-lg border border-red-200 px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-50"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -175,7 +206,10 @@ export class WantedPersonsComponent implements OnInit {
   wantedAlerts: SecurityAlert[] = [];
   selectedImageFile: File | null = null;
   imagePreviewUrl: string | null = null;
+  existingFaceImagePath: string | null = null;
   saving = false;
+  isEditing = false;
+  editingId: number | null = null;
 
   form: CreateWantedPersonPayload = {
     fullName: '',
@@ -230,7 +264,7 @@ export class WantedPersonsComponent implements OnInit {
       return;
     }
 
-    if (!this.selectedImageFile) {
+    if (!this.isEditing && !this.selectedImageFile) {
       this.feedback.errorToast('Face image is required', 'Validation');
       return;
     }
@@ -242,7 +276,28 @@ export class WantedPersonsComponent implements OnInit {
       notes: this.form.notes || '',
     };
 
-    this.securityApi.createWantedPerson(payload, this.selectedImageFile).subscribe({
+    if (this.isEditing && this.editingId != null) {
+      const updatePayload: UpdateWantedPersonPayload = {
+        ...payload,
+        faceImagePath: this.selectedImageFile ? this.existingFaceImagePath || undefined : this.existingFaceImagePath || undefined,
+      };
+
+      this.securityApi.updateWantedPerson(this.editingId, updatePayload, this.selectedImageFile).subscribe({
+        next: () => {
+          this.feedback.successToast('Wanted person updated successfully', 'Saved');
+          this.saving = false;
+          this.resetForm();
+          this.loadAll();
+        },
+        error: () => {
+          this.saving = false;
+          this.feedback.errorToast('Failed to update wanted person', 'Error');
+        },
+      });
+      return;
+    }
+
+    this.securityApi.createWantedPerson(payload, this.selectedImageFile as File).subscribe({
       next: () => {
         this.feedback.successToast('Wanted person saved successfully', 'Saved');
         this.saving = false;
@@ -256,6 +311,47 @@ export class WantedPersonsComponent implements OnInit {
     });
   }
 
+  startEdit(person: WantedPerson): void {
+    this.isEditing = true;
+    this.editingId = person.id;
+    this.existingFaceImagePath = person.faceImagePath || null;
+    this.form = {
+      fullName: person.fullName,
+      status: person.status,
+      notes: person.notes || '',
+    };
+
+    if (this.imagePreviewUrl) {
+      URL.revokeObjectURL(this.imagePreviewUrl);
+      this.imagePreviewUrl = null;
+    }
+
+    this.selectedImageFile = null;
+  }
+
+  cancelEdit(): void {
+    this.resetForm();
+  }
+
+  deletePerson(person: WantedPerson): void {
+    this.feedback.confirmDelete(`Delete wanted person ${person.fullName}?`).then((confirmed) => {
+      if (!confirmed) {
+        return;
+      }
+
+      this.securityApi.deleteWantedPerson(person.id).subscribe({
+        next: () => {
+          this.feedback.successToast('Wanted person deleted successfully', 'Deleted');
+          if (this.editingId === person.id) {
+            this.resetForm();
+          }
+          this.loadAll();
+        },
+        error: () => this.feedback.errorToast('Failed to delete wanted person', 'Error'),
+      });
+    });
+  }
+
   resetForm(): void {
     this.form = {
       fullName: '',
@@ -263,6 +359,9 @@ export class WantedPersonsComponent implements OnInit {
       notes: '',
     };
     this.selectedImageFile = null;
+    this.existingFaceImagePath = null;
+    this.isEditing = false;
+    this.editingId = null;
 
     if (this.imagePreviewUrl) {
       URL.revokeObjectURL(this.imagePreviewUrl);

@@ -5,8 +5,12 @@ const multer = require('multer');
 const {
   createWantedPerson,
   getWantedPersons,
+  updateWantedPerson,
+  deleteWantedPerson,
   createStolenCar,
   getStolenCars,
+  updateStolenCar,
+  deleteStolenCar,
   getSecurityAlerts,
 } = require('../controllers/security.controller');
 
@@ -36,8 +40,12 @@ const upload = multer({
 
 router.get('/wanted-persons', getWantedPersons);
 router.post('/wanted-persons', upload.single('faceImage'), createWantedPerson);
+router.put('/wanted-persons/:id', upload.single('faceImage'), updateWantedPerson);
+router.delete('/wanted-persons/:id', deleteWantedPerson);
 router.get('/stolen-cars', getStolenCars);
 router.post('/stolen-cars', createStolenCar);
+router.put('/stolen-cars/:id', updateStolenCar);
+router.delete('/stolen-cars/:id', deleteStolenCar);
 router.get('/alerts', getSecurityAlerts);
 
 module.exports = router;
