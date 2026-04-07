@@ -266,7 +266,10 @@ def recognize(
     candidates = run_ocr(image)
     plate_text, confidence, review_required, response_candidates = pick_best(candidates)
     face_name, face_confidence, face_review_required, face_error, face_detected = recognize_face(image, payload.wantedPersons)
-    stolen_match = match_stolen_car(plate_text, payload.stolenCars) if not review_required else None
+    # Always attempt watchlist plate matching even if OCR is marked for review.
+    # This allows exact wanted/stolen plate hits (e.g., short formats like BT2)
+    # to trigger blocking alerts immediately.
+    stolen_match = match_stolen_car(plate_text, payload.stolenCars)
     wanted_match = face_name if not face_review_required else None
     security_decision, security_reason = decide_security(
         plate_text,
