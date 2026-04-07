@@ -9,9 +9,9 @@ import { AuthService } from '../services/auth.service';
   standalone: true,
   imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive],
   template: `
-    <div class="flex h-screen bg-slate-100">
+    <div class="flex h-dvh overflow-hidden bg-slate-100">
       <!-- Sidebar -->
-      <aside class="w-64 bg-slate-900 text-white shadow-lg flex flex-col">
+      <aside class="w-64 h-full bg-slate-900 text-white shadow-lg flex flex-col overflow-hidden shrink-0">
         <!-- Header -->
         <div class="p-6 border-b border-slate-700">
           <h1 class="text-2xl font-bold flex items-center gap-3">
@@ -22,7 +22,7 @@ import { AuthService } from '../services/auth.service';
         </div>
 
         <!-- Navigation Menu -->
-        <nav class="flex-1 px-4 py-6 space-y-2">
+        <nav class="flex-1 overflow-y-auto px-4 py-6 space-y-2">
           <a
             routerLink="/dashboard"
             routerLinkActive="bg-blue-600"
@@ -124,7 +124,7 @@ import { AuthService } from '../services/auth.service';
       </aside>
 
       <!-- Main Content -->
-      <main class="flex-1 flex flex-col overflow-hidden">
+      <main class="flex-1 min-w-0 h-full flex flex-col overflow-hidden">
         <!-- Header Bar -->
         <header class="bg-white border-b border-slate-200 px-8 py-4 shadow-sm flex justify-between items-center">
           <div>
@@ -143,7 +143,7 @@ import { AuthService } from '../services/auth.service';
         </header>
 
         <!-- Page Content -->
-        <div class="flex-1 overflow-auto">
+        <div class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
           <router-outlet></router-outlet>
         </div>
       </main>
