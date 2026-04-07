@@ -16,6 +16,7 @@ import { GateCapture } from '../../core/models/gate-capture.model';
 export class DashboardComponent implements OnInit, OnDestroy {
   latestCapture: GateCapture | null = null;
   loading = true;
+  imageLoadFailed = false;
   private subscriptions = new Subscription();
 
   constructor(
@@ -47,14 +48,20 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.captureApi.getLatestCapture().subscribe({
       next: (capture) => {
         this.latestCapture = capture;
+        this.imageLoadFailed = false;
         this.loading = false;
       },
       error: () => {
         this.latestCapture = null;
+        this.imageLoadFailed = false;
         this.loading = false;
         this.feedback.infoToast('No captures yet. Trigger one from ESP32-CAM.', 'Waiting');
       },
     });
+  }
+
+  onImageError(): void {
+    this.imageLoadFailed = true;
   }
 
   getStatusLabel(eventType: string): string {

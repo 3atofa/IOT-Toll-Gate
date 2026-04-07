@@ -23,10 +23,18 @@
     <div *ngIf="!loading && latestCapture" class="grid gap-6 lg:grid-cols-[1fr_300px]">
       <article class="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
         <img
+          *ngIf="!imageLoadFailed"
           [src]="displayImageUrl(latestCapture.imagePath)"
+          (error)="onImageError()"
           alt="Latest gate capture"
-          class="h-[480px] w-full object-cover"
+          class="h-[480px] w-full object-contain bg-slate-900"
         />
+        <div *ngIf="imageLoadFailed" class="h-[480px] grid place-items-center bg-slate-100 text-slate-500">
+          <div class="text-center">
+            <i class="fa-solid fa-image text-3xl"></i>
+            <p class="mt-2 text-sm">Image preview unavailable for this capture.</p>
+          </div>
+        </div>
       </article>
 
       <aside class="space-y-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">

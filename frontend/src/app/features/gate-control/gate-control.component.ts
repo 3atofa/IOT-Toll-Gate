@@ -73,19 +73,19 @@ interface Gate {
           <div class="flex gap-3">
             <button 
               (click)="openGate(gate)"
-              [disabled]="gate.status === 'open' || isLoading"
+              [disabled]="gate.status === 'open' || actionGateId === gate.id"
               class="flex-1 bg-green-500 hover:bg-green-600 disabled:bg-slate-300 text-white font-medium py-3 rounded-lg transition flex items-center justify-center gap-2"
             >
-              <span *ngIf="!isLoading"><i class="fas fa-lock-open"></i> Open Gate</span>
-              <span *ngIf="isLoading"><i class="fas fa-spinner fa-spin"></i> Opening...</span>
+              <span *ngIf="actionGateId !== gate.id"><i class="fas fa-lock-open"></i> Open Gate</span>
+              <span *ngIf="actionGateId === gate.id && actionLabel === 'open'"><i class="fas fa-spinner fa-spin"></i> Opening...</span>
             </button>
             <button 
               (click)="closeGate(gate)"
-              [disabled]="gate.status === 'closed' || isLoading"
+              [disabled]="gate.status === 'closed' || actionGateId === gate.id"
               class="flex-1 bg-red-500 hover:bg-red-600 disabled:bg-slate-300 text-white font-medium py-3 rounded-lg transition flex items-center justify-center gap-2"
             >
-              <span *ngIf="!isLoading"><i class="fas fa-lock"></i> Close Gate</span>
-              <span *ngIf="isLoading"><i class="fas fa-spinner fa-spin"></i> Closing...</span>
+              <span *ngIf="actionGateId !== gate.id"><i class="fas fa-lock"></i> Close Gate</span>
+              <span *ngIf="actionGateId === gate.id && actionLabel === 'close'"><i class="fas fa-spinner fa-spin"></i> Closing...</span>
             </button>
           </div>
 
@@ -112,7 +112,16 @@ interface Gate {
       <!-- Empty State -->
       <div *ngIf="!isLoading && gates.length === 0" class="bg-white rounded-lg shadow-md p-8 text-center">
         <i class="fas fa-info-circle text-4xl text-slate-400 mb-4"></i>
-        <p class="text-slate-600">No gates configured</p>
+        <p class="text-slate-600 mb-4">No gates configured</p>
+        <button
+          type="button"
+          (click)="createDefaultGate()"
+          [disabled]="creatingDefaultGate"
+          class="inline-flex items-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 px-4 py-2 text-white font-medium"
+        >
+          <i class="fas" [ngClass]="creatingDefaultGate ? 'fa-spinner fa-spin' : 'fa-plus-circle'"></i>
+          {{ creatingDefaultGate ? 'Creating...' : 'Create Default Gate (gate-1)' }}
+        </button>
       </div>
     </div>
   `,
@@ -125,6 +134,9 @@ interface Gate {
 export class GateControlComponent implements OnInit, OnDestroy {
   gates: Gate[] = [];
   isLoading = false;
+  creatingDefaultGate = false;
+  actionGateId: string | null = null;
+  actionLabel: 'open' | 'close' | null = null;
   private subscriptions = new Subscription();
 
   constructor(
@@ -139,7 +151,7 @@ export class GateControlComponent implements OnInit, OnDestroy {
     // Listen for gate status changes
     const statusSub = this.realtime.onGateStatusChanged().subscribe({
       next: (data: { gateId: string; status: 'open' | 'closed' | 'error' }) => {
-        const gateIndex = this.gates.findIndex(g => g.id === data.gateId);
+        const gateIndex = this.gates.findIndex(g => String(g.id) === String(data.gateId));
         if (gateIndex !== -1) {
           this.gates[gateIndex].status = data.status;
           this.gates[gateIndex].lastCommandAt = new Date().toISOString();
@@ -167,38 +179,67 @@ export class GateControlComponent implements OnInit, OnDestroy {
     });
   }
 
+  createDefaultGate(): void {
+    this.creatingDefaultGate = true;
+    this.http.post<Gate>(`${API_CONFIG.baseUrl}/gates`, {
+      gateId: 'gate-1',
+      gateNumber: 1,
+      location: 'Main Entry',
+    }).subscribe({
+      next: () => {
+        this.feedback.successToast('Default gate created successfully.', 'Gate Ready');
+        this.creatingDefaultGate = false;
+        this.loadGates();
+      },
+      error: () => {
+        this.creatingDefaultGate = false;
+        this.feedback.errorToast('Failed to create default gate.', 'Error');
+      },
+    });
+  }
+
   openGate(gate: Gate): void {
-    this.isLoading = true;
-    this.http.post(`${API_CONFIG.baseUrl}/gates/${gate.id}/open`, {
-      commandedBy: 'admin-user',
+    this.actionGateId = gate.id;
+    this.actionLabel = 'open';
+    this.http.put(`${API_CONFIG.baseUrl}/gates/${gate.id}`, {
+      status: 'open',
+      commandedBy: 'web-operator',
     }).subscribe({
       next: (response: any) => {
         gate.status = 'open';
+        gate.lastCommand = 'open';
         gate.lastCommandAt = new Date().toISOString();
         this.feedback.successToast('Gate opened successfully', 'Success');
-        this.isLoading = false;
+        this.actionGateId = null;
+        this.actionLabel = null;
       },
       error: (err) => {
         this.feedback.errorToast('Failed to open gate', 'Error');
-        this.isLoading = false;
+        this.actionGateId = null;
+        this.actionLabel = null;
       },
     });
   }
 
   closeGate(gate: Gate): void {
-    this.isLoading = true;
-    this.http.post(`${API_CONFIG.baseUrl}/gates/${gate.id}/close`, {
-      commandedBy: 'admin-user',
+    this.actionGateId = gate.id;
+    this.actionLabel = 'close';
+    this.http.put(`${API_CONFIG.baseUrl}/gates/${gate.id}`, {
+      status: 'closed',
+      commandedBy: 'web-operator',
     }).subscribe({
       next: (response: any) => {
         gate.status = 'closed';
+        gate.lastCommand = 'close';
         gate.lastCommandAt = new Date().toISOString();
         this.feedback.successToast('Gate closed successfully', 'Success');
-        this.isLoading = false;
+        this.actionGateId = null;
+        this.actionLabel = null;
       },
       error: (err) => {
         this.feedback.errorToast('Failed to close gate', 'Error');
-        this.isLoading = false;
+        this.actionGateId = null;
+        this.actionLabel = null;
       },
     });
   }
