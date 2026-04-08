@@ -19,105 +19,29 @@ import { SecurityAlert, WantedPerson } from '../../core/models/security.model';
               <h1 class="mt-1 text-3xl font-black text-slate-900">Wanted Persons</h1>
               <p class="mt-2 text-slate-600">Upload face image and name. If matched at gate, a blocked alert is raised with car plate details.</p>
             </div>
-            <button
-              type="button"
-              (click)="loadAll()"
-              class="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
-            >
-              <i class="fa-solid fa-arrows-rotate"></i>
-              Refresh
-            </button>
+            <div class="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                (click)="openCreateModal()"
+                class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+              >
+                <i class="fa-solid fa-plus"></i>
+                Add Person
+              </button>
+              <button
+                type="button"
+                (click)="loadAll()"
+                class="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
+              >
+                <i class="fa-solid fa-arrows-rotate"></i>
+                Refresh
+              </button>
+            </div>
           </div>
         </header>
 
         <div class="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-          <article class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-            <h2 class="text-xl font-bold text-slate-900">{{ isEditing ? 'Edit Wanted Person' : 'Add Wanted Person' }}</h2>
-            <p class="mt-1 text-sm text-slate-600">Provide a clear front-face image for better matching accuracy.</p>
-
-            <form class="mt-6 space-y-4" (ngSubmit)="saveWantedPerson()">
-              <div>
-                <label class="mb-2 block text-sm font-semibold text-slate-700">Full Name</label>
-                <input
-                  name="fullName"
-                  [(ngModel)]="form.fullName"
-                  required
-                  placeholder="Enter wanted person name"
-                  class="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                />
-              </div>
-
-              <div class="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label class="mb-2 block text-sm font-semibold text-slate-700">Status</label>
-                  <select
-                    name="status"
-                    [(ngModel)]="form.status"
-                    class="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                  >
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="mb-2 block text-sm font-semibold text-slate-700">Face Image</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    (change)="onFaceImageSelected($event)"
-                    class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition file:mr-3 file:rounded-lg file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-white hover:file:bg-slate-700"
-                  />
-                </div>
-              </div>
-
-              <div *ngIf="imagePreviewUrl || (isEditing && existingFaceImagePath)" class="rounded-xl border border-slate-200 p-3">
-                <p class="mb-2 text-xs uppercase tracking-wide text-slate-500">{{ imagePreviewUrl ? 'Preview' : 'Current Image' }}</p>
-                <img
-                  [src]="imagePreviewUrl || displayImageUrl(existingFaceImagePath)"
-                  alt="Wanted person preview"
-                  class="max-h-52 rounded-lg object-cover"
-                />
-              </div>
-
-              <div>
-                <label class="mb-2 block text-sm font-semibold text-slate-700">Notes</label>
-                <textarea
-                  name="notes"
-                  [(ngModel)]="form.notes"
-                  rows="3"
-                  placeholder="Reason for watchlist"
-                  class="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                ></textarea>
-              </div>
-
-              <div class="flex flex-wrap items-center gap-3">
-                <button
-                  type="submit"
-                  [disabled]="saving"
-                  class="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-400"
-                >
-                  {{ saving ? 'Saving...' : (isEditing ? 'Update Wanted Person' : 'Save Wanted Person') }}
-                </button>
-                <button
-                  *ngIf="isEditing"
-                  type="button"
-                  (click)="cancelEdit()"
-                  class="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                >
-                  Cancel Edit
-                </button>
-                <button
-                  type="button"
-                  (click)="resetForm()"
-                  class="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                >
-                  Clear
-                </button>
-              </div>
-            </form>
-          </article>
-
-          <aside class="space-y-6">
+          <aside class="space-y-6 xl:col-span-2">
             <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
               <h2 class="text-xl font-bold text-slate-900">Recent Wanted Alerts</h2>
               <div *ngIf="wantedAlerts.length === 0" class="py-6 text-sm text-slate-500">No wanted-person alerts yet.</div>
@@ -177,14 +101,14 @@ import { SecurityAlert, WantedPerson } from '../../core/models/security.model';
                     <div class="flex items-center gap-2">
                       <button
                         type="button"
-                        (click)="startEdit(person)"
+                        (click)="openEditModal(person)"
                         class="rounded-lg border border-blue-200 px-3 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-50"
                       >
                         Edit
                       </button>
                       <button
                         type="button"
-                        (click)="deletePerson(person)"
+                        (click)="openDeleteModal(person)"
                         class="rounded-lg border border-red-200 px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-50"
                       >
                         Delete
@@ -197,6 +121,111 @@ import { SecurityAlert, WantedPerson } from '../../core/models/security.model';
           </div>
           <p *ngIf="wantedPersons.length === 0" class="py-8 text-center text-slate-500">No wanted persons added yet.</p>
         </section>
+
+        <div *ngIf="showFormModal" class="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4">
+          <div class="w-full max-w-xl rounded-2xl bg-white p-6 shadow-xl">
+            <h2 class="text-xl font-bold text-slate-900">{{ isEditing ? 'Edit Wanted Person' : 'Add Wanted Person' }}</h2>
+            <p class="mt-1 text-sm text-slate-600">Update person details including status.</p>
+
+            <form class="mt-5 space-y-4" (ngSubmit)="saveWantedPerson()">
+              <div>
+                <label class="mb-2 block text-sm font-semibold text-slate-700">Full Name</label>
+                <input
+                  name="fullName"
+                  [(ngModel)]="form.fullName"
+                  required
+                  placeholder="Enter wanted person name"
+                  class="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
+
+              <div class="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label class="mb-2 block text-sm font-semibold text-slate-700">Status</label>
+                  <select
+                    name="status"
+                    [(ngModel)]="form.status"
+                    class="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="mb-2 block text-sm font-semibold text-slate-700">Face Image</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    (change)="onFaceImageSelected($event)"
+                    class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition file:mr-3 file:rounded-lg file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-white hover:file:bg-slate-700"
+                  />
+                </div>
+              </div>
+
+              <div *ngIf="imagePreviewUrl || (isEditing && existingFaceImagePath)" class="rounded-xl border border-slate-200 p-3">
+                <p class="mb-2 text-xs uppercase tracking-wide text-slate-500">{{ imagePreviewUrl ? 'Preview' : 'Current Image' }}</p>
+                <img
+                  [src]="imagePreviewUrl || displayImageUrl(existingFaceImagePath)"
+                  alt="Wanted person preview"
+                  class="max-h-52 rounded-lg object-cover"
+                />
+              </div>
+
+              <div>
+                <label class="mb-2 block text-sm font-semibold text-slate-700">Notes</label>
+                <textarea
+                  name="notes"
+                  [(ngModel)]="form.notes"
+                  rows="3"
+                  placeholder="Reason for watchlist"
+                  class="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                ></textarea>
+              </div>
+
+              <div class="flex flex-wrap items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  (click)="closeFormModal()"
+                  class="rounded-xl border border-slate-300 px-5 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  [disabled]="saving"
+                  class="rounded-xl bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+                >
+                  {{ saving ? 'Saving...' : (isEditing ? 'Update Wanted Person' : 'Save Wanted Person') }}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div *ngIf="showDeleteModal && deletingPerson" class="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4">
+          <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <h2 class="text-xl font-bold text-slate-900">Delete Wanted Person</h2>
+            <p class="mt-2 text-sm text-slate-700">
+              Are you sure you want to delete <span class="font-bold">{{ deletingPerson.fullName }}</span>?
+            </p>
+            <div class="mt-6 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                (click)="closeDeleteModal()"
+                class="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                (click)="confirmDeletePerson()"
+                class="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   `,
@@ -210,6 +239,9 @@ export class WantedPersonsComponent implements OnInit {
   saving = false;
   isEditing = false;
   editingId: number | null = null;
+  showFormModal = false;
+  showDeleteModal = false;
+  deletingPerson: WantedPerson | null = null;
 
   form: CreateWantedPersonPayload = {
     fullName: '',
@@ -287,6 +319,7 @@ export class WantedPersonsComponent implements OnInit {
           this.feedback.successToast('Wanted person updated successfully', 'Saved');
           this.saving = false;
           this.resetForm();
+          this.showFormModal = false;
           this.loadAll();
         },
         error: () => {
@@ -302,6 +335,7 @@ export class WantedPersonsComponent implements OnInit {
         this.feedback.successToast('Wanted person saved successfully', 'Saved');
         this.saving = false;
         this.resetForm();
+        this.showFormModal = false;
         this.loadAll();
       },
       error: () => {
@@ -311,7 +345,12 @@ export class WantedPersonsComponent implements OnInit {
     });
   }
 
-  startEdit(person: WantedPerson): void {
+  openCreateModal(): void {
+    this.resetForm();
+    this.showFormModal = true;
+  }
+
+  openEditModal(person: WantedPerson): void {
     this.isEditing = true;
     this.editingId = person.id;
     this.existingFaceImagePath = person.faceImagePath || null;
@@ -327,28 +366,41 @@ export class WantedPersonsComponent implements OnInit {
     }
 
     this.selectedImageFile = null;
+    this.showFormModal = true;
   }
 
-  cancelEdit(): void {
+  closeFormModal(): void {
     this.resetForm();
+    this.showFormModal = false;
   }
 
-  deletePerson(person: WantedPerson): void {
-    this.feedback.confirmDelete(`Delete wanted person ${person.fullName}?`).then((confirmed) => {
-      if (!confirmed) {
-        return;
-      }
+  openDeleteModal(person: WantedPerson): void {
+    this.deletingPerson = person;
+    this.showDeleteModal = true;
+  }
 
-      this.securityApi.deleteWantedPerson(person.id).subscribe({
-        next: () => {
-          this.feedback.successToast('Wanted person deleted successfully', 'Deleted');
-          if (this.editingId === person.id) {
-            this.resetForm();
-          }
-          this.loadAll();
-        },
-        error: () => this.feedback.errorToast('Failed to delete wanted person', 'Error'),
-      });
+  closeDeleteModal(): void {
+    this.deletingPerson = null;
+    this.showDeleteModal = false;
+  }
+
+  confirmDeletePerson(): void {
+    if (!this.deletingPerson) {
+      return;
+    }
+
+    const deleteId = this.deletingPerson.id;
+    this.securityApi.deleteWantedPerson(deleteId).subscribe({
+      next: () => {
+        this.feedback.successToast('Wanted person deleted successfully', 'Deleted');
+        if (this.editingId === deleteId) {
+          this.resetForm();
+          this.showFormModal = false;
+        }
+        this.closeDeleteModal();
+        this.loadAll();
+      },
+      error: () => this.feedback.errorToast('Failed to delete wanted person', 'Error'),
     });
   }
 

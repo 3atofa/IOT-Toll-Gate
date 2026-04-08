@@ -19,95 +19,29 @@ import { StolenCar, SecurityAlert } from '../../core/models/security.model';
               <h1 class="mt-1 text-3xl font-black text-slate-900">Wanted Cars</h1>
               <p class="mt-2 text-slate-600">Add stolen or wanted vehicles and block them automatically at the gate.</p>
             </div>
-            <button
-              type="button"
-              (click)="loadAll()"
-              class="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
-            >
-              <i class="fa-solid fa-arrows-rotate"></i>
-              Refresh
-            </button>
+            <div class="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                (click)="openCreateModal()"
+                class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+              >
+                <i class="fa-solid fa-plus"></i>
+                Add Car
+              </button>
+              <button
+                type="button"
+                (click)="loadAll()"
+                class="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
+              >
+                <i class="fa-solid fa-arrows-rotate"></i>
+                Refresh
+              </button>
+            </div>
           </div>
         </header>
 
         <div class="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-          <article class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-            <h2 class="text-xl font-bold text-slate-900">{{ isEditing ? 'Edit Wanted Car' : 'Add Wanted Car' }}</h2>
-            <p class="mt-1 text-sm text-slate-600">The plate will be compared with recognition results during security checks.</p>
-
-            <form class="mt-6 space-y-4" (ngSubmit)="saveCar()">
-              <div>
-                <label class="mb-2 block text-sm font-semibold text-slate-700">Plate Number</label>
-                <input
-                  name="plateNumber"
-                  [(ngModel)]="form.plateNumber"
-                  required
-                  placeholder="ABC1234"
-                  class="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                />
-              </div>
-
-              <div class="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label class="mb-2 block text-sm font-semibold text-slate-700">Vehicle Type</label>
-                  <input
-                    name="vehicleType"
-                    [(ngModel)]="form.vehicleType"
-                    placeholder="Sedan / SUV / Truck"
-                    class="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                  />
-                </div>
-                <div>
-                  <label class="mb-2 block text-sm font-semibold text-slate-700">Status</label>
-                  <select
-                    name="status"
-                    [(ngModel)]="form.status"
-                    class="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                  >
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label class="mb-2 block text-sm font-semibold text-slate-700">Notes</label>
-                <textarea
-                  name="notes"
-                  [(ngModel)]="form.notes"
-                  rows="4"
-                  placeholder="Reason for flagging this car"
-                  class="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                ></textarea>
-              </div>
-
-              <div class="flex items-center gap-3">
-                <button
-                  type="submit"
-                  class="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
-                >
-                  {{ isEditing ? 'Update Wanted Car' : 'Save Wanted Car' }}
-                </button>
-                <button
-                  *ngIf="isEditing"
-                  type="button"
-                  (click)="cancelEdit()"
-                  class="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                >
-                  Cancel Edit
-                </button>
-                <button
-                  type="button"
-                  (click)="resetForm()"
-                  class="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                >
-                  Clear
-                </button>
-              </div>
-            </form>
-          </article>
-
-          <aside class="space-y-6">
+          <aside class="space-y-6 xl:col-span-2">
             <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
               <h2 class="text-xl font-bold text-slate-900">Alert Summary</h2>
               <div class="mt-4 grid grid-cols-3 gap-3 text-center">
@@ -173,14 +107,14 @@ import { StolenCar, SecurityAlert } from '../../core/models/security.model';
                     <div class="flex items-center gap-2">
                       <button
                         type="button"
-                        (click)="startEdit(car)"
+                        (click)="openEditModal(car)"
                         class="rounded-lg border border-blue-200 px-3 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-50"
                       >
                         Edit
                       </button>
                       <button
                         type="button"
-                        (click)="deleteCar(car)"
+                        (click)="openDeleteModal(car)"
                         class="rounded-lg border border-red-200 px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-50"
                       >
                         Delete
@@ -193,6 +127,101 @@ import { StolenCar, SecurityAlert } from '../../core/models/security.model';
           </div>
           <p *ngIf="wantedCars.length === 0" class="py-8 text-center text-slate-500">No wanted cars added yet.</p>
         </section>
+
+        <div *ngIf="showFormModal" class="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4">
+          <div class="w-full max-w-xl rounded-2xl bg-white p-6 shadow-xl">
+            <h2 class="text-xl font-bold text-slate-900">{{ isEditing ? 'Edit Wanted Car' : 'Add Wanted Car' }}</h2>
+            <p class="mt-1 text-sm text-slate-600">Update car details including status.</p>
+
+            <form class="mt-5 space-y-4" (ngSubmit)="saveCar()">
+              <div>
+                <label class="mb-2 block text-sm font-semibold text-slate-700">Plate Number</label>
+                <input
+                  name="plateNumber"
+                  [(ngModel)]="form.plateNumber"
+                  required
+                  placeholder="ABC1234"
+                  class="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
+
+              <div class="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label class="mb-2 block text-sm font-semibold text-slate-700">Vehicle Type</label>
+                  <input
+                    name="vehicleType"
+                    [(ngModel)]="form.vehicleType"
+                    placeholder="Sedan / SUV / Truck"
+                    class="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+                <div>
+                  <label class="mb-2 block text-sm font-semibold text-slate-700">Status</label>
+                  <select
+                    name="status"
+                    [(ngModel)]="form.status"
+                    class="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label class="mb-2 block text-sm font-semibold text-slate-700">Notes</label>
+                <textarea
+                  name="notes"
+                  [(ngModel)]="form.notes"
+                  rows="4"
+                  placeholder="Reason for flagging this car"
+                  class="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                ></textarea>
+              </div>
+
+              <div class="flex flex-wrap items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  (click)="closeFormModal()"
+                  class="rounded-xl border border-slate-300 px-5 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  class="rounded-xl bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+                >
+                  {{ isEditing ? 'Update Wanted Car' : 'Save Wanted Car' }}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div *ngIf="showDeleteModal && deletingCar" class="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4">
+          <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <h2 class="text-xl font-bold text-slate-900">Delete Wanted Car</h2>
+            <p class="mt-2 text-sm text-slate-700">
+              Are you sure you want to delete <span class="font-bold">{{ deletingCar.plateNumber }}</span>?
+            </p>
+            <div class="mt-6 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                (click)="closeDeleteModal()"
+                class="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                (click)="confirmDeleteCar()"
+                class="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   `,
@@ -202,6 +231,9 @@ export class WantedCarsComponent implements OnInit {
   alerts: SecurityAlert[] = [];
   isEditing = false;
   editingId: number | null = null;
+  showFormModal = false;
+  showDeleteModal = false;
+  deletingCar: StolenCar | null = null;
 
   form: CreateStolenCarPayload = {
     plateNumber: '',
@@ -265,13 +297,19 @@ export class WantedCarsComponent implements OnInit {
       next: () => {
         this.feedback.successToast(this.isEditing ? 'Wanted car updated successfully' : 'Wanted car saved successfully', 'Saved');
         this.resetForm();
+        this.showFormModal = false;
         this.loadAll();
       },
       error: () => this.feedback.errorToast(this.isEditing ? 'Failed to update wanted car' : 'Failed to save wanted car', 'Error'),
     });
   }
 
-  startEdit(car: StolenCar): void {
+  openCreateModal(): void {
+    this.resetForm();
+    this.showFormModal = true;
+  }
+
+  openEditModal(car: StolenCar): void {
     this.isEditing = true;
     this.editingId = car.id;
     this.form = {
@@ -280,28 +318,41 @@ export class WantedCarsComponent implements OnInit {
       status: car.status,
       notes: car.notes || '',
     };
+    this.showFormModal = true;
   }
 
-  cancelEdit(): void {
+  closeFormModal(): void {
     this.resetForm();
+    this.showFormModal = false;
   }
 
-  deleteCar(car: StolenCar): void {
-    this.feedback.confirmDelete(`Delete wanted car ${car.plateNumber}?`).then((confirmed) => {
-      if (!confirmed) {
-        return;
-      }
+  openDeleteModal(car: StolenCar): void {
+    this.deletingCar = car;
+    this.showDeleteModal = true;
+  }
 
-      this.securityApi.deleteStolenCar(car.id).subscribe({
-        next: () => {
-          this.feedback.successToast('Wanted car deleted successfully', 'Deleted');
-          if (this.editingId === car.id) {
-            this.resetForm();
-          }
-          this.loadAll();
-        },
-        error: () => this.feedback.errorToast('Failed to delete wanted car', 'Error'),
-      });
+  closeDeleteModal(): void {
+    this.deletingCar = null;
+    this.showDeleteModal = false;
+  }
+
+  confirmDeleteCar(): void {
+    if (!this.deletingCar) {
+      return;
+    }
+
+    const deleteId = this.deletingCar.id;
+    this.securityApi.deleteStolenCar(deleteId).subscribe({
+      next: () => {
+        this.feedback.successToast('Wanted car deleted successfully', 'Deleted');
+        if (this.editingId === deleteId) {
+          this.resetForm();
+          this.showFormModal = false;
+        }
+        this.closeDeleteModal();
+        this.loadAll();
+      },
+      error: () => this.feedback.errorToast('Failed to delete wanted car', 'Error'),
     });
   }
 
