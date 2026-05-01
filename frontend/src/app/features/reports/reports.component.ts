@@ -1,165 +1,218 @@
-import { CommonModule, DatePipe } from '@angular/common';
+import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ReportApiService } from '../../core/services/report-api.service';
 import { FeedbackService } from '../../core/services/feedback.service';
-import { I18nService } from '../../core/services/i18n.service';
-import { TranslatePipe } from '../../core/pipes/translate.pipe';
-import { ReportSummary } from '../../core/models/report.model';
+import { ReportSummary, TrafficReport, SecurityReport, AlprReport } from '../../core/models/report.model';
+
+type TabId = 'summary' | 'traffic' | 'security' | 'alpr';
 
 @Component({
   selector: 'app-reports',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePipe, TranslatePipe],
-  template: `
-    <div class="p-3 sm:p-4 md:p-8 space-y-4 sm:space-y-6 bg-slate-50 min-h-full">
-      <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-        <div class="min-w-0">
-          <p class="text-xs sm:text-sm font-semibold text-indigo-600 uppercase tracking-[0.25em]">{{ 'reports.label' | t }}</p>
-          <h1 class="text-2xl sm:text-3xl font-black text-slate-900 mt-1">{{ 'reports.title' | t }}</h1>
-          <p class="text-slate-600 mt-2 max-w-3xl text-sm sm:text-base">{{ 'reports.subtitle' | t }}</p>
-        </div>
-        <button
-          type="button"
-          (click)="downloadPdf()"
-          class="inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition shadow-lg shadow-blue-600/20 text-sm sm:text-base"
-        >
-          <i class="fas fa-file-pdf"></i>
-          <span>{{ 'reports.downloadPdf' | t }}</span>
-        </button>
-      </div>
-
-      <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm grid sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-        <div>
-          <label class="block text-sm font-semibold text-slate-700 mb-2">{{ 'reports.startDate' | t }}</label>
-          <input [(ngModel)]="startDate" type="date" class="w-full rounded-xl border border-slate-300 px-4 py-3" />
-        </div>
-        <div>
-          <label class="block text-sm font-semibold text-slate-700 mb-2">{{ 'reports.endDate' | t }}</label>
-          <input [(ngModel)]="endDate" type="date" class="w-full rounded-xl border border-slate-300 px-4 py-3" />
-        </div>
-        <div class="flex items-end sm:col-span-2 md:col-span-1">
-          <button
-            type="button"
-            (click)="loadSummary()"
-            class="w-full rounded-xl bg-slate-900 text-white font-semibold py-3 hover:bg-slate-800 transition"
-          >
-            {{ 'reports.refreshSummary' | t }}
-          </button>
-        </div>
-      </div>
-
-      <div *ngIf="summary" class="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
-        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <p class="text-slate-500 text-xs sm:text-sm">{{ 'reports.totalCaptures' | t }}</p>
-          <p class="text-2xl sm:text-3xl font-black text-slate-900 mt-2">{{ summary.totals.totalCaptures }}</p>
-        </div>
-        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <p class="text-slate-500 text-xs sm:text-sm">{{ 'reports.accessGranted' | t }}</p>
-          <p class="text-2xl sm:text-3xl font-black text-emerald-600 mt-2">{{ summary.totals.accessGranted }}</p>
-        </div>
-        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <p class="text-slate-500 text-xs sm:text-sm">{{ 'reports.securityAlerts' | t }}</p>
-          <p class="text-2xl sm:text-3xl font-black text-amber-600 mt-2">{{ summary.totals.totalAlerts }}</p>
-        </div>
-        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <p class="text-slate-500 text-xs sm:text-sm">{{ 'reports.authorizedCards' | t }}</p>
-          <p class="text-2xl sm:text-3xl font-black text-blue-600 mt-2">{{ summary.totals.totalCards }}</p>
-        </div>
-      </div>
-
-      <div class="grid xl:grid-cols-2 gap-4 sm:gap-6">
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div class="p-4 sm:p-5 border-b border-slate-200">
-            <h2 class="text-base sm:text-lg font-bold text-slate-900">{{ 'reports.recentCaptures' | t }}</h2>
-          </div>
-          <div class="divide-y divide-slate-100">
-            <div *ngFor="let capture of summary?.recentCaptures || []" class="p-4 flex items-center justify-between gap-4">
-              <div class="min-w-0">
-                <p class="font-semibold text-slate-900 truncate">{{ capture.plateText || ('reports.unknownPlate' | t) }}</p>
-                <p class="text-xs sm:text-sm text-slate-500 truncate">{{ capture.capturedAt | date:'medium' }} • {{ capture.eventType }}</p>
-              </div>
-              <span class="px-3 py-1 rounded-full text-xs font-semibold shrink-0" [ngClass]="decisionClass(capture.securityDecision)">
-                {{ capture.securityDecision }}
-              </span>
-            </div>
-            <div *ngIf="!(summary?.recentCaptures?.length)" class="p-4 text-slate-500 text-sm">{{ 'reports.noCaptures' | t }}</div>
-          </div>
-        </div>
-
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div class="p-4 sm:p-5 border-b border-slate-200">
-            <h2 class="text-base sm:text-lg font-bold text-slate-900">{{ 'reports.recentAlerts' | t }}</h2>
-          </div>
-          <div class="divide-y divide-slate-100">
-            <div *ngFor="let alert of summary?.recentAlerts || []" class="p-4">
-              <p class="font-semibold text-slate-900">{{ alert.alertType }}</p>
-              <p class="text-sm text-slate-500">{{ alert.reason }}</p>
-              <p class="text-xs text-slate-400 mt-1">{{ alert.createdAt | date:'medium' }}</p>
-            </div>
-            <div *ngIf="!(summary?.recentAlerts?.length)" class="p-4 text-slate-500 text-sm">{{ 'reports.noAlerts' | t }}</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  `,
+  imports: [CommonModule, FormsModule, DatePipe, DecimalPipe],
+  templateUrl: './reports.component.html',
 })
 export class ReportsComponent implements OnInit {
-  summary: ReportSummary | null = null;
-  loading = false;
+  activeTab: TabId = 'summary';
+
   startDate = '';
-  endDate = '';
+  endDate   = '';
+  gateIdFilter = '';
 
-  readonly i18n = inject(I18nService);
+  loading = false;
 
-  constructor(
-    private readonly reportApi: ReportApiService,
-    private readonly feedback: FeedbackService
-  ) {}
+  summary:  ReportSummary  | null = null;
+  traffic:  TrafficReport  | null = null;
+  security: SecurityReport | null = null;
+  alpr:     AlprReport     | null = null;
 
-  ngOnInit(): void {
+  private readonly reportApi = inject(ReportApiService);
+  private readonly feedback  = inject(FeedbackService);
+
+  ngOnInit(): void { this.loadAll(); }
+
+  setTab(tab: TabId): void {
+    this.activeTab = tab;
+    this.loadTab(tab);
+  }
+
+  loadAll(): void {
     this.loadSummary();
+    this.loadTraffic();
+    this.loadSecurity();
+    this.loadAlpr();
+  }
+
+  applyFilters(): void { this.loadAll(); }
+
+  private loadTab(tab: TabId): void {
+    switch (tab) {
+      case 'summary':  if (!this.summary)  this.loadSummary();  break;
+      case 'traffic':  if (!this.traffic)  this.loadTraffic();  break;
+      case 'security': if (!this.security) this.loadSecurity(); break;
+      case 'alpr':     if (!this.alpr)     this.loadAlpr();     break;
+    }
   }
 
   loadSummary(): void {
     this.loading = true;
     this.reportApi.getSummary(this.startDate || undefined, this.endDate || undefined).subscribe({
-      next: (summary) => {
-        this.summary = summary;
-        this.loading = false;
-      },
-      error: () => {
-        this.loading = false;
-        this.feedback.errorToast(this.i18n.t('reports.loadFailed'));
-      },
+      next: (d) => { this.summary = d; this.loading = false; },
+      error: () => { this.loading = false; this.feedback.errorToast('Failed to load summary'); },
+    });
+  }
+
+  loadTraffic(): void {
+    this.loading = true;
+    this.reportApi.getTrafficReport(this.startDate || undefined, this.endDate || undefined, this.gateIdFilter || undefined).subscribe({
+      next: (d) => { this.traffic = d; this.loading = false; },
+      error: () => { this.loading = false; this.feedback.errorToast('Failed to load traffic report'); },
+    });
+  }
+
+  loadSecurity(): void {
+    this.loading = true;
+    this.reportApi.getSecurityReport(this.startDate || undefined, this.endDate || undefined).subscribe({
+      next: (d) => { this.security = d; this.loading = false; },
+      error: () => { this.loading = false; this.feedback.errorToast('Failed to load security report'); },
+    });
+  }
+
+  loadAlpr(): void {
+    this.loading = true;
+    this.reportApi.getAlprReport(this.startDate || undefined, this.endDate || undefined).subscribe({
+      next: (d) => { this.alpr = d; this.loading = false; },
+      error: () => { this.loading = false; this.feedback.errorToast('Failed to load ALPR report'); },
     });
   }
 
   downloadPdf(): void {
     this.reportApi.downloadPdf(this.startDate || undefined, this.endDate || undefined).subscribe({
       next: (blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const anchor = document.createElement('a');
-        anchor.href = url;
-        anchor.download = `toll-gate-report-${new Date().toISOString().slice(0, 10)}.pdf`;
-        anchor.click();
-        window.URL.revokeObjectURL(url);
-        this.feedback.successToast(this.i18n.t('reports.downloadSuccess'));
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `gate-report-${this.today()}.pdf`; a.click();
+        URL.revokeObjectURL(url);
+        this.feedback.successToast('PDF downloaded');
       },
-      error: () => {
-        this.feedback.errorToast(this.i18n.t('reports.downloadFailed'));
-      },
+      error: () => this.feedback.errorToast('PDF download failed'),
     });
   }
 
+  downloadCsv(type: 'captures' | 'alerts'): void {
+    this.reportApi.downloadCsv(type, this.startDate || undefined, this.endDate || undefined, this.gateIdFilter || undefined).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `gate-${type}-${this.today()}.csv`; a.click();
+        URL.revokeObjectURL(url);
+        this.feedback.successToast('CSV downloaded');
+      },
+      error: () => this.feedback.errorToast('CSV download failed'),
+    });
+  }
+
+  private today(): string { return new Date().toISOString().slice(0, 10); }
+
+  // ─── chart helpers ────────────────────────────────────────────────
+  maxCount(rows: { count: string }[]): number {
+    return Math.max(1, ...rows.map(r => +r.count));
+  }
+
+  barWidth(count: string | number, max: number): number {
+    return Math.round((+count / max) * 100);
+  }
+
+  // gates aggregated from traffic
+  get gateList(): string[] {
+    if (!this.traffic) return [];
+    return [...new Set(this.traffic.byGateEvent.map(r => r.gateId))];
+  }
+
+  gateTotal(gateId: string): number {
+    return (this.traffic?.byGateEvent ?? [])
+      .filter(r => r.gateId === gateId)
+      .reduce((s, r) => s + +r.count, 0);
+  }
+
+  gateGranted(gateId: string): number {
+    return +(this.traffic?.byGateEvent.find(r => r.gateId === gateId && r.eventType === 'access_granted')?.count ?? 0);
+  }
+
+  gateDenied(gateId: string): number {
+    return +(this.traffic?.byGateEvent.find(r => r.gateId === gateId && r.eventType === 'access_denied')?.count ?? 0);
+  }
+
+  // OCR status class
+  ocrClass(status: string): string {
+    switch (status) {
+      case 'done':   return 'tg-badge-green';
+      case 'failed': return 'tg-badge-red';
+      case 'processing': return 'tg-badge-blue';
+      default:       return 'tg-badge-slate';
+    }
+  }
+
+  // Decision class
   decisionClass(decision?: string | null): string {
     switch (decision) {
-      case 'allow':
-        return 'bg-emerald-100 text-emerald-800';
-      case 'block':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-amber-100 text-amber-800';
+      case 'allow':  return 'tg-badge-green';
+      case 'block':  return 'tg-badge-red';
+      default:       return 'tg-badge-amber';
     }
+  }
+
+  alertTypeClass(type: string): string {
+    switch (type) {
+      case 'wanted_person': return 'tg-badge-red';
+      case 'stolen_car':    return 'tg-badge-red';
+      case 'plate_review':  return 'tg-badge-amber';
+      case 'face_review':   return 'tg-badge-amber';
+      default:              return 'tg-badge-slate';
+    }
+  }
+
+  alertTypeLabel(type: string): string {
+    switch (type) {
+      case 'wanted_person': return 'Wanted Person';
+      case 'stolen_car':    return 'Stolen Car';
+      case 'plate_review':  return 'Plate Review';
+      case 'face_review':   return 'Face Review';
+      default:              return type;
+    }
+  }
+
+  // fill 24 hours ensuring all slots exist
+  get hourlyData(): { hour: number; count: number }[] {
+    const map = new Map<number, number>();
+    (this.traffic?.byHour ?? []).forEach(r => map.set(+r.hour, +r.count));
+    return Array.from({ length: 24 }, (_, h) => ({ hour: h, count: map.get(h) ?? 0 }));
+  }
+
+  // alpr detection rate
+  get plateDetectionRate(): number {
+    if (!this.alpr) return 0;
+    const total = this.alpr.withPlate + this.alpr.withoutPlate;
+    return total === 0 ? 0 : Math.round((this.alpr.withPlate / total) * 100);
+  }
+
+  get faceDetectionRate(): number {
+    if (!this.alpr) return 0;
+    const total = this.alpr.withFace + this.alpr.withoutFace;
+    return total === 0 ? 0 : Math.round((this.alpr.withFace / total) * 100);
+  }
+
+  get alprTotal(): number {
+    if (!this.alpr) return 0;
+    return this.alpr.withPlate + this.alpr.withoutPlate;
+  }
+
+  get wantedCount(): number {
+    return +(this.security?.byType.find(r => r.alertType === 'wanted_person')?.count ?? 0);
+  }
+
+  get stolenCount(): number {
+    return +(this.security?.byType.find(r => r.alertType === 'stolen_car')?.count ?? 0);
   }
 }

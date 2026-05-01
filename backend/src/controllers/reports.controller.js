@@ -1,6 +1,6 @@
 const PDFDocument = require('pdfkit');
 const { Op } = require('sequelize');
-const { GateCapture, SecurityAlert, Vehicle, AllowedCard } = require('../models');
+const { GateCapture, SecurityAlert, Vehicle, AllowedCard, sequelize } = require('../models');
 
 const buildDateRange = (req) => {
   const start = req.query.startDate ? new Date(req.query.startDate) : null;
@@ -148,7 +148,274 @@ const exportPdf = async (req, res, next) => {
   }
 };
 
+// ─── Traffic Report ───────────────────────────────────────────────
+const getTrafficReport = async (req, res, next) => {
+  try {
+    const { start, end } = buildDateRange(req);
+    const captureWhere = {};
+    if (req.query.gateId) captureWhere.gateId = req.query.gateId;
+    if (start || end) {
+      captureWhere.capturedAt = {};
+      if (start) captureWhere.capturedAt[Op.gte] = start;
+      if (end)   captureWhere.capturedAt[Op.lte] = end;
+    }
+
+    // Per-gate + per-event breakdown
+    const byGateEvent = await GateCapture.findAll({
+      where: captureWhere,
+      attributes: [
+        'gateId',
+        'eventType',
+        [sequelize.fn('COUNT', sequelize.col('id')), 'count'],
+      ],
+      group: ['gateId', 'eventType'],
+      raw: true,
+    });
+
+    // Hourly distribution (hour 0–23)
+    const byHour = await GateCapture.findAll({
+      where: captureWhere,
+      attributes: [
+        [sequelize.fn('EXTRACT', sequelize.literal('HOUR FROM "captured_at"')), 'hour'],
+        [sequelize.fn('COUNT', sequelize.col('id')), 'count'],
+      ],
+      group: [sequelize.fn('EXTRACT', sequelize.literal('HOUR FROM "captured_at"'))],
+      order:  [[sequelize.fn('EXTRACT', sequelize.literal('HOUR FROM "captured_at"')), 'ASC']],
+      raw: true,
+    });
+
+    // Daily trend (grouped by date)
+    const byDay = await GateCapture.findAll({
+      where: captureWhere,
+      attributes: [
+        [sequelize.fn('DATE', sequelize.col('captured_at')), 'day'],
+        [sequelize.fn('COUNT', sequelize.col('id')), 'count'],
+      ],
+      group: [sequelize.fn('DATE', sequelize.col('captured_at'))],
+      order: [[sequelize.fn('DATE', sequelize.col('captured_at')), 'ASC']],
+      raw: true,
+    });
+
+    // Top plates (most frequent)
+    const topPlates = await GateCapture.findAll({
+      where: { ...captureWhere, plateText: { [Op.ne]: null } },
+      attributes: [
+        'plateText',
+        [sequelize.fn('COUNT', sequelize.col('id')), 'count'],
+      ],
+      group: ['plateText'],
+      order: [[sequelize.fn('COUNT', sequelize.col('id')), 'DESC']],
+      limit: 10,
+      raw: true,
+    });
+
+    return res.json({ byGateEvent, byHour, byDay, topPlates });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// ─── Security Report ──────────────────────────────────────────────
+const getSecurityReport = async (req, res, next) => {
+  try {
+    const { start, end } = buildDateRange(req);
+    const alertWhere = {};
+    if (start || end) {
+      alertWhere.createdAt = {};
+      if (start) alertWhere.createdAt[Op.gte] = start;
+      if (end)   alertWhere.createdAt[Op.lte] = end;
+    }
+
+    // Breakdown by alertType
+    const byType = await SecurityAlert.findAll({
+      where: alertWhere,
+      attributes: [
+        'alertType',
+        [sequelize.fn('COUNT', sequelize.col('id')), 'count'],
+      ],
+      group: ['alertType'],
+      raw: true,
+    });
+
+    // Breakdown by decision
+    const byDecision = await SecurityAlert.findAll({
+      where: alertWhere,
+      attributes: [
+        'decision',
+        [sequelize.fn('COUNT', sequelize.col('id')), 'count'],
+      ],
+      group: ['decision'],
+      raw: true,
+    });
+
+    // Recent 30 alerts (full detail)
+    const recentAlerts = await SecurityAlert.findAll({
+      where: alertWhere,
+      order: [['createdAt', 'DESC']],
+      limit: 30,
+    });
+
+    // Blocked capture count
+    const captureWhere = {};
+    if (start || end) {
+      captureWhere.capturedAt = {};
+      if (start) captureWhere.capturedAt[Op.gte] = start;
+      if (end)   captureWhere.capturedAt[Op.lte] = end;
+    }
+    const blockedCount = await GateCapture.count({
+      where: { ...captureWhere, securityDecision: 'block' },
+    });
+    const reviewCount = await GateCapture.count({
+      where: { ...captureWhere, securityDecision: 'review' },
+    });
+
+    return res.json({ byType, byDecision, recentAlerts, blockedCount, reviewCount });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// ─── ALPR Performance Report ──────────────────────────────────────
+const getAlprReport = async (req, res, next) => {
+  try {
+    const { start, end } = buildDateRange(req);
+    const captureWhere = {};
+    if (start || end) {
+      captureWhere.capturedAt = {};
+      if (start) captureWhere.capturedAt[Op.gte] = start;
+      if (end)   captureWhere.capturedAt[Op.lte] = end;
+    }
+
+    // OCR status breakdown
+    const byOcrStatus = await GateCapture.findAll({
+      where: captureWhere,
+      attributes: [
+        'ocrStatus',
+        [sequelize.fn('COUNT', sequelize.col('id')), 'count'],
+      ],
+      group: ['ocrStatus'],
+      raw: true,
+    });
+
+    // Plate detected vs not
+    const withPlate    = await GateCapture.count({ where: { ...captureWhere, plateText: { [Op.ne]: null } } });
+    const withoutPlate = await GateCapture.count({ where: { ...captureWhere, plateText: null } });
+
+    // Face detected vs not
+    const withFace    = await GateCapture.count({ where: { ...captureWhere, faceName: { [Op.ne]: null } } });
+    const withoutFace = await GateCapture.count({ where: { ...captureWhere, faceName: null } });
+
+    // Average plate confidence (only where plateConfidence is not null)
+    const avgConfResult = await GateCapture.findOne({
+      where: { ...captureWhere, plateConfidence: { [Op.ne]: null } },
+      attributes: [[sequelize.fn('AVG', sequelize.col('plate_confidence')), 'avgConf']],
+      raw: true,
+    });
+    const avgPlateConfidence = avgConfResult?.avgConf ? parseFloat(avgConfResult.avgConf).toFixed(4) : null;
+
+    // Confidence buckets: <0.5, 0.5–0.7, 0.7–0.85, >0.85
+    const [lowConf, medConf, highConf, vHighConf] = await Promise.all([
+      GateCapture.count({ where: { ...captureWhere, plateConfidence: { [Op.lt]: 0.5 } } }),
+      GateCapture.count({ where: { ...captureWhere, plateConfidence: { [Op.gte]: 0.5, [Op.lt]: 0.7 } } }),
+      GateCapture.count({ where: { ...captureWhere, plateConfidence: { [Op.gte]: 0.7, [Op.lt]: 0.85 } } }),
+      GateCapture.count({ where: { ...captureWhere, plateConfidence: { [Op.gte]: 0.85 } } }),
+    ]);
+
+    // Recent 20 captures with plate data
+    const recentPlates = await GateCapture.findAll({
+      where: { ...captureWhere, plateText: { [Op.ne]: null } },
+      order: [['capturedAt', 'DESC']],
+      limit: 20,
+      attributes: ['id', 'gateId', 'plateText', 'plateConfidence', 'ocrStatus', 'capturedAt'],
+    });
+
+    return res.json({
+      byOcrStatus,
+      withPlate,
+      withoutPlate,
+      withFace,
+      withoutFace,
+      avgPlateConfidence,
+      confidenceBuckets: {
+        low: lowConf,
+        medium: medConf,
+        high: highConf,
+        veryHigh: vHighConf,
+      },
+      recentPlates,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// ─── CSV Export ───────────────────────────────────────────────────
+const exportCsv = async (req, res, next) => {
+  try {
+    const { start, end } = buildDateRange(req);
+    const type = req.query.type || 'captures'; // captures | alerts
+    const captureWhere = {};
+    if (req.query.gateId) captureWhere.gateId = req.query.gateId;
+    if (start || end) {
+      captureWhere.capturedAt = {};
+      if (start) captureWhere.capturedAt[Op.gte] = start;
+      if (end)   captureWhere.capturedAt[Op.lte] = end;
+    }
+
+    const fileName = `toll-gate-${type}-${new Date().toISOString().slice(0, 10)}.csv`;
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+
+    if (type === 'alerts') {
+      const alertWhere = {};
+      if (start || end) {
+        alertWhere.createdAt = {};
+        if (start) alertWhere.createdAt[Op.gte] = start;
+        if (end)   alertWhere.createdAt[Op.lte] = end;
+      }
+      const alerts = await SecurityAlert.findAll({
+        where: alertWhere,
+        order: [['createdAt', 'DESC']],
+        limit: 5000,
+      });
+      const header = 'ID,AlertType,Decision,Reason,RelatedName,RelatedPlate,ResolvedAt,CreatedAt\n';
+      const rows = alerts.map(a =>
+        [a.id, a.alertType, a.decision,
+         `"${(a.reason || '').replace(/"/g, '""')}"`,
+         a.relatedName || '', a.relatedPlate || '',
+         a.resolvedAt ? new Date(a.resolvedAt).toISOString() : '',
+         new Date(a.createdAt).toISOString(),
+        ].join(',')
+      ).join('\n');
+      return res.send(header + rows);
+    }
+
+    // Default: captures
+    const captures = await GateCapture.findAll({
+      where: captureWhere,
+      order: [['capturedAt', 'DESC']],
+      limit: 5000,
+    });
+    const header = 'ID,GateID,EventType,CardUID,PlateText,PlateConfidence,FaceName,OCRStatus,SecurityDecision,SecurityReason,CapturedAt\n';
+    const rows = captures.map(c =>
+      [c.id, c.gateId, c.eventType, c.cardUid || '',
+       c.plateText || '', c.plateConfidence != null ? c.plateConfidence : '',
+       c.faceName || '', c.ocrStatus, c.securityDecision || '',
+       `"${(c.securityReason || '').replace(/"/g, '""')}"`,
+       new Date(c.capturedAt).toISOString(),
+      ].join(',')
+    ).join('\n');
+    return res.send(header + rows);
+  } catch (error) {
+    return next(error);
+  }
+};
+
 module.exports = {
   getSummary,
   exportPdf,
+  getTrafficReport,
+  getSecurityReport,
+  getAlprReport,
+  exportCsv,
 };

@@ -1,0 +1,598 @@
+<div class="p-4 md:p-8 space-y-6 bg-slate-50 min-h-full page-enter">
+
+  <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
+  <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+    <div>
+      <p class="text-xs font-bold text-blue-600 uppercase tracking-[0.25em]">Analytics &amp; Reporting</p>
+      <h1 class="text-3xl font-black text-slate-900 mt-1">Reports</h1>
+      <p class="text-slate-500 mt-1 text-sm">Traffic flow, security incidents, and ALPR performance across all gates.</p>
+    </div>
+    <div class="flex items-center gap-2 flex-wrap">
+      <button type="button" (click)="downloadCsv('captures')"
+        class="tg-btn tg-btn-secondary gap-2 text-sm px-4 py-2.5">
+        <i class="fas fa-file-csv text-xs"></i> Captures CSV
+      </button>
+      <button type="button" (click)="downloadCsv('alerts')"
+        class="tg-btn tg-btn-secondary gap-2 text-sm px-4 py-2.5">
+        <i class="fas fa-file-csv text-xs"></i> Alerts CSV
+      </button>
+      <button type="button" (click)="downloadPdf()"
+        class="tg-btn tg-btn-primary gap-2 text-sm px-4 py-2.5">
+        <i class="fas fa-file-pdf text-xs"></i> Export PDF
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ FILTERS ════════════════════════════════════════════════════ -->
+  <div class="tg-card p-4 sm:p-5 grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+    <div>
+      <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">From Date</label>
+      <input [(ngModel)]="startDate" type="date"
+        class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+    </div>
+    <div>
+      <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">To Date</label>
+      <input [(ngModel)]="endDate" type="date"
+        class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+    </div>
+    <div>
+      <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Gate ID (optional)</label>
+      <input [(ngModel)]="gateIdFilter" type="text" placeholder="e.g. gate-1"
+        class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+    </div>
+    <div class="flex items-end">
+      <button type="button" (click)="applyFilters()"
+        class="tg-btn tg-btn-primary w-full justify-center text-sm py-2.5 gap-2">
+        <i class="fas fa-magnifying-glass text-xs"></i> Apply Filters
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ TABS ════════════════════════════════════════════════════════ -->
+  <div class="flex gap-1 bg-white border border-slate-200 rounded-2xl p-1.5 shadow-sm w-full sm:w-auto sm:inline-flex">
+    <button *ngFor="let tab of [
+      {id:'summary',  icon:'fa-chart-pie',    label:'Summary'},
+      {id:'traffic',  icon:'fa-chart-bar',    label:'Traffic Flow'},
+      {id:'security', icon:'fa-shield-halved', label:'Security'},
+      {id:'alpr',     icon:'fa-camera',        label:'ALPR / OCR'}
+    ]"
+      type="button"
+      (click)="setTab($any(tab.id))"
+      class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all"
+      [ngClass]="activeTab === tab.id
+        ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
+        : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'">
+      <i class="fas {{ tab.icon }} text-xs"></i>
+      <span class="hidden sm:inline">{{ tab.label }}</span>
+    </button>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       TAB 1 — SUMMARY
+  ════════════════════════════════════════════════════════════════ -->
+  <ng-container *ngIf="activeTab === 'summary'">
+
+    <!-- Stat cards -->
+    <div *ngIf="summary" class="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
+      <div class="tg-card p-5">
+        <div class="flex items-center justify-between mb-3">
+          <span class="tg-icon-sq" style="background:rgba(59,130,246,0.1);color:#3b82f6">
+            <i class="fas fa-camera text-sm"></i>
+          </span>
+          <span class="tg-badge tg-badge-blue text-xs">Total</span>
+        </div>
+        <p class="text-3xl font-black text-slate-900">{{ summary.totals.totalCaptures }}</p>
+        <p class="text-xs text-slate-500 mt-1">Captures</p>
+      </div>
+      <div class="tg-card p-5">
+        <div class="flex items-center justify-between mb-3">
+          <span class="tg-icon-sq" style="background:rgba(34,197,94,0.1);color:#22c55e">
+            <i class="fas fa-check text-sm"></i>
+          </span>
+          <span class="tg-badge tg-badge-green text-xs">Granted</span>
+        </div>
+        <p class="text-3xl font-black text-emerald-600">{{ summary.totals.accessGranted }}</p>
+        <p class="text-xs text-slate-500 mt-1">Access granted</p>
+      </div>
+      <div class="tg-card p-5">
+        <div class="flex items-center justify-between mb-3">
+          <span class="tg-icon-sq" style="background:rgba(239,68,68,0.1);color:#ef4444">
+            <i class="fas fa-xmark text-sm"></i>
+          </span>
+          <span class="tg-badge tg-badge-red text-xs">Denied</span>
+        </div>
+        <p class="text-3xl font-black text-red-600">{{ summary.totals.accessDenied }}</p>
+        <p class="text-xs text-slate-500 mt-1">Access denied</p>
+      </div>
+      <div class="tg-card p-5">
+        <div class="flex items-center justify-between mb-3">
+          <span class="tg-icon-sq" style="background:rgba(245,158,11,0.1);color:#f59e0b">
+            <i class="fas fa-triangle-exclamation text-sm"></i>
+          </span>
+          <span class="tg-badge tg-badge-amber text-xs">Alerts</span>
+        </div>
+        <p class="text-3xl font-black text-amber-600">{{ summary.totals.totalAlerts }}</p>
+        <p class="text-xs text-slate-500 mt-1">Security alerts</p>
+      </div>
+      <div class="tg-card p-5">
+        <div class="flex items-center justify-between mb-3">
+          <span class="tg-icon-sq" style="background:rgba(99,102,241,0.1);color:#6366f1">
+            <i class="fas fa-magnifying-glass text-sm"></i>
+          </span>
+        </div>
+        <p class="text-3xl font-black text-indigo-600">{{ summary.totals.securityChecks }}</p>
+        <p class="text-xs text-slate-500 mt-1">Security checks</p>
+      </div>
+      <div class="tg-card p-5">
+        <div class="flex items-center justify-between mb-3">
+          <span class="tg-icon-sq" style="background:rgba(14,165,233,0.1);color:#0ea5e9">
+            <i class="fas fa-car text-sm"></i>
+          </span>
+        </div>
+        <p class="text-3xl font-black text-sky-600">{{ summary.totals.totalVehicles }}</p>
+        <p class="text-xs text-slate-500 mt-1">Registered vehicles</p>
+      </div>
+      <div class="tg-card p-5 xl:col-span-2">
+        <div class="flex items-center justify-between mb-3">
+          <span class="tg-icon-sq" style="background:rgba(168,85,247,0.1);color:#a855f7">
+            <i class="fas fa-id-card text-sm"></i>
+          </span>
+        </div>
+        <p class="text-3xl font-black text-purple-600">{{ summary.totals.totalCards }}</p>
+        <p class="text-xs text-slate-500 mt-1">Authorized cards</p>
+      </div>
+    </div>
+
+    <!-- Two-column: Recent Captures + Recent Alerts -->
+    <div class="grid xl:grid-cols-2 gap-5">
+
+      <!-- Recent captures -->
+      <div class="tg-card overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+          <h2 class="font-bold text-slate-900">Recent Captures</h2>
+          <span class="tg-badge tg-badge-blue">{{ summary?.recentCaptures?.length ?? 0 }}</span>
+        </div>
+        <div class="divide-y divide-slate-50">
+          <div *ngFor="let c of summary?.recentCaptures ?? []"
+               class="px-5 py-3 flex items-center justify-between gap-4">
+            <div class="min-w-0">
+              <p class="font-bold text-slate-900 text-sm font-mono">{{ c.plateText || '— no plate —' }}</p>
+              <p class="text-xs text-slate-500 mt-0.5">{{ c.capturedAt | date:'MMM d, y — h:mm a' }} &bull; <span class="font-medium">{{ c.gateId }}</span></p>
+            </div>
+            <span class="tg-badge text-xs shrink-0" [ngClass]="decisionClass(c.securityDecision)">
+              {{ (c.securityDecision || 'review') | uppercase }}
+            </span>
+          </div>
+          <div *ngIf="!summary?.recentCaptures?.length" class="px-5 py-6 text-center text-sm text-slate-400">
+            No captures in this period
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent alerts -->
+      <div class="tg-card overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+          <h2 class="font-bold text-slate-900">Recent Security Alerts</h2>
+          <span class="tg-badge tg-badge-red">{{ summary?.recentAlerts?.length ?? 0 }}</span>
+        </div>
+        <div class="divide-y divide-slate-50">
+          <div *ngFor="let a of summary?.recentAlerts ?? []"
+               class="px-5 py-3">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <p class="font-bold text-slate-900 text-sm">{{ alertTypeLabel(a.alertType) }}</p>
+                <p class="text-xs text-slate-500 mt-0.5">{{ a.reason }}</p>
+              </div>
+              <span class="tg-badge text-xs shrink-0" [ngClass]="alertTypeClass(a.alertType)">
+                {{ a.alertType | uppercase }}
+              </span>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">{{ a.createdAt | date:'MMM d, y — h:mm a' }}</p>
+          </div>
+          <div *ngIf="!summary?.recentAlerts?.length" class="px-5 py-6 text-center text-sm text-slate-400">
+            No alerts in this period
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       TAB 2 — TRAFFIC FLOW
+  ════════════════════════════════════════════════════════════════ -->
+  <ng-container *ngIf="activeTab === 'traffic'">
+    <ng-container *ngIf="traffic; else loadingTpl">
+
+      <!-- Per-gate cards -->
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div *ngFor="let gateId of gateList" class="tg-card p-5">
+          <div class="flex items-center gap-3 mb-4">
+            <span class="tg-icon-sq" style="background:rgba(34,197,94,0.1);color:#22c55e">
+              <i class="fas fa-lock text-sm"></i>
+            </span>
+            <div>
+              <p class="text-xs text-slate-500 font-bold uppercase tracking-wide">Gate</p>
+              <p class="text-base font-black text-slate-900">{{ gateId }}</p>
+            </div>
+          </div>
+          <div class="space-y-2">
+            <!-- Total bar -->
+            <div class="flex items-center gap-3">
+              <span class="w-20 text-xs text-slate-500 text-right shrink-0">Total</span>
+              <div class="flex-1 bg-slate-100 rounded-full h-2.5">
+                <div class="bg-blue-500 h-2.5 rounded-full" style="width:100%"></div>
+              </div>
+              <span class="w-10 text-xs font-bold text-slate-700 text-right shrink-0">{{ gateTotal(gateId) }}</span>
+            </div>
+            <!-- Granted bar -->
+            <div class="flex items-center gap-3">
+              <span class="w-20 text-xs text-slate-500 text-right shrink-0">Granted</span>
+              <div class="flex-1 bg-slate-100 rounded-full h-2.5">
+                <div class="bg-emerald-500 h-2.5 rounded-full"
+                     [style.width.%]="gateTotal(gateId) > 0 ? (gateGranted(gateId) / gateTotal(gateId) * 100) : 0"></div>
+              </div>
+              <span class="w-10 text-xs font-bold text-emerald-600 text-right shrink-0">{{ gateGranted(gateId) }}</span>
+            </div>
+            <!-- Denied bar -->
+            <div class="flex items-center gap-3">
+              <span class="w-20 text-xs text-slate-500 text-right shrink-0">Denied</span>
+              <div class="flex-1 bg-slate-100 rounded-full h-2.5">
+                <div class="bg-red-500 h-2.5 rounded-full"
+                     [style.width.%]="gateTotal(gateId) > 0 ? (gateDenied(gateId) / gateTotal(gateId) * 100) : 0"></div>
+              </div>
+              <span class="w-10 text-xs font-bold text-red-600 text-right shrink-0">{{ gateDenied(gateId) }}</span>
+            </div>
+          </div>
+        </div>
+        <div *ngIf="gateList.length === 0" class="sm:col-span-3 py-12 text-center text-slate-400 tg-card">
+          No gate traffic data for this period.
+        </div>
+      </div>
+
+      <!-- Hourly distribution chart -->
+      <div class="tg-card overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-100">
+          <h2 class="font-bold text-slate-900">Hourly Traffic Distribution</h2>
+          <p class="text-xs text-slate-500 mt-0.5">Number of captures per hour of day (0 – 23)</p>
+        </div>
+        <div class="p-5 overflow-x-auto">
+          <div class="flex items-end gap-1 h-32 min-w-[600px]">
+            <div *ngFor="let h of hourlyData" class="flex-1 flex flex-col items-center gap-1 group">
+              <span class="text-[9px] text-slate-400 opacity-0 group-hover:opacity-100 transition">{{ h.count }}</span>
+              <div class="w-full rounded-t transition-all"
+                   [style.height.px]="maxCount(traffic!.byHour) > 0 ? (h.count / maxCount(traffic!.byHour) * 100) : 2"
+                   [ngClass]="h.count > 0 ? 'bg-blue-500' : 'bg-slate-100'"></div>
+              <span class="text-[9px] text-slate-400">{{ h.hour }}h</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Daily trend -->
+      <div class="tg-card overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-100">
+          <h2 class="font-bold text-slate-900">Daily Traffic Trend</h2>
+        </div>
+        <div class="p-5 space-y-1.5 max-h-72 overflow-y-auto">
+          <div *ngFor="let d of traffic.byDay" class="flex items-center gap-3">
+            <span class="w-24 text-xs text-slate-500 shrink-0 text-right">{{ d.day | date:'MMM d' }}</span>
+            <div class="flex-1 bg-slate-100 rounded-full h-3">
+              <div class="bg-blue-500 h-3 rounded-full transition-all"
+                   [style.width.%]="barWidth(d.count, maxCount(traffic.byDay))"></div>
+            </div>
+            <span class="w-10 text-xs font-bold text-slate-700 text-right shrink-0">{{ d.count }}</span>
+          </div>
+          <div *ngIf="!traffic.byDay.length" class="py-6 text-center text-sm text-slate-400">No daily data.</div>
+        </div>
+      </div>
+
+      <!-- Top plates -->
+      <div class="tg-card overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-100">
+          <h2 class="font-bold text-slate-900">Most Frequent Plates</h2>
+          <p class="text-xs text-slate-500 mt-0.5">Plates with the most passes in the period</p>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="tg-table w-full">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Plate Number</th>
+                <th class="text-right">Pass Count</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let p of traffic.topPlates; let i = index">
+                <td class="text-slate-400 font-mono">{{ i + 1 }}</td>
+                <td class="font-mono font-bold text-slate-900 text-base">{{ p.plateText }}</td>
+                <td class="text-right">
+                  <span class="tg-badge tg-badge-blue">{{ p.count }}</span>
+                </td>
+              </tr>
+              <tr *ngIf="!traffic.topPlates.length">
+                <td colspan="3" class="text-center text-slate-400 py-6">No plate data for this period.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </ng-container>
+  </ng-container>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       TAB 3 — SECURITY
+  ════════════════════════════════════════════════════════════════ -->
+  <ng-container *ngIf="activeTab === 'security'">
+    <ng-container *ngIf="security; else loadingTpl">
+
+      <!-- Stat row -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="tg-card p-5">
+          <span class="tg-icon-sq mb-3" style="background:rgba(239,68,68,0.1);color:#ef4444"><i class="fas fa-ban text-sm"></i></span>
+          <p class="text-3xl font-black text-red-600">{{ security.blockedCount }}</p>
+          <p class="text-xs text-slate-500 mt-1">Vehicles blocked</p>
+        </div>
+        <div class="tg-card p-5">
+          <span class="tg-icon-sq mb-3" style="background:rgba(245,158,11,0.1);color:#f59e0b"><i class="fas fa-clock text-sm"></i></span>
+          <p class="text-3xl font-black text-amber-600">{{ security.reviewCount }}</p>
+          <p class="text-xs text-slate-500 mt-1">Under review</p>
+        </div>
+        <div class="tg-card p-5">
+          <span class="tg-icon-sq mb-3" style="background:rgba(239,68,68,0.1);color:#ef4444"><i class="fas fa-person text-sm"></i></span>
+          <p class="text-3xl font-black text-red-600">{{ wantedCount }}</p>
+          <p class="text-xs text-slate-500 mt-1">Wanted persons detected</p>
+        </div>
+        <div class="tg-card p-5">
+          <span class="tg-icon-sq mb-3" style="background:rgba(239,68,68,0.1);color:#ef4444"><i class="fas fa-car-burst text-sm"></i></span>
+          <p class="text-3xl font-black text-red-600">{{ stolenCount }}</p>
+          <p class="text-xs text-slate-500 mt-1">Stolen cars detected</p>
+        </div>
+      </div>
+
+      <!-- Alert type breakdown + Decision breakdown -->
+      <div class="grid lg:grid-cols-2 gap-5">
+
+        <div class="tg-card overflow-hidden">
+          <div class="px-5 py-4 border-b border-slate-100">
+            <h2 class="font-bold text-slate-900">Alerts by Type</h2>
+          </div>
+          <div class="p-5 space-y-2">
+            <div *ngFor="let row of security.byType" class="flex items-center gap-3">
+              <span class="w-28 text-xs shrink-0 text-right">
+                <span class="tg-badge text-xs" [ngClass]="alertTypeClass(row.alertType)">{{ alertTypeLabel(row.alertType) }}</span>
+              </span>
+              <div class="flex-1 bg-slate-100 rounded-full h-3">
+                <div class="h-3 rounded-full transition-all"
+                     [ngClass]="row.alertType === 'wanted_person' || row.alertType === 'stolen_car' ? 'bg-red-500' : 'bg-amber-400'"
+                     [style.width.%]="barWidth(row.count, maxCount(security.byType))"></div>
+              </div>
+              <span class="w-8 text-xs font-bold text-right shrink-0">{{ row.count }}</span>
+            </div>
+            <div *ngIf="!security.byType.length" class="py-6 text-center text-sm text-slate-400">No alerts.</div>
+          </div>
+        </div>
+
+        <div class="tg-card overflow-hidden">
+          <div class="px-5 py-4 border-b border-slate-100">
+            <h2 class="font-bold text-slate-900">Alerts by Decision</h2>
+          </div>
+          <div class="p-5 space-y-2">
+            <div *ngFor="let row of security.byDecision" class="flex items-center gap-3">
+              <span class="w-16 text-xs shrink-0 text-right">
+                <span class="tg-badge text-xs" [ngClass]="decisionClass(row.decision)">{{ row.decision | uppercase }}</span>
+              </span>
+              <div class="flex-1 bg-slate-100 rounded-full h-3">
+                <div class="h-3 rounded-full transition-all"
+                     [ngClass]="row.decision === 'block' ? 'bg-red-500' : row.decision === 'allow' ? 'bg-emerald-500' : 'bg-amber-400'"
+                     [style.width.%]="barWidth(row.count, maxCount(security.byDecision))"></div>
+              </div>
+              <span class="w-8 text-xs font-bold text-right shrink-0">{{ row.count }}</span>
+            </div>
+            <div *ngIf="!security.byDecision.length" class="py-6 text-center text-sm text-slate-400">No decision data.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent alerts table -->
+      <div class="tg-card overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+          <h2 class="font-bold text-slate-900">All Security Alerts</h2>
+          <span class="tg-badge tg-badge-red">{{ security.recentAlerts.length }}</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="tg-table w-full">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Decision</th>
+                <th>Related</th>
+                <th>Reason</th>
+                <th>Date</th>
+                <th>Resolved</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let a of security.recentAlerts">
+                <td><span class="tg-badge text-xs" [ngClass]="alertTypeClass(a.alertType)">{{ alertTypeLabel(a.alertType) }}</span></td>
+                <td><span class="tg-badge text-xs" [ngClass]="decisionClass(a.decision)">{{ (a.decision || 'review') | uppercase }}</span></td>
+                <td class="font-mono text-sm">{{ a.relatedPlate || a.relatedName || '—' }}</td>
+                <td class="text-xs text-slate-600 max-w-[220px] break-words">{{ a.reason }}</td>
+                <td class="text-xs text-slate-500 whitespace-nowrap">{{ a.createdAt | date:'MMM d, y' }}</td>
+                <td>
+                  <span *ngIf="a.resolvedAt" class="tg-badge tg-badge-green text-xs">Resolved</span>
+                  <span *ngIf="!a.resolvedAt" class="tg-badge tg-badge-amber text-xs">Open</span>
+                </td>
+              </tr>
+              <tr *ngIf="!security.recentAlerts.length">
+                <td colspan="6" class="text-center text-slate-400 py-8">No security alerts in this period.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </ng-container>
+  </ng-container>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       TAB 4 — ALPR PERFORMANCE
+  ════════════════════════════════════════════════════════════════ -->
+  <ng-container *ngIf="activeTab === 'alpr'">
+    <ng-container *ngIf="alpr; else loadingTpl">
+
+      <!-- KPI cards -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="tg-card p-5">
+          <span class="tg-icon-sq mb-3" style="background:rgba(59,130,246,0.1);color:#3b82f6"><i class="fas fa-camera text-sm"></i></span>
+          <p class="text-3xl font-black text-slate-900">{{ alprTotal }}</p>
+          <p class="text-xs text-slate-500 mt-1">Total processed</p>
+        </div>
+        <div class="tg-card p-5">
+          <span class="tg-icon-sq mb-3" style="background:rgba(34,197,94,0.1);color:#22c55e"><i class="fas fa-car text-sm"></i></span>
+          <p class="text-3xl font-black text-emerald-600">{{ plateDetectionRate }}%</p>
+          <p class="text-xs text-slate-500 mt-1">Plate detection rate</p>
+        </div>
+        <div class="tg-card p-5">
+          <span class="tg-icon-sq mb-3" style="background:rgba(99,102,241,0.1);color:#6366f1"><i class="fas fa-face-smile text-sm"></i></span>
+          <p class="text-3xl font-black text-indigo-600">{{ faceDetectionRate }}%</p>
+          <p class="text-xs text-slate-500 mt-1">Face detection rate</p>
+        </div>
+        <div class="tg-card p-5">
+          <span class="tg-icon-sq mb-3" style="background:rgba(245,158,11,0.1);color:#f59e0b"><i class="fas fa-gauge-high text-sm"></i></span>
+          <p class="text-3xl font-black text-amber-600">
+            {{ alpr.avgPlateConfidence ? (alpr.avgPlateConfidence | number:'1.2-2') : '—' }}
+          </p>
+          <p class="text-xs text-slate-500 mt-1">Avg plate confidence</p>
+        </div>
+      </div>
+
+      <!-- Plates vs No Plate + Face breakdown -->
+      <div class="grid lg:grid-cols-2 gap-5">
+
+        <div class="tg-card p-5">
+          <h2 class="font-bold text-slate-900 mb-4">Plate Detection Breakdown</h2>
+          <div class="space-y-3">
+            <div class="flex items-center justify-between gap-3">
+              <div class="flex-1">
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="text-slate-500">With plate detected</span>
+                  <span class="font-bold text-emerald-600">{{ alpr.withPlate }}</span>
+                </div>
+                <div class="w-full bg-slate-100 rounded-full h-3">
+                  <div class="bg-emerald-500 h-3 rounded-full"
+                       [style.width.%]="alprTotal > 0 ? (alpr.withPlate / alprTotal * 100) : 0"></div>
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center justify-between gap-3">
+              <div class="flex-1">
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="text-slate-500">No plate detected</span>
+                  <span class="font-bold text-slate-600">{{ alpr.withoutPlate }}</span>
+                </div>
+                <div class="w-full bg-slate-100 rounded-full h-3">
+                  <div class="bg-slate-400 h-3 rounded-full"
+                       [style.width.%]="alprTotal > 0 ? (alpr.withoutPlate / alprTotal * 100) : 0"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tg-card p-5">
+          <h2 class="font-bold text-slate-900 mb-4">Confidence Distribution</h2>
+          <div class="space-y-2">
+            <div *ngFor="let bucket of [
+              {label:'Very High (≥0.85)', value: alpr.confidenceBuckets.veryHigh, color:'bg-emerald-500'},
+              {label:'High (0.70–0.85)',  value: alpr.confidenceBuckets.high,     color:'bg-blue-500'},
+              {label:'Medium (0.50–0.70)',value: alpr.confidenceBuckets.medium,   color:'bg-amber-400'},
+              {label:'Low (<0.50)',        value: alpr.confidenceBuckets.low,      color:'bg-red-400'}
+            ]" class="flex items-center gap-3">
+              <span class="w-40 text-xs text-slate-500 text-right shrink-0">{{ bucket.label }}</span>
+              <div class="flex-1 bg-slate-100 rounded-full h-3">
+                <div class="h-3 rounded-full transition-all" [ngClass]="bucket.color"
+                     [style.width.%]="alpr.withPlate > 0 ? (bucket.value / alpr.withPlate * 100) : 0"></div>
+              </div>
+              <span class="w-8 text-xs font-bold text-right shrink-0">{{ bucket.value }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- OCR status breakdown -->
+      <div class="tg-card overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-100">
+          <h2 class="font-bold text-slate-900">OCR Processing Status</h2>
+        </div>
+        <div class="p-5 space-y-2">
+          <div *ngFor="let row of alpr.byOcrStatus" class="flex items-center gap-3">
+            <span class="w-24 text-xs shrink-0 text-right">
+              <span class="tg-badge text-xs" [ngClass]="ocrClass(row.ocrStatus)">{{ row.ocrStatus | uppercase }}</span>
+            </span>
+            <div class="flex-1 bg-slate-100 rounded-full h-3">
+              <div class="h-3 rounded-full transition-all"
+                   [ngClass]="row.ocrStatus === 'done' ? 'bg-emerald-500' : row.ocrStatus === 'failed' ? 'bg-red-500' : row.ocrStatus === 'processing' ? 'bg-blue-500' : 'bg-slate-400'"
+                   [style.width.%]="barWidth(row.count, maxCount(alpr.byOcrStatus))"></div>
+            </div>
+            <span class="w-10 text-xs font-bold text-right shrink-0">{{ row.count }}</span>
+          </div>
+          <div *ngIf="!alpr.byOcrStatus.length" class="py-6 text-center text-sm text-slate-400">No OCR data.</div>
+        </div>
+      </div>
+
+      <!-- Recent plates table -->
+      <div class="tg-card overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+          <h2 class="font-bold text-slate-900">Recent ALPR Results</h2>
+          <span class="tg-badge tg-badge-blue">{{ alpr.recentPlates.length }}</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="tg-table w-full">
+            <thead>
+              <tr>
+                <th>Capture ID</th>
+                <th>Gate</th>
+                <th>Plate</th>
+                <th>Confidence</th>
+                <th>OCR Status</th>
+                <th>Captured At</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let p of alpr.recentPlates">
+                <td class="text-slate-400 font-mono text-xs">{{ p.id }}</td>
+                <td class="font-mono text-sm">{{ p.gateId }}</td>
+                <td class="font-mono font-bold text-slate-900 text-base tracking-wider">{{ p.plateText || '—' }}</td>
+                <td>
+                  <span *ngIf="p.plateConfidence != null"
+                        class="text-sm font-bold"
+                        [ngClass]="p.plateConfidence! >= 0.85 ? 'text-emerald-600' : p.plateConfidence! >= 0.7 ? 'text-blue-600' : p.plateConfidence! >= 0.5 ? 'text-amber-600' : 'text-red-600'">
+                    {{ p.plateConfidence | number:'1.3-3' }}
+                  </span>
+                  <span *ngIf="p.plateConfidence == null" class="text-slate-400">—</span>
+                </td>
+                <td><span class="tg-badge text-xs" [ngClass]="ocrClass(p.ocrStatus ?? '')">{{ (p.ocrStatus || 'pending') | uppercase }}</span></td>
+                <td class="text-xs text-slate-500 whitespace-nowrap">{{ p.capturedAt | date:'MMM d, y — h:mm a' }}</td>
+              </tr>
+              <tr *ngIf="!alpr.recentPlates.length">
+                <td colspan="6" class="text-center text-slate-400 py-8">No ALPR results in this period.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </ng-container>
+  </ng-container>
+
+  <!-- ── Loading skeleton ─────────────────────────────────────────── -->
+  <ng-template #loadingTpl>
+    <div class="space-y-3">
+      <div class="skeleton h-24 rounded-2xl"></div>
+      <div class="skeleton h-48 rounded-2xl"></div>
+      <div class="skeleton h-32 rounded-2xl"></div>
+    </div>
+  </ng-template>
+
+</div>

@@ -104,10 +104,10 @@
 <!-- DETAILS MODAL -->
 <div *ngIf="showModal && selectedCapture"
      class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4"
-     style="background: rgba(2,6,23,0.75); backdrop-filter: blur(6px)"
+     style="background: rgba(2,6,23,0.8); backdrop-filter: blur(8px)"
      (click)="closeModal()">
 
-  <div class="tg-modal w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden"
+  <div class="tg-modal w-full max-w-xl max-h-[95vh] flex flex-col overflow-hidden"
        style="animation: fadeInUp 0.2s ease both"
        (click)="$event.stopPropagation()">
 
@@ -118,8 +118,8 @@
           <i class="fas fa-image text-sm"></i>
         </span>
         <div>
-          <p class="text-xs text-slate-500 font-semibold uppercase tracking-widest">Capture #{{ selectedCapture.id }}</p>
-          <p class="text-base font-black text-slate-900 leading-tight">{{ selectedCapture.capturedAt | date:'MMMM d, y — h:mm:ss a' }}</p>
+          <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Capture #{{ selectedCapture.id }}</p>
+          <p class="text-sm font-black text-slate-900 leading-tight">{{ selectedCapture.capturedAt | date:'MMM d, y — h:mm:ss a' }}</p>
         </div>
       </div>
       <button type="button" (click)="closeModal()"
@@ -128,103 +128,141 @@
       </button>
     </div>
 
-    <!-- Body -->
-    <div class="overflow-y-auto flex-1 p-4 sm:p-5 grid gap-4 sm:grid-cols-[220px_1fr]">
+    <!-- Scrollable body -->
+    <div class="overflow-y-auto flex-1">
 
-      <!-- Image column -->
-      <div class="shrink-0 space-y-2">
-        <div class="relative group rounded-xl overflow-hidden ring-1 ring-slate-200 cursor-zoom-in bg-slate-900"
-             (click)="openLightbox()">
-          <img [src]="displayImageUrl(selectedCapture.imagePath)" alt="capture"
-               class="w-full h-44 sm:h-52 object-contain group-hover:opacity-90 transition" />
-          <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition pointer-events-none">
-            <span class="bg-black/60 text-white text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-1.5">
-              <i class="fas fa-expand text-[10px]"></i> Full screen
-            </span>
-          </div>
+      <!-- ── Full-width image ─────────────────────────────────────── -->
+      <div class="relative group cursor-zoom-in bg-slate-950 border-b border-slate-200"
+           (click)="openLightbox()">
+        <img [src]="displayImageUrl(selectedCapture.imagePath)" alt="capture"
+             class="w-full object-contain group-hover:opacity-90 transition"
+             style="max-height: 340px; min-height: 200px;" />
+
+        <!-- Hover overlay -->
+        <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition pointer-events-none">
+          <span class="bg-black/60 text-white text-sm font-semibold px-4 py-2 rounded-full flex items-center gap-2">
+            <i class="fas fa-expand text-xs"></i> Open full screen
+          </span>
         </div>
-        <div class="grid grid-cols-2 gap-2">
-          <button type="button" (click)="openLightbox()"
-            class="tg-btn tg-btn-secondary text-xs py-2 justify-center gap-1">
-            <i class="fas fa-expand text-[10px]"></i> Expand
-          </button>
-          <button type="button" (click)="downloadImage(selectedCapture)"
-            class="tg-btn tg-btn-primary text-xs py-2 justify-center gap-1">
-            <i class="fas fa-download text-[10px]"></i> Download
-          </button>
+
+        <!-- Plate badge overlay (bottom-left) -->
+        <div *ngIf="selectedCapture.plateText"
+             class="absolute bottom-3 left-3 bg-black/70 text-white font-mono font-bold text-lg px-4 py-1.5 rounded-xl tracking-widest backdrop-blur-sm">
+          {{ selectedCapture.plateText }}
+        </div>
+
+        <!-- Decision badge overlay (bottom-right) -->
+        <div class="absolute bottom-3 right-3">
+          <span class="tg-badge text-xs font-bold px-3 py-1.5"
+                [ngClass]="secDecisionClass(selectedCapture.securityDecision)">
+            {{ (selectedCapture.securityDecision || 'review') | uppercase }}
+          </span>
         </div>
       </div>
 
-      <!-- Details column -->
-      <div class="space-y-2 min-w-0">
+      <!-- ── Action buttons ──────────────────────────────────────── -->
+      <div class="grid grid-cols-2 gap-3 px-5 py-4 border-b border-slate-100">
+        <button type="button" (click)="openLightbox()"
+          class="tg-btn tg-btn-secondary text-sm py-2.5 justify-center gap-2">
+          <i class="fas fa-expand text-xs"></i> Full Screen
+        </button>
+        <button type="button" (click)="downloadImage(selectedCapture)"
+          class="tg-btn tg-btn-primary text-sm py-2.5 justify-center gap-2">
+          <i class="fas fa-download text-xs"></i> Download
+        </button>
+      </div>
 
-        <div class="grid grid-cols-2 gap-2">
-          <div class="flex items-center gap-2.5 rounded-xl bg-slate-100 px-3 py-2.5">
-            <span class="tg-icon-sq" style="background:rgba(34,197,94,0.12);color:#4ade80;width:1.75rem;height:1.75rem;border-radius:0.45rem"><i class="fas fa-lock text-[10px]"></i></span>
-            <div class="min-w-0">
-              <p class="text-[10px] uppercase tracking-wide text-slate-500 font-semibold">Gate</p>
-              <p class="text-sm font-bold text-slate-900 truncate">{{ selectedCapture.gateId }}</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-2.5 rounded-xl bg-slate-100 px-3 py-2.5">
-            <span class="tg-icon-sq" style="background:rgba(99,102,241,0.12);color:#818cf8;width:1.75rem;height:1.75rem;border-radius:0.45rem"><i class="fas fa-bolt text-[10px]"></i></span>
-            <div class="min-w-0">
-              <p class="text-[10px] uppercase tracking-wide text-slate-500 font-semibold">Event</p>
-              <p class="text-sm font-bold text-slate-900 truncate">{{ selectedCapture.eventType }}</p>
-            </div>
-          </div>
-        </div>
+      <!-- ── Detail rows ─────────────────────────────────────────── -->
+      <div class="px-5 py-4 space-y-1.5">
 
-        <div class="grid grid-cols-2 gap-2">
-          <div class="flex items-center gap-2.5 rounded-xl bg-slate-100 px-3 py-2.5">
-            <span class="tg-icon-sq" style="background:rgba(251,191,36,0.12);color:#fbbf24;width:1.75rem;height:1.75rem;border-radius:0.45rem"><i class="fas fa-car text-[10px]"></i></span>
-            <div class="min-w-0">
-              <p class="text-[10px] uppercase tracking-wide text-slate-500 font-semibold">Plate</p>
-              <p class="text-sm font-bold text-slate-900 font-mono">{{ selectedCapture.plateText || '&mdash;' }}</p>
-              <p *ngIf="selectedCapture.plateConfidence != null" class="text-[10px] text-slate-400">{{ selectedCapture.plateConfidence | number:'1.2-2' }} conf.</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-2.5 rounded-xl bg-slate-100 px-3 py-2.5">
-            <span class="tg-icon-sq" style="background:rgba(59,130,246,0.12);color:#60a5fa;width:1.75rem;height:1.75rem;border-radius:0.45rem"><i class="fas fa-face-smile text-[10px]"></i></span>
-            <div class="min-w-0">
-              <p class="text-[10px] uppercase tracking-wide text-slate-500 font-semibold">Face</p>
-              <p class="text-sm font-bold text-slate-900 truncate">{{ selectedCapture.faceName || '&mdash;' }}</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="flex items-center gap-2.5 rounded-xl bg-slate-100 px-3 py-2.5">
-          <span class="tg-icon-sq" style="background:rgba(168,85,247,0.12);color:#c084fc;width:1.75rem;height:1.75rem;border-radius:0.45rem"><i class="fas fa-id-card text-[10px]"></i></span>
-          <div class="min-w-0">
-            <p class="text-[10px] uppercase tracking-wide text-slate-500 font-semibold">Card UID</p>
-            <p class="text-sm font-bold text-slate-900 font-mono">{{ selectedCapture.cardUid || 'None' }}</p>
-          </div>
-        </div>
-
-        <div class="flex items-center gap-2.5 rounded-xl bg-slate-100 px-3 py-2.5">
-          <span class="tg-icon-sq" style="background:rgba(34,211,238,0.12);color:#22d3ee;width:1.75rem;height:1.75rem;border-radius:0.45rem"><i class="fas fa-text-slash text-[10px]"></i></span>
-          <div class="min-w-0 flex-1">
-            <p class="text-[10px] uppercase tracking-wide text-slate-500 font-semibold">OCR Status</p>
-            <span class="tg-badge mt-0.5 inline-block" [ngClass]="ocrStatusClass(selectedCapture.ocrStatus)">
-              {{ (selectedCapture.ocrStatus || 'pending') | uppercase }}
+        <!-- Gate + Event (side by side) -->
+        <div class="grid grid-cols-2 gap-1.5">
+          <div class="flex items-center gap-3 rounded-xl bg-slate-100 px-4 py-3">
+            <span class="tg-icon-sq shrink-0" style="background:rgba(34,197,94,0.12);color:#4ade80;width:2rem;height:2rem;border-radius:0.5rem">
+              <i class="fas fa-lock text-xs"></i>
             </span>
-            <p *ngIf="selectedCapture.ocrError" class="text-xs text-red-500 mt-1">{{ selectedCapture.ocrError }}</p>
+            <div class="min-w-0">
+              <p class="text-[10px] uppercase tracking-wide text-slate-500 font-bold">Gate</p>
+              <p class="text-sm font-bold text-slate-900 break-all">{{ selectedCapture.gateId }}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 rounded-xl bg-slate-100 px-4 py-3">
+            <span class="tg-icon-sq shrink-0" style="background:rgba(99,102,241,0.12);color:#818cf8;width:2rem;height:2rem;border-radius:0.5rem">
+              <i class="fas fa-bolt text-xs"></i>
+            </span>
+            <div class="min-w-0">
+              <p class="text-[10px] uppercase tracking-wide text-slate-500 font-bold">Event</p>
+              <p class="text-sm font-bold text-slate-900 break-all leading-tight">{{ selectedCapture.eventType }}</p>
+            </div>
           </div>
         </div>
 
-        <div class="flex items-center gap-2.5 rounded-xl px-3 py-2.5"
+        <!-- Plate + Face (side by side) -->
+        <div class="grid grid-cols-2 gap-1.5">
+          <div class="flex items-center gap-3 rounded-xl bg-slate-100 px-4 py-3">
+            <span class="tg-icon-sq shrink-0" style="background:rgba(251,191,36,0.12);color:#fbbf24;width:2rem;height:2rem;border-radius:0.5rem">
+              <i class="fas fa-car text-xs"></i>
+            </span>
+            <div class="min-w-0">
+              <p class="text-[10px] uppercase tracking-wide text-slate-500 font-bold">Plate</p>
+              <p class="text-base font-bold text-slate-900 font-mono tracking-wider">{{ selectedCapture.plateText || '—' }}</p>
+              <p *ngIf="selectedCapture.plateConfidence != null" class="text-[10px] text-slate-400 mt-0.5">{{ selectedCapture.plateConfidence | number:'1.2-2' }} confidence</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 rounded-xl bg-slate-100 px-4 py-3">
+            <span class="tg-icon-sq shrink-0" style="background:rgba(59,130,246,0.12);color:#60a5fa;width:2rem;height:2rem;border-radius:0.5rem">
+              <i class="fas fa-face-smile text-xs"></i>
+            </span>
+            <div class="min-w-0">
+              <p class="text-[10px] uppercase tracking-wide text-slate-500 font-bold">Face</p>
+              <p class="text-sm font-bold text-slate-900 break-all">{{ selectedCapture.faceName || '—' }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card UID (full width) -->
+        <div class="flex items-center gap-3 rounded-xl bg-slate-100 px-4 py-3">
+          <span class="tg-icon-sq shrink-0" style="background:rgba(168,85,247,0.12);color:#c084fc;width:2rem;height:2rem;border-radius:0.5rem">
+            <i class="fas fa-id-card text-xs"></i>
+          </span>
+          <div class="min-w-0">
+            <p class="text-[10px] uppercase tracking-wide text-slate-500 font-bold">Card UID</p>
+            <p class="text-sm font-bold text-slate-900 font-mono break-all">{{ selectedCapture.cardUid || 'None' }}</p>
+          </div>
+        </div>
+
+        <!-- OCR Status (full width) -->
+        <div class="flex items-center gap-3 rounded-xl bg-slate-100 px-4 py-3">
+          <span class="tg-icon-sq shrink-0" style="background:rgba(34,211,238,0.12);color:#22d3ee;width:2rem;height:2rem;border-radius:0.5rem">
+            <i class="fas fa-text-slash text-xs"></i>
+          </span>
+          <div class="flex-1 flex items-center justify-between gap-3">
+            <p class="text-sm font-bold text-slate-900">OCR Status</p>
+            <div class="text-right">
+              <span class="tg-badge" [ngClass]="ocrStatusClass(selectedCapture.ocrStatus)">
+                {{ (selectedCapture.ocrStatus || 'pending') | uppercase }}
+              </span>
+              <p *ngIf="selectedCapture.ocrError" class="text-xs text-red-500 mt-1">{{ selectedCapture.ocrError }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Security Decision (full width, colored) -->
+        <div class="flex items-center gap-3 rounded-xl px-4 py-3"
              [ngClass]="selectedCapture.securityDecision === 'block' ? 'bg-red-50' : selectedCapture.securityDecision === 'review' ? 'bg-amber-50' : 'bg-emerald-50'">
-          <span class="tg-icon-sq" style="width:1.75rem;height:1.75rem;border-radius:0.45rem"
+          <span class="tg-icon-sq shrink-0" style="width:2rem;height:2rem;border-radius:0.5rem"
                 [ngClass]="selectedCapture.securityDecision === 'block' ? 'bg-red-100 text-red-600' : selectedCapture.securityDecision === 'review' ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600'">
-            <i class="fas text-[10px]"
+            <i class="fas text-xs"
                [ngClass]="selectedCapture.securityDecision === 'block' ? 'fa-shield-xmark' : selectedCapture.securityDecision === 'review' ? 'fa-shield-exclamation' : 'fa-shield-check'"></i>
           </span>
-          <div class="min-w-0 flex-1">
-            <p class="text-[10px] uppercase tracking-wide text-slate-500 font-semibold">Security Decision</p>
-            <span class="tg-badge mt-0.5 inline-block" [ngClass]="secDecisionClass(selectedCapture.securityDecision)">
+          <div class="flex-1 flex items-center justify-between gap-3">
+            <div>
+              <p class="text-sm font-bold text-slate-900">Security Decision</p>
+              <p *ngIf="selectedCapture.securityReason" class="text-xs text-slate-500 mt-0.5">{{ selectedCapture.securityReason }}</p>
+            </div>
+            <span class="tg-badge shrink-0" [ngClass]="secDecisionClass(selectedCapture.securityDecision)">
               {{ (selectedCapture.securityDecision || 'review') | uppercase }}
             </span>
-            <p *ngIf="selectedCapture.securityReason" class="text-xs text-slate-500 mt-1">{{ selectedCapture.securityReason }}</p>
           </div>
         </div>
 

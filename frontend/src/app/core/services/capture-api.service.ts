@@ -16,4 +16,9 @@ export class CaptureApiService {
     const params = new HttpParams().set('limit', limit).set('offset', offset);
     return this.http.get<CaptureListResponse>(`${API_CONFIG.baseUrl}/captures`, { params });
   }
+
+  getCapturesForGate(gateId: string, limit = 100, offset = 0): Observable<CaptureListResponse> {
+    const params = new HttpParams().set('gateId', gateId).set('limit', limit).set('offset', offset);
+    return this.http.get<CaptureListResponse>(`${API_CONFIG.baseUrl}/captures`, { params });
+  }
 }
