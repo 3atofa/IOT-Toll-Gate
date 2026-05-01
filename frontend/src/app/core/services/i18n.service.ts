@@ -19,8 +19,13 @@ const DICT: Record<Lang, Record<string, string>> = {
     'app.language': 'Language',
     'app.menu': 'Menu',
     'app.close': 'Close',
+    'app.darkMode': 'Dark Mode',
+    'app.lightMode': 'Light Mode',
 
     // Navigation
+    'nav.main':           'Main',
+    'nav.security':       'Security',
+    'nav.admin':          'Administration',
     'nav.dashboard': 'Dashboard',
     'nav.gateControl': 'Gate Control',
     'nav.vehicles': 'Vehicles',
@@ -327,8 +332,13 @@ const DICT: Record<Lang, Record<string, string>> = {
     'app.language': 'اللغة',
     'app.menu': 'القائمة',
     'app.close': 'إغلاق',
+    'app.darkMode': 'الوضع المظلم',
+    'app.lightMode': 'الوضع الفاتح',
 
     // Navigation
+    'nav.main':           'رئيسي',
+    'nav.security':       'الأمن',
+    'nav.admin':          'الإدارة',
     'nav.dashboard': 'لوحة التحكم',
     'nav.gateControl': 'التحكم بالبوابة',
     'nav.vehicles': 'المركبات',

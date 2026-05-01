@@ -1,0 +1,101 @@
+/* ── Global loading overlay ─────────────────────────────────────── */
+.app-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #050b18 0%, #070d1c 45%, #0c1628 100%);
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.35s ease, visibility 0.35s ease;
+}
+
+.app-loader:not(.app-loader--visible) {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Inner centred content */
+.app-loader__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  animation: loaderFadeIn 0.5s ease both;
+}
+
+@keyframes loaderFadeIn {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Glowing logo badge */
+.app-loader__logo {
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5);
+  animation: logoPulse 2s ease-in-out infinite;
+  margin-bottom: 0.5rem;
+}
+
+.app-loader__logo i {
+  font-size: 2rem;
+  color: #ffffff;
+}
+
+@keyframes logoPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); }
+  50%       { box-shadow: 0 0 0 16px rgba(59, 130, 246, 0); }
+}
+
+/* Brand text */
+.app-loader__name {
+  font-size: 1.5rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: #f1f5f9;
+  margin: 0;
+}
+
+.app-loader__sub {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #475569;
+  margin: 0 0 0.75rem;
+}
+
+/* Bouncing dots */
+.app-loader__dots {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 0.25rem;
+}
+
+.app-loader__dots span {
+  display: block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #3b82f6;
+  animation: dotBounce 1.2s ease-in-out infinite both;
+}
+
+.app-loader__dots span:nth-child(1) { animation-delay: 0s;    background: #60a5fa; }
+.app-loader__dots span:nth-child(2) { animation-delay: 0.18s; background: #3b82f6; }
+.app-loader__dots span:nth-child(3) { animation-delay: 0.36s; background: #1d4ed8; }
+
+@keyframes dotBounce {
+  0%, 80%, 100% { transform: translateY(0);    opacity: 0.5; }
+  40%            { transform: translateY(-10px); opacity: 1; }
+}

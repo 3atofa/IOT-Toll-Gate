@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { FeedbackService } from '../../core/services/feedback.service';
 import { I18nService } from '../../core/services/i18n.service';
+import { ThemeService } from '../../core/services/theme.service';
 import { TranslatePipe } from '../../core/pipes/translate.pipe';
 
 @Component({
@@ -25,7 +26,17 @@ import { TranslatePipe } from '../../core/pipes/translate.pipe';
         <i class="fas fa-globe"></i>
         <span>{{ i18n.lang() === 'en' ? 'العربية' : 'English' }}</span>
       </button>
-
+      <!-- Dark mode toggle -->
+      <button
+        type="button"
+        (click)="theme.toggle()"
+        class="fixed top-4 z-10 inline-flex items-center justify-center w-10 h-10 rounded-lg border border-white/20 bg-white/10 text-white hover:bg-white/20 transition backdrop-blur"
+        [style.right]="i18n.isRtl() ? 'auto' : '5.5rem'"
+        [style.left]="i18n.isRtl() ? '5.5rem' : 'auto'"
+        [attr.aria-label]="(theme.isDark() ? 'app.lightMode' : 'app.darkMode') | t"
+      >
+        <i class="fas" [ngClass]="theme.isDark() ? 'fa-sun text-amber-300' : 'fa-moon'"></i>
+      </button>
       <div class="w-full max-w-5xl grid md:grid-cols-2 gap-0 rounded-3xl overflow-hidden shadow-2xl border border-slate-800 bg-slate-900">
         <div class="hidden md:flex flex-col justify-between p-8 lg:p-10 bg-gradient-to-br from-blue-700 via-slate-900 to-slate-950">
           <div>
@@ -102,7 +113,8 @@ export class LoginComponent {
   password = 'Admin@123456';
   loading = false;
 
-  readonly i18n = inject(I18nService);
+  readonly i18n  = inject(I18nService);
+  readonly theme  = inject(ThemeService);
 
   constructor(
     private readonly auth: AuthService,

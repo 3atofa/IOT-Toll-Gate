@@ -7,6 +7,7 @@ import { AuthService } from '../services/auth.service';
 import { FeedbackService } from '../services/feedback.service';
 import { RealtimeService } from '../services/realtime.service';
 import { I18nService } from '../services/i18n.service';
+import { ThemeService } from '../services/theme.service';
 import { TranslatePipe } from '../pipes/translate.pipe';
 import { SecurityAlert } from '../models/security.model';
 
@@ -15,152 +16,173 @@ import { SecurityAlert } from '../models/security.model';
   standalone: true,
   imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, TranslatePipe],
   template: `
-    <div class="flex h-dvh overflow-hidden bg-slate-100">
+    <div class="flex h-dvh overflow-hidden" [class.bg-slate-100]="!theme.isDark()" [class.bg-slate-950]="theme.isDark()">
       <!-- Mobile drawer backdrop -->
       <div
         *ngIf="drawerOpen"
         (click)="closeDrawer()"
-        class="fixed inset-0 z-30 bg-black/50 lg:hidden"
+        class="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm lg:hidden"
         aria-hidden="true"
       ></div>
 
-      <!-- Sidebar -->
+      <!-- ═══ Sidebar ═══════════════════════════════════════════ -->
       <aside
-        class="fixed inset-y-0 z-40 w-72 max-w-[85vw] bg-slate-900 text-white shadow-2xl flex flex-col overflow-hidden transition-transform duration-300 ease-in-out
-               lg:static lg:inset-auto lg:w-64 lg:shadow-lg lg:translate-x-0"
+        class="fixed inset-y-0 z-40 w-72 max-w-[85vw] flex flex-col overflow-hidden transition-transform duration-300 ease-in-out lg:static lg:inset-auto lg:w-64 lg:translate-x-0"
+        style="background: linear-gradient(180deg, #070d1c 0%, #0c1628 45%, #0f172a 100%)"
         [class.translate-x-0]="drawerOpen"
         [class.-translate-x-full]="!drawerOpen && !i18n.isRtl()"
         [class.translate-x-full]="!drawerOpen && i18n.isRtl()"
         [style.left]="i18n.isRtl() ? 'auto' : '0'"
         [style.right]="i18n.isRtl() ? '0' : 'auto'"
       >
-        <!-- Header -->
-        <div class="p-5 border-b border-slate-700 flex items-start justify-between gap-2">
-          <div class="min-w-0">
-            <h1 class="text-xl font-bold flex items-center gap-3">
-              <i class="fas fa-gate-open text-blue-400"></i>
-              <span class="truncate">{{ 'app.title' | t }}</span>
-            </h1>
-            <p class="text-xs text-slate-400 mt-1">{{ 'app.subtitle' | t }}</p>
+        <!-- Brand -->
+        <div class="px-4 pt-5 pb-4 border-b border-white/[0.07] flex items-center justify-between gap-2">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                 style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); box-shadow: 0 4px 14px rgba(59,130,246,0.45)">
+              <i class="fas fa-gate-open text-white text-sm"></i>
+            </div>
+            <div class="min-w-0">
+              <h1 class="text-sm font-bold text-white truncate leading-tight">{{ 'app.title' | t }}</h1>
+              <p class="text-[11px] font-medium truncate" style="color: rgba(96,165,250,0.8)">{{ 'app.subtitle' | t }}</p>
+            </div>
           </div>
-          <button
-            type="button"
-            (click)="closeDrawer()"
-            class="lg:hidden text-slate-300 hover:text-white p-1"
-            [attr.aria-label]="'app.close' | t"
-          >
-            <i class="fas fa-times"></i>
+          <button type="button" (click)="closeDrawer()"
+            class="lg:hidden text-slate-400 hover:text-white w-8 h-8 rounded-lg hover:bg-white/10 transition flex items-center justify-center flex-shrink-0"
+            [attr.aria-label]="'app.close' | t">
+            <i class="fas fa-times text-sm"></i>
           </button>
         </div>
 
-        <!-- Navigation Menu -->
-        <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-          <a routerLink="/dashboard" routerLinkActive="bg-blue-600" [routerLinkActiveOptions]="{ exact: true }"
-             (click)="closeDrawer()"
-             class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-slate-800 transition text-sm">
-            <i class="fas fa-chart-line text-blue-400 w-5 text-center"></i>
-            <span>{{ 'nav.dashboard' | t }}</span>
+        <!-- Navigation -->
+        <nav class="flex-1 overflow-y-auto px-3 py-3 space-y-0.5">
+
+          <!-- Main section -->
+          <p class="px-3 pt-1 pb-2 text-[10px] font-bold uppercase tracking-[0.18em]" style="color: rgba(148,163,184,0.55)">{{ 'nav.main' | t }}</p>
+
+          <a routerLink="/dashboard" routerLinkActive="nav-active" [routerLinkActiveOptions]="{ exact: true }"
+             (click)="closeDrawer()" class="sidebar-nav-item">
+            <span class="nav-icon" style="background: rgba(59,130,246,0.12); color: #60a5fa"><i class="fas fa-chart-line"></i></span>
+            <span class="nav-label">{{ 'nav.dashboard' | t }}</span>
+            <span class="nav-indicator"></span>
           </a>
-          <a routerLink="/gate-control" routerLinkActive="bg-blue-600" (click)="closeDrawer()"
-             class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-slate-800 transition text-sm">
-            <i class="fas fa-lock text-green-400 w-5 text-center"></i>
-            <span>{{ 'nav.gateControl' | t }}</span>
+          <a routerLink="/gate-control" routerLinkActive="nav-active" (click)="closeDrawer()" class="sidebar-nav-item">
+            <span class="nav-icon" style="background: rgba(34,197,94,0.12); color: #4ade80"><i class="fas fa-lock"></i></span>
+            <span class="nav-label">{{ 'nav.gateControl' | t }}</span>
+            <span class="nav-indicator"></span>
           </a>
-          <a routerLink="/vehicles" routerLinkActive="bg-blue-600" (click)="closeDrawer()"
-             class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-slate-800 transition text-sm">
-            <i class="fas fa-car text-yellow-400 w-5 text-center"></i>
-            <span>{{ 'nav.vehicles' | t }}</span>
+          <a routerLink="/vehicles" routerLinkActive="nav-active" (click)="closeDrawer()" class="sidebar-nav-item">
+            <span class="nav-icon" style="background: rgba(251,191,36,0.12); color: #fbbf24"><i class="fas fa-car"></i></span>
+            <span class="nav-label">{{ 'nav.vehicles' | t }}</span>
+            <span class="nav-indicator"></span>
           </a>
-          <a routerLink="/cards" routerLinkActive="bg-blue-600" (click)="closeDrawer()"
-             class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-slate-800 transition text-sm">
-            <i class="fas fa-id-card text-purple-400 w-5 text-center"></i>
-            <span>{{ 'nav.cards' | t }}</span>
+          <a routerLink="/cards" routerLinkActive="nav-active" (click)="closeDrawer()" class="sidebar-nav-item">
+            <span class="nav-icon" style="background: rgba(168,85,247,0.12); color: #c084fc"><i class="fas fa-id-card"></i></span>
+            <span class="nav-label">{{ 'nav.cards' | t }}</span>
+            <span class="nav-indicator"></span>
           </a>
-          <a routerLink="/captures" routerLinkActive="bg-blue-600" (click)="closeDrawer()"
-             class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-slate-800 transition text-sm">
-            <i class="fas fa-image text-red-400 w-5 text-center"></i>
-            <span>{{ 'nav.captures' | t }}</span>
+          <a routerLink="/captures" routerLinkActive="nav-active" (click)="closeDrawer()" class="sidebar-nav-item">
+            <span class="nav-icon" style="background: rgba(248,113,113,0.12); color: #f87171"><i class="fas fa-image"></i></span>
+            <span class="nav-label">{{ 'nav.captures' | t }}</span>
+            <span class="nav-indicator"></span>
           </a>
-          <a routerLink="/wanted-persons" routerLinkActive="bg-blue-600" (click)="closeDrawer()"
-             class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-slate-800 transition text-sm">
-            <i class="fas fa-user-secret text-rose-400 w-5 text-center"></i>
-            <span>{{ 'nav.wantedPersons' | t }}</span>
+
+          <!-- Security section -->
+          <p class="px-3 pt-4 pb-2 text-[10px] font-bold uppercase tracking-[0.18em]" style="color: rgba(148,163,184,0.55)">{{ 'nav.security' | t }}</p>
+
+          <a routerLink="/wanted-persons" routerLinkActive="nav-active" (click)="closeDrawer()" class="sidebar-nav-item">
+            <span class="nav-icon" style="background: rgba(244,63,94,0.12); color: #fb7185"><i class="fas fa-user-secret"></i></span>
+            <span class="nav-label">{{ 'nav.wantedPersons' | t }}</span>
+            <span class="nav-indicator"></span>
           </a>
-          <a routerLink="/wanted-cars" routerLinkActive="bg-blue-600" (click)="closeDrawer()"
-             class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-slate-800 transition text-sm">
-            <i class="fas fa-triangle-exclamation text-orange-400 w-5 text-center"></i>
-            <span>{{ 'nav.wantedCars' | t }}</span>
+          <a routerLink="/wanted-cars" routerLinkActive="nav-active" (click)="closeDrawer()" class="sidebar-nav-item">
+            <span class="nav-icon" style="background: rgba(249,115,22,0.12); color: #fb923c"><i class="fas fa-triangle-exclamation"></i></span>
+            <span class="nav-label">{{ 'nav.wantedCars' | t }}</span>
+            <span class="nav-indicator"></span>
           </a>
-          <a routerLink="/reports" routerLinkActive="bg-blue-600" (click)="closeDrawer()"
-             class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-slate-800 transition text-sm">
-            <i class="fas fa-file-alt text-indigo-400 w-5 text-center"></i>
-            <span>{{ 'nav.reports' | t }}</span>
+
+          <!-- Admin section -->
+          <p class="px-3 pt-4 pb-2 text-[10px] font-bold uppercase tracking-[0.18em]" style="color: rgba(148,163,184,0.55)">{{ 'nav.admin' | t }}</p>
+
+          <a routerLink="/reports" routerLinkActive="nav-active" (click)="closeDrawer()" class="sidebar-nav-item">
+            <span class="nav-icon" style="background: rgba(99,102,241,0.12); color: #a5b4fc"><i class="fas fa-file-alt"></i></span>
+            <span class="nav-label">{{ 'nav.reports' | t }}</span>
+            <span class="nav-indicator"></span>
           </a>
-          <a routerLink="/users" routerLinkActive="bg-blue-600" (click)="closeDrawer()"
-             class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-slate-800 transition text-sm">
-            <i class="fas fa-users text-cyan-400 w-5 text-center"></i>
-            <span>{{ 'nav.users' | t }}</span>
+          <a routerLink="/users" routerLinkActive="nav-active" (click)="closeDrawer()" class="sidebar-nav-item">
+            <span class="nav-icon" style="background: rgba(34,211,238,0.12); color: #22d3ee"><i class="fas fa-users"></i></span>
+            <span class="nav-label">{{ 'nav.users' | t }}</span>
+            <span class="nav-indicator"></span>
           </a>
-          <a routerLink="/settings" routerLinkActive="bg-blue-600" (click)="closeDrawer()"
-             class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-slate-800 transition text-sm">
-            <i class="fas fa-cog text-slate-400 w-5 text-center"></i>
-            <span>{{ 'nav.settings' | t }}</span>
+          <a routerLink="/settings" routerLinkActive="nav-active" (click)="closeDrawer()" class="sidebar-nav-item">
+            <span class="nav-icon" style="background: rgba(148,163,184,0.1); color: #94a3b8"><i class="fas fa-cog"></i></span>
+            <span class="nav-label">{{ 'nav.settings' | t }}</span>
+            <span class="nav-indicator"></span>
           </a>
         </nav>
 
-        <!-- Footer -->
-        <div class="p-4 border-t border-slate-700 text-sm text-slate-400">
-          <p class="flex items-center gap-2 truncate">
-            <i class="fas fa-user-circle"></i>
-            <span class="truncate">{{ currentUserName }}</span>
-          </p>
-          <p class="text-xs mt-1 opacity-70 capitalize">{{ currentUserRole }}</p>
+        <!-- User footer -->
+        <div class="p-4 border-t border-white/[0.07]">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
+                 style="background: linear-gradient(135deg, #3b82f6, #6366f1)">
+              {{ currentUserInitials }}
+            </div>
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-semibold text-white truncate leading-tight">{{ currentUserName }}</p>
+              <p class="text-[11px] text-slate-400 capitalize truncate">{{ currentUserRole }}</p>
+            </div>
+          </div>
           <button type="button" (click)="logout()"
-            class="mt-3 w-full rounded-lg bg-slate-800 hover:bg-slate-700 transition py-2 text-sm text-white">
+            class="w-full rounded-xl border border-white/10 py-2 text-sm font-medium text-slate-400 hover:text-white hover:bg-white/10 transition flex items-center justify-center gap-2">
+            <i class="fas fa-arrow-right-from-bracket text-xs"></i>
             {{ 'app.signOut' | t }}
           </button>
         </div>
       </aside>
 
-      <!-- Main Content -->
+      <!-- ═══ Main Content ══════════════════════════════════════ -->
       <main class="flex-1 min-w-0 h-full flex flex-col overflow-hidden">
-        <!-- Header Bar -->
-        <header class="bg-white border-b border-slate-200 px-4 sm:px-6 lg:px-8 py-3 sm:py-4 shadow-sm flex items-center gap-3 sm:gap-4">
-          <button
-            type="button"
-            (click)="openDrawer()"
-            class="lg:hidden inline-flex items-center justify-center w-10 h-10 rounded-lg text-slate-700 hover:bg-slate-100"
-            [attr.aria-label]="'app.menu' | t"
-          >
-            <i class="fas fa-bars text-lg"></i>
+
+        <!-- Top Header Bar -->
+        <header class="border-b px-4 sm:px-6 py-3 flex items-center gap-3 sm:gap-4 z-20 flex-shrink-0"
+                style="background: rgba(255,255,255,0.97); backdrop-filter: blur(8px); border-color: #e2e8f0">
+          <!-- Mobile burger -->
+          <button type="button" (click)="openDrawer()"
+            class="lg:hidden inline-flex items-center justify-center w-10 h-10 rounded-xl text-slate-600 hover:bg-slate-100 transition"
+            [attr.aria-label]="'app.menu' | t">
+            <i class="fas fa-bars-staggered text-base"></i>
           </button>
 
+          <!-- Title -->
           <div class="min-w-0 flex-1">
-            <h2 class="text-base sm:text-xl font-bold text-slate-800 truncate">{{ 'app.headerTitle' | t }}</h2>
-            <p class="hidden sm:block text-sm text-slate-600 truncate">{{ 'app.headerSubtitle' | t }}</p>
+            <h2 class="text-sm sm:text-base font-bold text-slate-800 truncate leading-tight">{{ 'app.headerTitle' | t }}</h2>
+            <div class="hidden sm:flex items-center gap-2 mt-0.5">
+              <span class="live-dot"></span>
+              <span class="text-xs text-slate-500">{{ 'app.online' | t }} &middot; {{ currentTime | date:'shortTime' }}</span>
+            </div>
           </div>
 
-          <div class="flex items-center gap-2 sm:gap-4 shrink-0">
-            <button
-              type="button"
-              (click)="toggleLang()"
-              class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
-              [attr.aria-label]="'app.language' | t"
-              [title]="'app.language' | t"
-            >
-              <i class="fas fa-globe text-slate-500"></i>
+          <!-- Right controls -->
+          <div class="flex items-center gap-2 shrink-0">
+            <!-- Lang -->
+            <button type="button" (click)="toggleLang()"
+              class="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition"
+              [attr.aria-label]="'app.language' | t">
+              <i class="fas fa-globe text-slate-400 text-xs"></i>
               <span>{{ i18n.lang() === 'en' ? 'العربية' : 'English' }}</span>
             </button>
 
-            <div class="hidden md:block text-right">
-              <p class="text-xs sm:text-sm font-medium text-slate-700">
-                {{ 'app.status' | t }}: <span class="text-green-600">●</span> {{ 'app.online' | t }}
-              </p>
-              <p class="text-[11px] sm:text-xs text-slate-500">{{ currentTime | date:'short' }}</p>
-            </div>
+            <!-- Dark mode -->
+            <button type="button" (click)="theme.toggle()"
+              class="inline-flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 hover:border-slate-300 transition"
+              [attr.aria-label]="(theme.isDark() ? 'app.lightMode' : 'app.darkMode') | t">
+              <i class="fas text-sm" [ngClass]="theme.isDark() ? 'fa-sun text-amber-400' : 'fa-moon'"></i>
+            </button>
 
-            <button class="hidden sm:inline-flex w-10 h-10 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition items-center justify-center">
-              <i class="fas fa-bell"></i>
+            <!-- Bell -->
+            <button class="hidden sm:inline-flex items-center justify-center w-9 h-9 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition shadow-sm relative">
+              <i class="fas fa-bell text-sm"></i>
             </button>
           </div>
         </header>
@@ -172,7 +194,14 @@ import { SecurityAlert } from '../models/security.model';
       </main>
     </div>
   `,
-  styles: [`:host { display: block; }`]
+  styles: [`:host { display: block; }
+
+  /* Dark-mode header override */
+  :host-context(html.dark) header {
+    background: rgba(15,23,42,0.97) !important;
+    border-color: #1e293b !important;
+  }
+  `]
 })
 export class LayoutComponent implements OnInit, OnDestroy {
   currentTime = new Date();
@@ -180,7 +209,17 @@ export class LayoutComponent implements OnInit, OnDestroy {
   currentUserRole = 'admin';
   drawerOpen = false;
 
-  readonly i18n = inject(I18nService);
+  get currentUserInitials(): string {
+    return this.currentUserName
+      .split(' ')
+      .map(w => w[0])
+      .slice(0, 2)
+      .join('')
+      .toUpperCase();
+  }
+
+  readonly i18n  = inject(I18nService);
+  readonly theme  = inject(ThemeService);
 
   private clockTimer: ReturnType<typeof setInterval> | null = null;
   private readonly subscriptions = new Subscription();

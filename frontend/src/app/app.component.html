@@ -1,1 +1,24 @@
+<!-- ── Global loading overlay ──────────────────────────────── -->
+<div class="app-loader" [class.app-loader--visible]="loading.isLoading()">
+  <div class="app-loader__inner">
+
+    <!-- Logo badge -->
+    <div class="app-loader__logo">
+      <i class="fa-solid fa-shield-halved"></i>
+    </div>
+
+    <!-- Brand name -->
+    <p class="app-loader__name">TollGate</p>
+    <p class="app-loader__sub">Smart Gate Management</p>
+
+    <!-- Bouncing dots -->
+    <div class="app-loader__dots">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+
+  </div>
+</div>
+
 <router-outlet></router-outlet>

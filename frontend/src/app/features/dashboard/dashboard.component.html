@@ -1,27 +1,40 @@
-<section class="min-h-full bg-slate-100 p-3 sm:p-4 md:p-8">
-  <div class="mx-auto max-w-6xl">
-    <header class="mb-4 sm:mb-6 rounded-2xl bg-white p-4 sm:p-6 shadow-sm ring-1 ring-slate-200">
+<section class="min-h-full bg-slate-100 p-3 sm:p-5 md:p-8 page-enter">
+  <div class="mx-auto max-w-6xl space-y-4 sm:space-y-6">
+
+    <!-- ── Page header ─────────────────────────────────────── -->
+    <header class="tg-card p-4 sm:p-6">
       <div class="flex flex-wrap items-center justify-between gap-3 sm:gap-4">
         <div class="min-w-0">
-          <p class="text-xs sm:text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">{{ 'dashboard.brand' | t }}</p>
-          <h1 class="mt-1 text-2xl sm:text-3xl font-black text-slate-900">{{ 'dashboard.title' | t }}</h1>
+          <div class="flex items-center gap-2 mb-1">
+            <span class="live-dot"></span>
+            <p class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">{{ 'dashboard.brand' | t }}</p>
+          </div>
+          <h1 class="text-2xl sm:text-3xl font-black text-slate-900">{{ 'dashboard.title' | t }}</h1>
         </div>
-        <a
-          routerLink="/captures"
-          class="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
-        >
-          <i class="fa-solid fa-clock-rotate-left"></i>
+        <a routerLink="/captures"
+          class="tg-btn tg-btn-dark text-sm">
+          <i class="fa-solid fa-clock-rotate-left text-xs"></i>
           <span>{{ 'dashboard.viewHistory' | t }}</span>
         </a>
       </div>
     </header>
 
-    <div *ngIf="loading" class="rounded-2xl bg-white p-6 text-center shadow-sm ring-1 ring-slate-200">
-      <p class="text-slate-600">{{ 'dashboard.loadingLatest' | t }}</p>
+    <!-- ── Skeleton loading ────────────────────────────────── -->
+    <div *ngIf="loading" class="grid gap-4 sm:gap-6 lg:grid-cols-[1fr_300px]">
+      <div class="tg-card overflow-hidden">
+        <div class="skeleton h-64 sm:h-96 lg:h-[480px] rounded-none"></div>
+      </div>
+      <div class="tg-card p-5 space-y-3">
+        <div class="skeleton h-6 w-40 mb-2"></div>
+        <div *ngFor="let _ of [1,2,3,4,5,6,7,8]" class="skeleton h-14 rounded-xl"></div>
+      </div>
     </div>
 
+    <!-- ── Capture view ────────────────────────────────────── -->
     <div *ngIf="!loading && latestCapture" class="grid gap-4 sm:gap-6 lg:grid-cols-[1fr_300px]">
-      <article class="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+
+      <!-- Image panel -->
+      <article class="tg-card overflow-hidden">
         <img
           *ngIf="!imageLoadFailed"
           [src]="displayImageUrl(latestCapture.imagePath)"
@@ -29,72 +42,132 @@
           alt="Latest gate capture"
           class="h-64 sm:h-96 lg:h-[480px] w-full object-contain bg-slate-900"
         />
-        <div *ngIf="imageLoadFailed" class="h-64 sm:h-96 lg:h-[480px] grid place-items-center bg-slate-100 text-slate-500">
+        <div *ngIf="imageLoadFailed" class="h-64 sm:h-96 lg:h-[480px] grid place-items-center bg-slate-100 text-slate-400">
           <div class="text-center px-4">
-            <i class="fa-solid fa-image text-3xl"></i>
-            <p class="mt-2 text-sm">{{ 'dashboard.imageUnavailable' | t }}</p>
+            <i class="fa-solid fa-image-slash text-5xl mb-3 opacity-50"></i>
+            <p class="text-sm font-medium text-slate-500">{{ 'dashboard.imageUnavailable' | t }}</p>
           </div>
         </div>
       </article>
 
-      <aside class="space-y-3 rounded-2xl bg-white p-4 sm:p-5 shadow-sm ring-1 ring-slate-200">
-        <h2 class="text-lg font-bold text-slate-900">{{ 'dashboard.captureDetails' | t }}</h2>
-
-        <div class="rounded-xl bg-slate-100 p-3">
-          <p class="text-xs uppercase tracking-wide text-slate-500">{{ 'dashboard.event' | t }}</p>
-          <p class="mt-1 text-sm font-semibold text-slate-900">{{ getStatusLabel(latestCapture.eventType) }}</p>
+      <!-- Details panel -->
+      <aside class="tg-card p-4 sm:p-5 space-y-2 overflow-y-auto">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-base font-bold text-slate-900">{{ 'dashboard.captureDetails' | t }}</h2>
+          <span class="tg-badge tg-badge-blue">
+            <span class="live-dot" style="width:5px;height:5px"></span>
+            LIVE
+          </span>
         </div>
 
-        <div class="rounded-xl bg-slate-100 p-3">
-          <p class="text-xs uppercase tracking-wide text-slate-500">{{ 'dashboard.gateId' | t }}</p>
-          <p class="mt-1 text-sm font-semibold text-slate-900 break-all">{{ latestCapture.gateId }}</p>
+        <!-- Event -->
+        <div class="flex items-center gap-3 rounded-xl bg-slate-100 px-3 py-2.5">
+          <span class="tg-icon-sq" style="background:rgba(99,102,241,0.12);color:#818cf8;width:2rem;height:2rem;border-radius:0.5rem">
+            <i class="fas fa-bolt text-xs"></i>
+          </span>
+          <div class="min-w-0">
+            <p class="text-[10px] uppercase tracking-wide text-slate-500 font-semibold">{{ 'dashboard.event' | t }}</p>
+            <p class="text-sm font-bold text-slate-900 truncate">{{ getStatusLabel(latestCapture.eventType) }}</p>
+          </div>
         </div>
 
-        <div class="rounded-xl bg-slate-100 p-3">
-          <p class="text-xs uppercase tracking-wide text-slate-500">{{ 'dashboard.cardUid' | t }}</p>
-          <p class="mt-1 text-sm font-semibold text-slate-900 break-all">{{ latestCapture.cardUid || ('common.na' | t) }}</p>
+        <!-- Gate ID -->
+        <div class="flex items-center gap-3 rounded-xl bg-slate-100 px-3 py-2.5">
+          <span class="tg-icon-sq" style="background:rgba(34,197,94,0.12);color:#4ade80;width:2rem;height:2rem;border-radius:0.5rem">
+            <i class="fas fa-lock text-xs"></i>
+          </span>
+          <div class="min-w-0">
+            <p class="text-[10px] uppercase tracking-wide text-slate-500 font-semibold">{{ 'dashboard.gateId' | t }}</p>
+            <p class="text-sm font-bold text-slate-900 break-all">{{ latestCapture.gateId }}</p>
+          </div>
         </div>
 
-        <div class="rounded-xl bg-slate-100 p-3">
-          <p class="text-xs uppercase tracking-wide text-slate-500">{{ 'dashboard.plate' | t }}</p>
-          <p class="mt-1 text-sm font-semibold text-slate-900">{{ latestCapture.plateText || ('dashboard.plateNotRead' | t) }}</p>
+        <!-- Card UID -->
+        <div class="flex items-center gap-3 rounded-xl bg-slate-100 px-3 py-2.5">
+          <span class="tg-icon-sq" style="background:rgba(168,85,247,0.12);color:#c084fc;width:2rem;height:2rem;border-radius:0.5rem">
+            <i class="fas fa-id-card text-xs"></i>
+          </span>
+          <div class="min-w-0">
+            <p class="text-[10px] uppercase tracking-wide text-slate-500 font-semibold">{{ 'dashboard.cardUid' | t }}</p>
+            <p class="text-sm font-bold text-slate-900 break-all">{{ latestCapture.cardUid || ('common.na' | t) }}</p>
+          </div>
         </div>
 
-        <div class="rounded-xl bg-slate-100 p-3">
-          <p class="text-xs uppercase tracking-wide text-slate-500">{{ 'dashboard.face' | t }}</p>
-          <p class="mt-1 text-sm font-semibold text-slate-900">{{ latestCapture.faceName || ('dashboard.faceNotRecognized' | t) }}</p>
+        <!-- Plate -->
+        <div class="flex items-center gap-3 rounded-xl bg-slate-100 px-3 py-2.5">
+          <span class="tg-icon-sq" style="background:rgba(251,191,36,0.12);color:#fbbf24;width:2rem;height:2rem;border-radius:0.5rem">
+            <i class="fas fa-car text-xs"></i>
+          </span>
+          <div class="min-w-0">
+            <p class="text-[10px] uppercase tracking-wide text-slate-500 font-semibold">{{ 'dashboard.plate' | t }}</p>
+            <p class="text-sm font-bold text-slate-900">{{ latestCapture.plateText || ('dashboard.plateNotRead' | t) }}</p>
+          </div>
         </div>
 
-        <div class="rounded-xl bg-slate-100 p-3">
-          <p class="text-xs uppercase tracking-wide text-slate-500">{{ 'dashboard.ocrStatus' | t }}</p>
-          <p class="mt-1 text-sm font-semibold" [ngClass]="ocrStatusTextClass(latestCapture.ocrStatus)">
-            {{ (latestCapture.ocrStatus || 'pending') | uppercase }}
-            <span *ngIf="latestCapture.plateConfidence != null" class="text-slate-500">
-              ({{ latestCapture.plateConfidence | number:'1.2-2' }})
-            </span>
-          </p>
+        <!-- Face -->
+        <div class="flex items-center gap-3 rounded-xl bg-slate-100 px-3 py-2.5">
+          <span class="tg-icon-sq" style="background:rgba(59,130,246,0.12);color:#60a5fa;width:2rem;height:2rem;border-radius:0.5rem">
+            <i class="fas fa-face-smile text-xs"></i>
+          </span>
+          <div class="min-w-0">
+            <p class="text-[10px] uppercase tracking-wide text-slate-500 font-semibold">{{ 'dashboard.face' | t }}</p>
+            <p class="text-sm font-bold text-slate-900">{{ latestCapture.faceName || ('dashboard.faceNotRecognized' | t) }}</p>
+          </div>
         </div>
 
-        <div class="rounded-xl bg-slate-100 p-3">
-          <p class="text-xs uppercase tracking-wide text-slate-500">{{ 'dashboard.securityDecision' | t }}</p>
-          <p class="mt-1 text-sm font-semibold" [ngClass]="latestCapture.securityDecision === 'block' ? 'text-red-600' : latestCapture.securityDecision === 'review' ? 'text-amber-600' : 'text-emerald-700'">
-            {{ (latestCapture.securityDecision || 'review') | uppercase }}
-          </p>
-          <p *ngIf="latestCapture.securityReason" class="mt-1 text-xs text-slate-500">{{ latestCapture.securityReason }}</p>
+        <!-- OCR Status -->
+        <div class="flex items-center gap-3 rounded-xl bg-slate-100 px-3 py-2.5">
+          <span class="tg-icon-sq" style="background:rgba(34,211,238,0.12);color:#22d3ee;width:2rem;height:2rem;border-radius:0.5rem">
+            <i class="fas fa-text-slash text-xs"></i>
+          </span>
+          <div class="min-w-0">
+            <p class="text-[10px] uppercase tracking-wide text-slate-500 font-semibold">{{ 'dashboard.ocrStatus' | t }}</p>
+            <p class="text-sm font-bold" [ngClass]="ocrStatusTextClass(latestCapture.ocrStatus)">
+              {{ (latestCapture.ocrStatus || 'pending') | uppercase }}
+              <span *ngIf="latestCapture.plateConfidence != null" class="text-slate-500 font-normal">
+                ({{ latestCapture.plateConfidence | number:'1.2-2' }})
+              </span>
+            </p>
+          </div>
         </div>
 
-        <div class="rounded-xl bg-slate-100 p-3">
-          <p class="text-xs uppercase tracking-wide text-slate-500">{{ 'dashboard.capturedAt' | t }}</p>
-          <p class="mt-1 text-sm font-semibold text-slate-900">
-            {{ latestCapture.capturedAt | date: 'MMM d, y, h:mm:ss a' }}
-          </p>
+        <!-- Security Decision -->
+        <div class="flex items-center gap-3 rounded-xl px-3 py-2.5"
+             [ngClass]="latestCapture.securityDecision === 'block' ? 'bg-red-50' : latestCapture.securityDecision === 'review' ? 'bg-amber-50' : 'bg-emerald-50'">
+          <span class="tg-icon-sq" style="width:2rem;height:2rem;border-radius:0.5rem"
+                [ngClass]="latestCapture.securityDecision === 'block' ? 'bg-red-100 text-red-600' : latestCapture.securityDecision === 'review' ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600'">
+            <i class="fas" [ngClass]="latestCapture.securityDecision === 'block' ? 'fa-shield-xmark' : latestCapture.securityDecision === 'review' ? 'fa-shield-exclamation' : 'fa-shield-check'" class="text-xs"></i>
+          </span>
+          <div class="min-w-0">
+            <p class="text-[10px] uppercase tracking-wide text-slate-500 font-semibold">{{ 'dashboard.securityDecision' | t }}</p>
+            <p class="text-sm font-black" [ngClass]="latestCapture.securityDecision === 'block' ? 'text-red-700' : latestCapture.securityDecision === 'review' ? 'text-amber-700' : 'text-emerald-700'">
+              {{ (latestCapture.securityDecision || 'review') | uppercase }}
+            </p>
+            <p *ngIf="latestCapture.securityReason" class="text-xs text-slate-500 truncate">{{ latestCapture.securityReason }}</p>
+          </div>
+        </div>
+
+        <!-- Captured At -->
+        <div class="flex items-center gap-3 rounded-xl bg-slate-100 px-3 py-2.5">
+          <span class="tg-icon-sq" style="background:rgba(100,116,139,0.12);color:#94a3b8;width:2rem;height:2rem;border-radius:0.5rem">
+            <i class="fas fa-clock text-xs"></i>
+          </span>
+          <div class="min-w-0">
+            <p class="text-[10px] uppercase tracking-wide text-slate-500 font-semibold">{{ 'dashboard.capturedAt' | t }}</p>
+            <p class="text-sm font-bold text-slate-900">{{ latestCapture.capturedAt | date: 'MMM d, y, h:mm:ss a' }}</p>
+          </div>
         </div>
       </aside>
     </div>
 
-    <div *ngIf="!loading && !latestCapture" class="rounded-2xl bg-white p-6 sm:p-10 text-center shadow-sm ring-1 ring-slate-200">
-      <i class="fa-solid fa-camera text-4xl text-slate-400"></i>
-      <p class="mt-4 text-slate-600">{{ 'dashboard.noCaptures' | t }}</p>
+    <!-- ── Empty state ─────────────────────────────────────── -->
+    <div *ngIf="!loading && !latestCapture" class="tg-card p-8 sm:p-16 text-center">
+      <div class="w-20 h-20 mx-auto rounded-2xl flex items-center justify-center mb-6"
+           style="background: linear-gradient(135deg, rgba(59,130,246,0.12), rgba(99,102,241,0.12))">
+        <i class="fa-solid fa-camera text-4xl text-blue-400"></i>
+      </div>
+      <h3 class="text-lg font-bold text-slate-700 mb-2">{{ 'dashboard.noCaptures' | t }}</h3>
     </div>
+
   </div>
 </section>
