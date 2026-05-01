@@ -18,30 +18,36 @@ const toPublicImageUrl = (req, absolutePath) => {
   return `/uploads/${rel}`;
 };
 
-const buildCapturePayload = (req, imagePath) => ({
-  // If the request was authenticated via gate token, use that gate's ID.
-  // Otherwise fall back to explicit body / query / header values (legacy / internal use).
-  gateId: req.gate ? req.gate.gateId : (req.body?.gateId || req.query.gateId || req.get('x-gate-id') || 'gate-1'),
-  eventType: req.body?.eventType || req.query.eventType || req.get('x-event-type') || 'access_granted',
-  cardUid: req.body?.cardUid || req.query.cardUid || req.get('x-card-uid') || null,
-  imagePath,
-  plateText: null,
-  plateConfidence: null,
-  faceName: null,
-  faceConfidence: null,
-  faceStatus: 'pending',
-  faceError: null,
-  ocrStatus: 'pending',
-  ocrProcessedAt: null,
-  ocrError: null,
-  securityDecision: 'review',
-  securityReason: null,
-  capturedAt: req.body?.capturedAt
-    ? new Date(req.body.capturedAt)
-    : req.query.capturedAt
-      ? new Date(req.query.capturedAt)
-      : new Date(),
-});
+const buildCapturePayload = (req, imagePath) => {
+  const cardUid = req.body?.cardUid || req.query.cardUid || req.get('x-card-uid') || null;
+
+  // When a card UID is present it is always a mock payment — grant access automatically.
+  const eventType  = cardUid ? 'access_granted' : (req.body?.eventType || req.query.eventType || req.get('x-event-type') || 'access_granted');
+  const secDec     = cardUid ? 'allow'          : 'review';
+
+  return {
+    gateId: req.gate ? req.gate.gateId : (req.body?.gateId || req.query.gateId || req.get('x-gate-id') || 'gate-1'),
+    eventType,
+    cardUid,
+    imagePath,
+    plateText: null,
+    plateConfidence: null,
+    faceName: null,
+    faceConfidence: null,
+    faceStatus: 'pending',
+    faceError: null,
+    ocrStatus: 'pending',
+    ocrProcessedAt: null,
+    ocrError: null,
+    securityDecision: secDec,
+    securityReason: cardUid ? 'Mock RFID payment — auto-allowed' : null,
+    capturedAt: req.body?.capturedAt
+      ? new Date(req.body.capturedAt)
+      : req.query.capturedAt
+        ? new Date(req.query.capturedAt)
+        : new Date(),
+  };
+};
 
 const isSecurityCheckRequest = (req) => {
   const mode = String(req.query.mode || req.body?.mode || req.get('x-capture-mode') || '').toLowerCase();
@@ -166,11 +172,17 @@ const retryCaptureOcr = async (req, res, next) => {
 };
 
 const getCaptures = async (req, res, next) => {
+  const { Op } = require('sequelize');
   try {
-    const limit = Math.min(Number(req.query.limit || 20), 100);
+    const limit = Math.min(Number(req.query.limit || 20), 200);
     const offset = Number(req.query.offset || 0);
 
+    const where = {};
+    if (req.query.hasCardUid === 'true')  where.cardUid = { [Op.ne]: null };
+    if (req.query.hasCardUid === 'false') where.cardUid = null;
+
     const result = await GateCapture.findAndCountAll({
+      where,
       order: [['capturedAt', 'DESC']],
       limit,
       offset,

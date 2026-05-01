@@ -77,7 +77,7 @@ import { SecurityAlert } from '../models/security.model';
             <span class="nav-indicator"></span>
           </a>
           <a routerLink="/cards" routerLinkActive="nav-active" (click)="closeDrawer()" class="sidebar-nav-item">
-            <span class="nav-icon" style="background: rgba(168,85,247,0.12); color: #c084fc"><i class="fas fa-id-card"></i></span>
+            <span class="nav-icon" style="background: rgba(34,197,94,0.12); color: #4ade80"><i class="fas fa-money-bill-wave"></i></span>
             <span class="nav-label">{{ 'nav.cards' | t }}</span>
             <span class="nav-indicator"></span>
           </a>
