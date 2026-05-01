@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -6,132 +6,118 @@ import { Subscription } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 import { FeedbackService } from '../services/feedback.service';
 import { RealtimeService } from '../services/realtime.service';
+import { I18nService } from '../services/i18n.service';
+import { TranslatePipe } from '../pipes/translate.pipe';
 import { SecurityAlert } from '../models/security.model';
 
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, TranslatePipe],
   template: `
     <div class="flex h-dvh overflow-hidden bg-slate-100">
+      <!-- Mobile drawer backdrop -->
+      <div
+        *ngIf="drawerOpen"
+        (click)="closeDrawer()"
+        class="fixed inset-0 z-30 bg-black/50 lg:hidden"
+        aria-hidden="true"
+      ></div>
+
       <!-- Sidebar -->
-      <aside class="w-64 h-full bg-slate-900 text-white shadow-lg flex flex-col overflow-hidden shrink-0">
+      <aside
+        class="fixed inset-y-0 z-40 w-72 max-w-[85vw] bg-slate-900 text-white shadow-2xl flex flex-col overflow-hidden transition-transform duration-300 ease-in-out
+               lg:static lg:inset-auto lg:w-64 lg:shadow-lg lg:translate-x-0"
+        [class.translate-x-0]="drawerOpen"
+        [class.-translate-x-full]="!drawerOpen && !i18n.isRtl()"
+        [class.translate-x-full]="!drawerOpen && i18n.isRtl()"
+        [style.left]="i18n.isRtl() ? 'auto' : '0'"
+        [style.right]="i18n.isRtl() ? '0' : 'auto'"
+      >
         <!-- Header -->
-        <div class="p-6 border-b border-slate-700">
-          <h1 class="text-2xl font-bold flex items-center gap-3">
-            <i class="fas fa-gate-open text-blue-400"></i>
-            <span>Toll Gate IoT</span>
-          </h1>
-          <p class="text-sm text-slate-400 mt-2">Management System</p>
+        <div class="p-5 border-b border-slate-700 flex items-start justify-between gap-2">
+          <div class="min-w-0">
+            <h1 class="text-xl font-bold flex items-center gap-3">
+              <i class="fas fa-gate-open text-blue-400"></i>
+              <span class="truncate">{{ 'app.title' | t }}</span>
+            </h1>
+            <p class="text-xs text-slate-400 mt-1">{{ 'app.subtitle' | t }}</p>
+          </div>
+          <button
+            type="button"
+            (click)="closeDrawer()"
+            class="lg:hidden text-slate-300 hover:text-white p-1"
+            [attr.aria-label]="'app.close' | t"
+          >
+            <i class="fas fa-times"></i>
+          </button>
         </div>
 
         <!-- Navigation Menu -->
-        <nav class="flex-1 overflow-y-auto px-4 py-6 space-y-2">
-          <a
-            routerLink="/dashboard"
-            routerLinkActive="bg-blue-600"
-            [routerLinkActiveOptions]="{ exact: true }"
-            class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition"
-          >
-            <i class="fas fa-chart-line text-blue-400"></i>
-            <span>Dashboard</span>
+        <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+          <a routerLink="/dashboard" routerLinkActive="bg-blue-600" [routerLinkActiveOptions]="{ exact: true }"
+             (click)="closeDrawer()"
+             class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-slate-800 transition text-sm">
+            <i class="fas fa-chart-line text-blue-400 w-5 text-center"></i>
+            <span>{{ 'nav.dashboard' | t }}</span>
           </a>
-
-          <a
-            routerLink="/gate-control"
-            routerLinkActive="bg-blue-600"
-            class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition"
-          >
-            <i class="fas fa-lock text-green-400"></i>
-            <span>Gate Control</span>
+          <a routerLink="/gate-control" routerLinkActive="bg-blue-600" (click)="closeDrawer()"
+             class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-slate-800 transition text-sm">
+            <i class="fas fa-lock text-green-400 w-5 text-center"></i>
+            <span>{{ 'nav.gateControl' | t }}</span>
           </a>
-
-          <a
-            routerLink="/vehicles"
-            routerLinkActive="bg-blue-600"
-            class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition"
-          >
-            <i class="fas fa-car text-yellow-400"></i>
-            <span>Vehicles</span>
+          <a routerLink="/vehicles" routerLinkActive="bg-blue-600" (click)="closeDrawer()"
+             class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-slate-800 transition text-sm">
+            <i class="fas fa-car text-yellow-400 w-5 text-center"></i>
+            <span>{{ 'nav.vehicles' | t }}</span>
           </a>
-
-          <a
-            routerLink="/cards"
-            routerLinkActive="bg-blue-600"
-            class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition"
-          >
-            <i class="fas fa-id-card text-purple-400"></i>
-            <span>RFID Cards</span>
+          <a routerLink="/cards" routerLinkActive="bg-blue-600" (click)="closeDrawer()"
+             class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-slate-800 transition text-sm">
+            <i class="fas fa-id-card text-purple-400 w-5 text-center"></i>
+            <span>{{ 'nav.cards' | t }}</span>
           </a>
-
-          <a
-            routerLink="/captures"
-            routerLinkActive="bg-blue-600"
-            class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition"
-          >
-            <i class="fas fa-image text-red-400"></i>
-            <span>Capture History</span>
+          <a routerLink="/captures" routerLinkActive="bg-blue-600" (click)="closeDrawer()"
+             class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-slate-800 transition text-sm">
+            <i class="fas fa-image text-red-400 w-5 text-center"></i>
+            <span>{{ 'nav.captures' | t }}</span>
           </a>
-
-          <a
-            routerLink="/wanted-persons"
-            routerLinkActive="bg-blue-600"
-            class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition"
-          >
-            <i class="fas fa-user-secret text-rose-400"></i>
-            <span>Wanted Persons</span>
+          <a routerLink="/wanted-persons" routerLinkActive="bg-blue-600" (click)="closeDrawer()"
+             class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-slate-800 transition text-sm">
+            <i class="fas fa-user-secret text-rose-400 w-5 text-center"></i>
+            <span>{{ 'nav.wantedPersons' | t }}</span>
           </a>
-
-          <a
-            routerLink="/wanted-cars"
-            routerLinkActive="bg-blue-600"
-            class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition"
-          >
-            <i class="fas fa-triangle-exclamation text-orange-400"></i>
-            <span>Wanted Cars</span>
+          <a routerLink="/wanted-cars" routerLinkActive="bg-blue-600" (click)="closeDrawer()"
+             class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-slate-800 transition text-sm">
+            <i class="fas fa-triangle-exclamation text-orange-400 w-5 text-center"></i>
+            <span>{{ 'nav.wantedCars' | t }}</span>
           </a>
-
-          <a
-            routerLink="/reports"
-            routerLinkActive="bg-blue-600"
-            class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition"
-          >
-            <i class="fas fa-file-alt text-indigo-400"></i>
-            <span>Reports</span>
+          <a routerLink="/reports" routerLinkActive="bg-blue-600" (click)="closeDrawer()"
+             class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-slate-800 transition text-sm">
+            <i class="fas fa-file-alt text-indigo-400 w-5 text-center"></i>
+            <span>{{ 'nav.reports' | t }}</span>
           </a>
-
-          <a
-            routerLink="/users"
-            routerLinkActive="bg-blue-600"
-            class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition"
-          >
-            <i class="fas fa-users text-cyan-400"></i>
-            <span>Users</span>
+          <a routerLink="/users" routerLinkActive="bg-blue-600" (click)="closeDrawer()"
+             class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-slate-800 transition text-sm">
+            <i class="fas fa-users text-cyan-400 w-5 text-center"></i>
+            <span>{{ 'nav.users' | t }}</span>
           </a>
-
-          <a
-            routerLink="/settings"
-            routerLinkActive="bg-blue-600"
-            class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition"
-          >
-            <i class="fas fa-cog text-slate-400"></i>
-            <span>Settings</span>
+          <a routerLink="/settings" routerLinkActive="bg-blue-600" (click)="closeDrawer()"
+             class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-slate-800 transition text-sm">
+            <i class="fas fa-cog text-slate-400 w-5 text-center"></i>
+            <span>{{ 'nav.settings' | t }}</span>
           </a>
         </nav>
 
         <!-- Footer -->
         <div class="p-4 border-t border-slate-700 text-sm text-slate-400">
-          <p class="flex items-center gap-2">
+          <p class="flex items-center gap-2 truncate">
             <i class="fas fa-user-circle"></i>
-            <span>{{ currentUserName }}</span>
+            <span class="truncate">{{ currentUserName }}</span>
           </p>
           <p class="text-xs mt-1 opacity-70 capitalize">{{ currentUserRole }}</p>
-          <button
-            type="button"
-            (click)="logout()"
-            class="mt-3 w-full rounded-lg bg-slate-800 hover:bg-slate-700 transition py-2 text-sm text-white"
-          >
-            Sign Out
+          <button type="button" (click)="logout()"
+            class="mt-3 w-full rounded-lg bg-slate-800 hover:bg-slate-700 transition py-2 text-sm text-white">
+            {{ 'app.signOut' | t }}
           </button>
         </div>
       </aside>
@@ -139,17 +125,41 @@ import { SecurityAlert } from '../models/security.model';
       <!-- Main Content -->
       <main class="flex-1 min-w-0 h-full flex flex-col overflow-hidden">
         <!-- Header Bar -->
-        <header class="bg-white border-b border-slate-200 px-8 py-4 shadow-sm flex justify-between items-center">
-          <div>
-            <h2 class="text-xl font-bold text-slate-800">Toll Gate Management</h2>
-            <p class="text-sm text-slate-600">Professional Access Control System</p>
+        <header class="bg-white border-b border-slate-200 px-4 sm:px-6 lg:px-8 py-3 sm:py-4 shadow-sm flex items-center gap-3 sm:gap-4">
+          <button
+            type="button"
+            (click)="openDrawer()"
+            class="lg:hidden inline-flex items-center justify-center w-10 h-10 rounded-lg text-slate-700 hover:bg-slate-100"
+            [attr.aria-label]="'app.menu' | t"
+          >
+            <i class="fas fa-bars text-lg"></i>
+          </button>
+
+          <div class="min-w-0 flex-1">
+            <h2 class="text-base sm:text-xl font-bold text-slate-800 truncate">{{ 'app.headerTitle' | t }}</h2>
+            <p class="hidden sm:block text-sm text-slate-600 truncate">{{ 'app.headerSubtitle' | t }}</p>
           </div>
-          <div class="flex items-center gap-6">
-            <div class="text-right">
-              <p class="text-sm font-medium text-slate-700">Status: <span class="text-green-600">●</span> Online</p>
-              <p class="text-xs text-slate-500">{{ currentTime | date:'short' }}</p>
+
+          <div class="flex items-center gap-2 sm:gap-4 shrink-0">
+            <button
+              type="button"
+              (click)="toggleLang()"
+              class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
+              [attr.aria-label]="'app.language' | t"
+              [title]="'app.language' | t"
+            >
+              <i class="fas fa-globe text-slate-500"></i>
+              <span>{{ i18n.lang() === 'en' ? 'العربية' : 'English' }}</span>
+            </button>
+
+            <div class="hidden md:block text-right">
+              <p class="text-xs sm:text-sm font-medium text-slate-700">
+                {{ 'app.status' | t }}: <span class="text-green-600">●</span> {{ 'app.online' | t }}
+              </p>
+              <p class="text-[11px] sm:text-xs text-slate-500">{{ currentTime | date:'short' }}</p>
             </div>
-            <button class="w-10 h-10 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition">
+
+            <button class="hidden sm:inline-flex w-10 h-10 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition items-center justify-center">
               <i class="fas fa-bell"></i>
             </button>
           </div>
@@ -162,16 +172,16 @@ import { SecurityAlert } from '../models/security.model';
       </main>
     </div>
   `,
-  styles: [`
-    :host {
-      display: block;
-    }
-  `]
+  styles: [`:host { display: block; }`]
 })
 export class LayoutComponent implements OnInit, OnDestroy {
   currentTime = new Date();
   currentUserName = 'Admin User';
   currentUserRole = 'admin';
+  drawerOpen = false;
+
+  readonly i18n = inject(I18nService);
+
   private clockTimer: ReturnType<typeof setInterval> | null = null;
   private readonly subscriptions = new Subscription();
 
@@ -198,22 +208,34 @@ export class LayoutComponent implements OnInit, OnDestroy {
         if (alert.decision !== 'block') {
           return;
         }
-
         this.playAlarmTone();
-        this.feedback.errorToast(this.formatSecurityMessage(alert), 'Security Alert');
+        this.feedback.errorToast(this.formatSecurityMessage(alert), this.i18n.t('alert.security'));
       },
     });
-
     this.subscriptions.add(alertSub);
   }
 
   ngOnDestroy(): void {
     this.subscriptions.unsubscribe();
-
     if (this.clockTimer) {
       clearInterval(this.clockTimer);
       this.clockTimer = null;
     }
+    document.body.classList.remove('drawer-open');
+  }
+
+  toggleLang(): void {
+    this.i18n.toggle();
+  }
+
+  openDrawer(): void {
+    this.drawerOpen = true;
+    document.body.classList.add('drawer-open');
+  }
+
+  closeDrawer(): void {
+    this.drawerOpen = false;
+    document.body.classList.remove('drawer-open');
   }
 
   logout(): void {
@@ -223,14 +245,12 @@ export class LayoutComponent implements OnInit, OnDestroy {
 
   private formatSecurityMessage(alert: SecurityAlert): string {
     if (alert.alertType === 'stolen_car') {
-      return `Stolen car detected${alert.relatedPlate ? `: ${alert.relatedPlate}` : ''}`;
+      return `${this.i18n.t('alert.stolenCar')}${alert.relatedPlate ? `: ${alert.relatedPlate}` : ''}`;
     }
-
     if (alert.alertType === 'wanted_person') {
-      return `Wanted person detected${alert.relatedName ? `: ${alert.relatedName}` : ''}`;
+      return `${this.i18n.t('alert.wantedPerson')}${alert.relatedName ? `: ${alert.relatedName}` : ''}`;
     }
-
-    return alert.reason || 'A blocked security event was detected.';
+    return alert.reason || this.i18n.t('alert.blockedDefault');
   }
 
   private playAlarmTone(): void {
@@ -238,7 +258,6 @@ export class LayoutComponent implements OnInit, OnDestroy {
     if (!AudioContextClass) {
       return;
     }
-
     try {
       const context = new AudioContextClass();
       const duration = 0.2;
@@ -268,7 +287,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
         context.close().catch(() => undefined);
       }, totalTime * 1000);
     } catch {
-      // Ignore sound failures (browser autoplay permissions, device audio unavailable, etc.)
+      /* ignore */
     }
   }
 }

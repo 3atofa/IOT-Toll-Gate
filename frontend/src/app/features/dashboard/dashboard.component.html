@@ -1,72 +1,72 @@
-<section class="min-h-screen bg-slate-100 p-4 md:p-8">
+<section class="min-h-full bg-slate-100 p-3 sm:p-4 md:p-8">
   <div class="mx-auto max-w-6xl">
-    <header class="mb-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-      <div class="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <p class="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Toll Gate IoT</p>
-          <h1 class="mt-1 text-3xl font-black text-slate-900">Live Capture Dashboard</h1>
+    <header class="mb-4 sm:mb-6 rounded-2xl bg-white p-4 sm:p-6 shadow-sm ring-1 ring-slate-200">
+      <div class="flex flex-wrap items-center justify-between gap-3 sm:gap-4">
+        <div class="min-w-0">
+          <p class="text-xs sm:text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">{{ 'dashboard.brand' | t }}</p>
+          <h1 class="mt-1 text-2xl sm:text-3xl font-black text-slate-900">{{ 'dashboard.title' | t }}</h1>
         </div>
         <a
           routerLink="/captures"
           class="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
         >
           <i class="fa-solid fa-clock-rotate-left"></i>
-          View History
+          <span>{{ 'dashboard.viewHistory' | t }}</span>
         </a>
       </div>
     </header>
 
     <div *ngIf="loading" class="rounded-2xl bg-white p-6 text-center shadow-sm ring-1 ring-slate-200">
-      <p class="text-slate-600">Loading latest capture...</p>
+      <p class="text-slate-600">{{ 'dashboard.loadingLatest' | t }}</p>
     </div>
 
-    <div *ngIf="!loading && latestCapture" class="grid gap-6 lg:grid-cols-[1fr_300px]">
+    <div *ngIf="!loading && latestCapture" class="grid gap-4 sm:gap-6 lg:grid-cols-[1fr_300px]">
       <article class="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
         <img
           *ngIf="!imageLoadFailed"
           [src]="displayImageUrl(latestCapture.imagePath)"
           (error)="onImageError()"
           alt="Latest gate capture"
-          class="h-[480px] w-full object-contain bg-slate-900"
+          class="h-64 sm:h-96 lg:h-[480px] w-full object-contain bg-slate-900"
         />
-        <div *ngIf="imageLoadFailed" class="h-[480px] grid place-items-center bg-slate-100 text-slate-500">
-          <div class="text-center">
+        <div *ngIf="imageLoadFailed" class="h-64 sm:h-96 lg:h-[480px] grid place-items-center bg-slate-100 text-slate-500">
+          <div class="text-center px-4">
             <i class="fa-solid fa-image text-3xl"></i>
-            <p class="mt-2 text-sm">Image preview unavailable for this capture.</p>
+            <p class="mt-2 text-sm">{{ 'dashboard.imageUnavailable' | t }}</p>
           </div>
         </div>
       </article>
 
-      <aside class="space-y-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-        <h2 class="text-lg font-bold text-slate-900">Capture Details</h2>
+      <aside class="space-y-3 rounded-2xl bg-white p-4 sm:p-5 shadow-sm ring-1 ring-slate-200">
+        <h2 class="text-lg font-bold text-slate-900">{{ 'dashboard.captureDetails' | t }}</h2>
 
         <div class="rounded-xl bg-slate-100 p-3">
-          <p class="text-xs uppercase tracking-wide text-slate-500">Event</p>
+          <p class="text-xs uppercase tracking-wide text-slate-500">{{ 'dashboard.event' | t }}</p>
           <p class="mt-1 text-sm font-semibold text-slate-900">{{ getStatusLabel(latestCapture.eventType) }}</p>
         </div>
 
         <div class="rounded-xl bg-slate-100 p-3">
-          <p class="text-xs uppercase tracking-wide text-slate-500">Gate ID</p>
-          <p class="mt-1 text-sm font-semibold text-slate-900">{{ latestCapture.gateId }}</p>
+          <p class="text-xs uppercase tracking-wide text-slate-500">{{ 'dashboard.gateId' | t }}</p>
+          <p class="mt-1 text-sm font-semibold text-slate-900 break-all">{{ latestCapture.gateId }}</p>
         </div>
 
         <div class="rounded-xl bg-slate-100 p-3">
-          <p class="text-xs uppercase tracking-wide text-slate-500">Card UID</p>
-          <p class="mt-1 text-sm font-semibold text-slate-900">{{ latestCapture.cardUid || 'N/A' }}</p>
+          <p class="text-xs uppercase tracking-wide text-slate-500">{{ 'dashboard.cardUid' | t }}</p>
+          <p class="mt-1 text-sm font-semibold text-slate-900 break-all">{{ latestCapture.cardUid || ('common.na' | t) }}</p>
         </div>
 
         <div class="rounded-xl bg-slate-100 p-3">
-          <p class="text-xs uppercase tracking-wide text-slate-500">Plate</p>
-          <p class="mt-1 text-sm font-semibold text-slate-900">{{ latestCapture.plateText || 'Not read yet' }}</p>
+          <p class="text-xs uppercase tracking-wide text-slate-500">{{ 'dashboard.plate' | t }}</p>
+          <p class="mt-1 text-sm font-semibold text-slate-900">{{ latestCapture.plateText || ('dashboard.plateNotRead' | t) }}</p>
         </div>
 
         <div class="rounded-xl bg-slate-100 p-3">
-          <p class="text-xs uppercase tracking-wide text-slate-500">Face</p>
-          <p class="mt-1 text-sm font-semibold text-slate-900">{{ latestCapture.faceName || 'Not recognized yet' }}</p>
+          <p class="text-xs uppercase tracking-wide text-slate-500">{{ 'dashboard.face' | t }}</p>
+          <p class="mt-1 text-sm font-semibold text-slate-900">{{ latestCapture.faceName || ('dashboard.faceNotRecognized' | t) }}</p>
         </div>
 
         <div class="rounded-xl bg-slate-100 p-3">
-          <p class="text-xs uppercase tracking-wide text-slate-500">OCR Status</p>
+          <p class="text-xs uppercase tracking-wide text-slate-500">{{ 'dashboard.ocrStatus' | t }}</p>
           <p class="mt-1 text-sm font-semibold" [ngClass]="ocrStatusTextClass(latestCapture.ocrStatus)">
             {{ (latestCapture.ocrStatus || 'pending') | uppercase }}
             <span *ngIf="latestCapture.plateConfidence != null" class="text-slate-500">
@@ -76,7 +76,7 @@
         </div>
 
         <div class="rounded-xl bg-slate-100 p-3">
-          <p class="text-xs uppercase tracking-wide text-slate-500">Security Decision</p>
+          <p class="text-xs uppercase tracking-wide text-slate-500">{{ 'dashboard.securityDecision' | t }}</p>
           <p class="mt-1 text-sm font-semibold" [ngClass]="latestCapture.securityDecision === 'block' ? 'text-red-600' : latestCapture.securityDecision === 'review' ? 'text-amber-600' : 'text-emerald-700'">
             {{ (latestCapture.securityDecision || 'review') | uppercase }}
           </p>
@@ -84,7 +84,7 @@
         </div>
 
         <div class="rounded-xl bg-slate-100 p-3">
-          <p class="text-xs uppercase tracking-wide text-slate-500">Captured At</p>
+          <p class="text-xs uppercase tracking-wide text-slate-500">{{ 'dashboard.capturedAt' | t }}</p>
           <p class="mt-1 text-sm font-semibold text-slate-900">
             {{ latestCapture.capturedAt | date: 'MMM d, y, h:mm:ss a' }}
           </p>
@@ -92,9 +92,9 @@
       </aside>
     </div>
 
-    <div *ngIf="!loading && !latestCapture" class="rounded-2xl bg-white p-10 text-center shadow-sm ring-1 ring-slate-200">
+    <div *ngIf="!loading && !latestCapture" class="rounded-2xl bg-white p-6 sm:p-10 text-center shadow-sm ring-1 ring-slate-200">
       <i class="fa-solid fa-camera text-4xl text-slate-400"></i>
-      <p class="mt-4 text-slate-600">No capture found yet. Trigger an image from your gate device.</p>
+      <p class="mt-4 text-slate-600">{{ 'dashboard.noCaptures' | t }}</p>
     </div>
   </div>
 </section>

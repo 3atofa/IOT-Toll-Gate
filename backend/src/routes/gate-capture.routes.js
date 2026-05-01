@@ -1,7 +1,7 @@
 const express = require('express');
 const path = require('path');
 const multer = require('multer');
-const { requireGateApiKey } = require('../middlewares/api-key.middleware');
+const { requireGateToken } = require('../middlewares/api-key.middleware');
 const {
   createCapture,
   createRawCapture,
@@ -37,8 +37,8 @@ const rawImageUpload = express.raw({
   },
 });
 
-router.post('/', requireGateApiKey, upload.single('image'), createCapture);
-router.post('/raw', requireGateApiKey, rawImageUpload, createRawCapture);
+router.post('/', requireGateToken, upload.single('image'), createCapture);
+router.post('/raw', requireGateToken, rawImageUpload, createRawCapture);
 router.patch('/:id/ocr', updateCaptureOcr);
 router.post('/:id/ocr/retry', retryCaptureOcr);
 router.get('/', getCaptures);

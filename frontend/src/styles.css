@@ -9,13 +9,62 @@
   color-scheme: light;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
   font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background: #f1f5f9;
   color: #0f172a;
+  -webkit-font-smoothing: antialiased;
 }
 
 * {
   box-sizing: border-box;
 }
+
+/* ============ Arabic / RTL support ============ */
+html[lang='ar'],
+html[lang='ar'] body {
+  font-family: 'Cairo', 'Tajawal', 'Segoe UI', Tahoma, sans-serif;
+}
+
+html[dir='rtl'] {
+  direction: rtl;
+}
+
+/* Mirror direction-dependent Font Awesome icons */
+html[dir='rtl'] .fa-arrow-left::before { content: '\f061'; }
+html[dir='rtl'] .fa-arrow-right::before { content: '\f060'; }
+html[dir='rtl'] .fa-chevron-left::before { content: '\f054'; }
+html[dir='rtl'] .fa-chevron-right::before { content: '\f053'; }
+
+/* Swap text alignment under RTL for natural reading flow */
+html[dir='rtl'] .text-left { text-align: right; }
+html[dir='rtl'] .text-right { text-align: left; }
+
+/* Keep toastr position usable in RTL */
+html[dir='rtl'] .toast-bottom-right {
+  right: auto;
+  left: 12px;
+}
+
+/* Subtle custom scrollbars */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* ============ Responsive helpers ============ */
+@media (max-width: 768px) {
+  .p-8 { padding: 1rem !important; }
+  .px-8 { padding-left: 1rem !important; padding-right: 1rem !important; }
+  .py-8 { padding-top: 1rem !important; padding-bottom: 1rem !important; }
+  .text-3xl { font-size: 1.5rem !important; line-height: 2rem !important; }
+  .text-2xl { font-size: 1.25rem !important; line-height: 1.75rem !important; }
+}
+
+/* Lock body scroll when mobile drawer is open */
+body.drawer-open { overflow: hidden; }

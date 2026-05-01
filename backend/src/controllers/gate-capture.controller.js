@@ -19,7 +19,9 @@ const toPublicImageUrl = (req, absolutePath) => {
 };
 
 const buildCapturePayload = (req, imagePath) => ({
-  gateId: req.body?.gateId || req.query.gateId || req.get('x-gate-id') || 'gate-1',
+  // If the request was authenticated via gate token, use that gate's ID.
+  // Otherwise fall back to explicit body / query / header values (legacy / internal use).
+  gateId: req.gate ? req.gate.gateId : (req.body?.gateId || req.query.gateId || req.get('x-gate-id') || 'gate-1'),
   eventType: req.body?.eventType || req.query.eventType || req.get('x-event-type') || 'access_granted',
   cardUid: req.body?.cardUid || req.query.cardUid || req.get('x-card-uid') || null,
   imagePath,

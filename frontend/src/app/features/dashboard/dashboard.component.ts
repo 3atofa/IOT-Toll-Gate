@@ -1,50 +1,52 @@
-import { CommonModule, DatePipe } from '@angular/common';
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { CaptureApiService } from '../../core/services/capture-api.service';
-import { FeedbackService } from '../../core/services/feedback.service';
 import { RealtimeService } from '../../core/services/realtime.service';
+import { I18nService } from '../../core/services/i18n.service';
+import { TranslatePipe } from '../../core/pipes/translate.pipe';
 import { GateCapture } from '../../core/models/gate-capture.model';
+import { API_CONFIG } from '../../core/config/api.config';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [CommonModule, RouterLink, DatePipe],
+  standalone: true,
+  imports: [CommonModule, RouterLink, TranslatePipe],
   templateUrl: './dashboard.component.html',
-  styleUrl: './dashboard.component.css',
 })
 export class DashboardComponent implements OnInit, OnDestroy {
   latestCapture: GateCapture | null = null;
   loading = true;
   imageLoadFailed = false;
-  private subscriptions = new Subscription();
+
+  readonly i18n = inject(I18nService);
+  private readonly subscriptions = new Subscription();
 
   constructor(
     private readonly captureApi: CaptureApiService,
-    private readonly realtime: RealtimeService,
-    private readonly feedback: FeedbackService
+    private readonly realtime: RealtimeService
   ) {}
 
   ngOnInit(): void {
-    this.loadLatestCapture();
+    this.fetchLatest();
 
-    const realtimeSub = this.realtime.onNewCapture().subscribe({
+    const sub = this.realtime.onNewCapture().subscribe({
       next: (capture) => {
         this.latestCapture = capture;
-        this.feedback.successToast('A new gate capture just arrived.', 'Live Update');
+        this.imageLoadFailed = false;
+        this.loading = false;
       },
     });
-
-    this.subscriptions.add(realtimeSub);
+    this.subscriptions.add(sub);
   }
 
   ngOnDestroy(): void {
     this.subscriptions.unsubscribe();
   }
 
-  loadLatestCapture(): void {
+  private fetchLatest(): void {
     this.loading = true;
-
     this.captureApi.getLatestCapture().subscribe({
       next: (capture) => {
         this.latestCapture = capture;
@@ -53,11 +55,16 @@ export class DashboardComponent implements OnInit, OnDestroy {
       },
       error: () => {
         this.latestCapture = null;
-        this.imageLoadFailed = false;
         this.loading = false;
-        this.feedback.infoToast('No captures yet. Trigger one from ESP32-CAM.', 'Waiting');
       },
     });
+  }
+
+  displayImageUrl(imagePath: string): string {
+    if (!imagePath) return '';
+    if (/^https?:\/\//i.test(imagePath)) return imagePath;
+    const base = API_CONFIG.baseUrl.replace(/\/api$/, '');
+    return `${base}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
   }
 
   onImageError(): void {
@@ -65,46 +72,22 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   getStatusLabel(eventType: string): string {
-    switch (eventType) {
-      case 'access_granted':
-        return 'Access Granted';
-      case 'access_denied':
-        return 'Access Denied';
-      case 'security_check':
-        return 'Security Check';
-      default:
-        return 'Manual Capture';
-    }
+    const map: Record<string, string> = {
+      access_granted: this.i18n.t('dashboard.event.granted'),
+      access_denied: this.i18n.t('dashboard.event.denied'),
+      manual_capture: this.i18n.t('dashboard.event.manual'),
+      security_check: this.i18n.t('dashboard.event.security'),
+    };
+    return map[eventType] || eventType;
   }
 
-  ocrStatusTextClass(status: GateCapture['ocrStatus']): string {
+  ocrStatusTextClass(status?: string): string {
     switch (status) {
-      case 'done':
-        return 'text-green-700';
-      case 'review_required':
-        return 'text-yellow-700';
-      case 'failed':
-        return 'text-red-700';
-      case 'processing':
-        return 'text-blue-700';
-      default:
-        return 'text-slate-700';
+      case 'done': return 'text-emerald-700';
+      case 'failed': return 'text-red-600';
+      case 'review_required': return 'text-amber-600';
+      case 'processing': return 'text-blue-600';
+      default: return 'text-slate-600';
     }
-  }
-
-  displayImageUrl(imagePath: string | null | undefined): string {
-    if (!imagePath) {
-      return '';
-    }
-
-    if (imagePath.startsWith('/')) {
-      return `${window.location.origin}${imagePath}`;
-    }
-
-    if (window.location.protocol === 'https:' && imagePath.startsWith('http://')) {
-      return imagePath.replace(/^http:\/\//i, 'https://');
-    }
-
-    return imagePath;
   }
 }

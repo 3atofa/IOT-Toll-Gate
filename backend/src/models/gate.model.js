@@ -1,4 +1,5 @@
 const { DataTypes } = require('sequelize');
+const { v4: uuidv4 } = require('uuid');
 const sequelize = require('../config/database');
 
 const Gate = sequelize.define('Gate', {
@@ -6,6 +7,13 @@ const Gate = sequelize.define('Gate', {
     type: DataTypes.UUID,
     primaryKey: true,
     defaultValue: DataTypes.UUIDV4,
+  },
+  token: {
+    type: DataTypes.UUID,
+    unique: true,
+    allowNull: false,
+    defaultValue: uuidv4,
+    comment: 'Per-gate hardware token — embed in ESP32/Arduino firmware',
   },
   gateId: {
     type: DataTypes.STRING,
@@ -44,6 +52,11 @@ const Gate = sequelize.define('Gate', {
   },
   notes: {
     type: DataTypes.TEXT,
+  },
+  pendingCommand: {
+    type: DataTypes.ENUM('none', 'open', 'close'),
+    defaultValue: 'none',
+    comment: 'Command queued by web operator, consumed and cleared by ESP32 on next poll',
   },
 }, {
   timestamps: true,

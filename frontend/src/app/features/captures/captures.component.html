@@ -1,67 +1,67 @@
-<section class="min-h-screen bg-slate-100 p-4 md:p-8">
-  <div class="mx-auto max-w-6xl rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-    <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
-      <h1 class="text-2xl font-black text-slate-900">Capture History</h1>
+<section class="min-h-full bg-slate-100 p-3 sm:p-4 md:p-8">
+  <div class="mx-auto max-w-6xl rounded-2xl bg-white p-4 sm:p-6 shadow-sm ring-1 ring-slate-200">
+    <div class="mb-4 sm:mb-6 flex flex-wrap items-center justify-between gap-3">
+      <h1 class="text-xl sm:text-2xl font-black text-slate-900">{{ 'captures.title' | t }}</h1>
       <button
         type="button"
         (click)="loadCaptures()"
-        class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+        class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 sm:px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
       >
         <i class="fa-solid fa-arrows-rotate"></i>
-        Refresh
+        <span>{{ 'common.refresh' | t }}</span>
       </button>
     </div>
 
-    <div *ngIf="loading" class="py-6 text-center text-slate-600">Loading capture history...</div>
+    <div *ngIf="loading" class="py-6 text-center text-slate-600">{{ 'captures.loading' | t }}</div>
 
-    <div *ngIf="!loading" class="overflow-x-auto">
+    <div *ngIf="!loading" class="overflow-x-auto -mx-4 sm:mx-0">
       <table class="w-full min-w-[760px] border-collapse">
         <thead>
           <tr class="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
-            <th class="pb-3 pr-4">Image</th>
-            <th class="pb-3 pr-4">Event</th>
-            <th class="pb-3 pr-4">Plate</th>
-            <th class="pb-3 pr-4">Face</th>
-            <th class="pb-3 pr-4">OCR</th>
-            <th class="pb-3 pr-4">Security</th>
-            <th class="pb-3 pr-4">Gate</th>
-            <th class="pb-3 pr-4">Card UID</th>
-            <th class="pb-3">Captured At</th>
+            <th class="pb-3 pe-4 ps-4 sm:ps-0">{{ 'captures.image' | t }}</th>
+            <th class="pb-3 pe-4">{{ 'captures.event' | t }}</th>
+            <th class="pb-3 pe-4">{{ 'captures.plate' | t }}</th>
+            <th class="pb-3 pe-4">{{ 'captures.face' | t }}</th>
+            <th class="pb-3 pe-4">{{ 'captures.ocr' | t }}</th>
+            <th class="pb-3 pe-4">{{ 'captures.security' | t }}</th>
+            <th class="pb-3 pe-4">{{ 'captures.gate' | t }}</th>
+            <th class="pb-3 pe-4">{{ 'captures.cardUid' | t }}</th>
+            <th class="pb-3 pe-4">{{ 'captures.capturedAt' | t }}</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let item of captures" class="border-b border-slate-100 align-top">
-            <td class="py-4 pr-4">
+            <td class="py-4 pe-4 ps-4 sm:ps-0">
               <img [src]="displayImageUrl(item.imagePath)" alt="capture" class="h-20 w-28 rounded-lg object-cover ring-1 ring-slate-200" />
             </td>
-            <td class="py-4 pr-4 text-sm font-semibold text-slate-900">{{ item.eventType }}</td>
-            <td class="py-4 pr-4 text-sm font-semibold text-slate-900">{{ item.plateText || 'Not read' }}</td>
-            <td class="py-4 pr-4 text-sm font-semibold text-slate-900">
-              {{ item.faceName || 'Not recognized' }}
+            <td class="py-4 pe-4 text-sm font-semibold text-slate-900">{{ item.eventType }}</td>
+            <td class="py-4 pe-4 text-sm font-semibold text-slate-900">{{ item.plateText || ('common.notRead' | t) }}</td>
+            <td class="py-4 pe-4 text-sm font-semibold text-slate-900">
+              {{ item.faceName || ('common.notRecognized' | t) }}
             </td>
-            <td class="py-4 pr-4 text-sm">
+            <td class="py-4 pe-4 text-sm">
               <span class="rounded-full px-2 py-1 text-xs font-semibold"
                     [ngClass]="ocrStatusClass(item.ocrStatus)">
                 {{ (item.ocrStatus || 'pending') | uppercase }}
               </span>
-              <span *ngIf="item.plateConfidence != null" class="ml-2 text-xs text-slate-500">
+              <span *ngIf="item.plateConfidence != null" class="ms-2 text-xs text-slate-500">
                 {{ item.plateConfidence | number:'1.2-2' }}
               </span>
             </td>
-            <td class="py-4 pr-4 text-sm">
+            <td class="py-4 pe-4 text-sm">
               <span class="rounded-full px-2 py-1 text-xs font-semibold"
                     [ngClass]="item.securityDecision === 'block' ? 'bg-red-100 text-red-800' : item.securityDecision === 'review' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'">
                 {{ (item.securityDecision || 'review') | uppercase }}
               </span>
             </td>
-            <td class="py-4 pr-4 text-sm text-slate-700">{{ item.gateId }}</td>
-            <td class="py-4 pr-4 text-sm text-slate-700">{{ item.cardUid || 'N/A' }}</td>
-            <td class="py-4 text-sm text-slate-700">{{ item.capturedAt | date: 'MMM d, y, h:mm:ss a' }}</td>
+            <td class="py-4 pe-4 text-sm text-slate-700">{{ item.gateId }}</td>
+            <td class="py-4 pe-4 text-sm text-slate-700">{{ item.cardUid || ('common.na' | t) }}</td>
+            <td class="py-4 pe-4 text-sm text-slate-700">{{ item.capturedAt | date: 'MMM d, y, h:mm:ss a' }}</td>
           </tr>
         </tbody>
       </table>
 
-      <p *ngIf="captures.length === 0" class="py-8 text-center text-slate-500">No captures recorded yet.</p>
+      <p *ngIf="captures.length === 0" class="py-8 text-center text-slate-500">{{ 'captures.empty' | t }}</p>
     </div>
   </div>
 </section>

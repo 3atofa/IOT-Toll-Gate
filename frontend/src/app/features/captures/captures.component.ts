@@ -1,18 +1,22 @@
 import { CommonModule, DatePipe } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CaptureApiService } from '../../core/services/capture-api.service';
 import { FeedbackService } from '../../core/services/feedback.service';
+import { I18nService } from '../../core/services/i18n.service';
+import { TranslatePipe } from '../../core/pipes/translate.pipe';
 import { GateCapture } from '../../core/models/gate-capture.model';
 
 @Component({
   selector: 'app-captures',
-  imports: [CommonModule, DatePipe],
+  imports: [CommonModule, DatePipe, TranslatePipe],
   templateUrl: './captures.component.html',
   styleUrl: './captures.component.css',
 })
 export class CapturesComponent implements OnInit {
   captures: GateCapture[] = [];
   loading = true;
+
+  readonly i18n = inject(I18nService);
 
   constructor(
     private readonly captureApi: CaptureApiService,
@@ -33,7 +37,7 @@ export class CapturesComponent implements OnInit {
       },
       error: () => {
         this.loading = false;
-        this.feedback.errorToast('Failed to load capture history from server.');
+        this.feedback.errorToast(this.i18n.t('captures.loadFailed'));
       },
     });
   }
