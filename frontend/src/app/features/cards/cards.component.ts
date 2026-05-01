@@ -5,7 +5,7 @@ import { API_CONFIG } from '../../core/config/api.config';
 import { I18nService } from '../../core/services/i18n.service';
 import { TranslatePipe } from '../../core/pipes/translate.pipe';
 
-const MOCK_AMOUNT = 10; // EGP per toll pass
+const MOCK_AMOUNT = 30; // EGP per toll pass
 
 interface GateCapture {
   id: number;

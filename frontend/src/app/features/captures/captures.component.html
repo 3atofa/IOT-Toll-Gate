@@ -1,4 +1,4 @@
-<section class="min-h-full bg-slate-100 p-3 sm:p-5 md:p-8 page-enter">
+﻿<section class="min-h-full bg-slate-100 p-3 sm:p-5 md:p-8 page-enter">
   <div class="mx-auto max-w-6xl">
 
     <!-- Page header -->
@@ -8,8 +8,7 @@
           <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-0.5">{{ 'captures.title' | t }}</p>
           <h1 class="text-xl sm:text-2xl font-black text-slate-900">{{ 'captures.title' | t }}</h1>
         </div>
-        <button type="button" (click)="loadCaptures()"
-          class="tg-btn tg-btn-secondary text-sm">
+        <button type="button" (click)="loadCaptures()" class="tg-btn tg-btn-secondary text-sm">
           <i class="fa-solid fa-arrows-rotate text-xs"></i>
           <span>{{ 'common.refresh' | t }}</span>
         </button>
@@ -27,7 +26,6 @@
         </div>
         <div class="skeleton h-6 w-16 rounded-full"></div>
         <div class="skeleton h-6 w-16 rounded-full"></div>
-        <div class="skeleton h-3 w-24"></div>
         <div class="skeleton h-3 w-28"></div>
       </div>
     </div>
@@ -35,7 +33,7 @@
     <!-- Table -->
     <div *ngIf="!loading" class="tg-card overflow-hidden">
       <div class="overflow-x-auto">
-        <table class="tg-table min-w-[820px]">
+        <table class="tg-table min-w-[880px]">
           <thead>
             <tr>
               <th>{{ 'captures.image' | t }}</th>
@@ -45,39 +43,46 @@
               <th>{{ 'captures.ocr' | t }}</th>
               <th>{{ 'captures.security' | t }}</th>
               <th>{{ 'captures.gate' | t }}</th>
-              <th>{{ 'captures.cardUid' | t }}</th>
               <th>{{ 'captures.capturedAt' | t }}</th>
+              <th class="text-center">Actions</th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let item of captures">
+              <!-- Thumbnail -->
               <td>
                 <img [src]="displayImageUrl(item.imagePath)" alt="capture"
-                     class="h-16 w-24 rounded-lg object-cover ring-1 ring-slate-200" />
+                     (click)="openDetails(item)"
+                     class="h-14 w-20 rounded-lg object-cover ring-1 ring-slate-200 cursor-zoom-in hover:ring-2 hover:ring-blue-400 transition" />
               </td>
-              <td>
-                <span class="font-semibold text-slate-900">{{ item.eventType }}</span>
-              </td>
-              <td>
-                <span class="font-mono text-sm font-semibold text-slate-800">{{ item.plateText || '—' }}</span>
-              </td>
+              <td><span class="font-semibold text-slate-900">{{ item.eventType }}</span></td>
+              <td><span class="font-mono text-sm font-semibold text-slate-800">{{ item.plateText || '&mdash;' }}</span></td>
               <td class="text-slate-700">{{ item.faceName || ('common.notRecognized' | t) }}</td>
               <td>
-                <span class="tg-badge"
-                      [ngClass]="item.ocrStatus === 'done' ? 'tg-badge-green' : item.ocrStatus === 'review_required' ? 'tg-badge-amber' : item.ocrStatus === 'failed' ? 'tg-badge-red' : item.ocrStatus === 'processing' ? 'tg-badge-blue' : 'tg-badge-slate'">
+                <span class="tg-badge" [ngClass]="ocrStatusClass(item.ocrStatus)">
                   {{ (item.ocrStatus || 'pending') | uppercase }}
                 </span>
-                <span *ngIf="item.plateConfidence != null" class="ms-1 text-xs text-slate-500">{{ item.plateConfidence | number:'1.2-2' }}</span>
               </td>
               <td>
-                <span class="tg-badge"
-                      [ngClass]="item.securityDecision === 'block' ? 'tg-badge-red' : item.securityDecision === 'review' ? 'tg-badge-amber' : 'tg-badge-green'">
+                <span class="tg-badge" [ngClass]="secDecisionClass(item.securityDecision)">
                   {{ (item.securityDecision || 'review') | uppercase }}
                 </span>
               </td>
               <td class="text-slate-600">{{ item.gateId }}</td>
-              <td class="font-mono text-xs text-slate-500">{{ item.cardUid || ('common.na' | t) }}</td>
-              <td class="text-slate-500 whitespace-nowrap">{{ item.capturedAt | date: 'MMM d, y, h:mm a' }}</td>
+              <td class="text-slate-500 whitespace-nowrap">{{ item.capturedAt | date:'MMM d, y, h:mm a' }}</td>
+              <!-- Action buttons -->
+              <td>
+                <div class="flex items-center justify-center gap-1.5">
+                  <button type="button" (click)="openDetails(item)" title="View details"
+                    class="w-8 h-8 rounded-lg flex items-center justify-center bg-blue-50 text-blue-600 hover:bg-blue-100 transition">
+                    <i class="fas fa-eye text-xs"></i>
+                  </button>
+                  <button type="button" (click)="downloadImage(item)" title="Download image"
+                    class="w-8 h-8 rounded-lg flex items-center justify-center bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition">
+                    <i class="fas fa-download text-xs"></i>
+                  </button>
+                </div>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -95,3 +100,166 @@
 
   </div>
 </section>
+
+<!-- DETAILS MODAL -->
+<div *ngIf="showModal && selectedCapture"
+     class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4"
+     style="background: rgba(2,6,23,0.75); backdrop-filter: blur(6px)"
+     (click)="closeModal()">
+
+  <div class="tg-modal w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden"
+       style="animation: fadeInUp 0.2s ease both"
+       (click)="$event.stopPropagation()">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200 shrink-0">
+      <div class="flex items-center gap-3">
+        <span class="tg-icon-sq" style="background:rgba(59,130,246,0.12);color:#60a5fa;width:2.25rem;height:2.25rem;border-radius:0.6rem">
+          <i class="fas fa-image text-sm"></i>
+        </span>
+        <div>
+          <p class="text-xs text-slate-500 font-semibold uppercase tracking-widest">Capture #{{ selectedCapture.id }}</p>
+          <p class="text-base font-black text-slate-900 leading-tight">{{ selectedCapture.capturedAt | date:'MMMM d, y — h:mm:ss a' }}</p>
+        </div>
+      </div>
+      <button type="button" (click)="closeModal()"
+        class="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition text-lg leading-none">
+        &#x2715;
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div class="overflow-y-auto flex-1 p-4 sm:p-5 grid gap-4 sm:grid-cols-[220px_1fr]">
+
+      <!-- Image column -->
+      <div class="shrink-0 space-y-2">
+        <div class="relative group rounded-xl overflow-hidden ring-1 ring-slate-200 cursor-zoom-in bg-slate-900"
+             (click)="openLightbox()">
+          <img [src]="displayImageUrl(selectedCapture.imagePath)" alt="capture"
+               class="w-full h-44 sm:h-52 object-contain group-hover:opacity-90 transition" />
+          <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition pointer-events-none">
+            <span class="bg-black/60 text-white text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-1.5">
+              <i class="fas fa-expand text-[10px]"></i> Full screen
+            </span>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <button type="button" (click)="openLightbox()"
+            class="tg-btn tg-btn-secondary text-xs py-2 justify-center gap-1">
+            <i class="fas fa-expand text-[10px]"></i> Expand
+          </button>
+          <button type="button" (click)="downloadImage(selectedCapture)"
+            class="tg-btn tg-btn-primary text-xs py-2 justify-center gap-1">
+            <i class="fas fa-download text-[10px]"></i> Download
+          </button>
+        </div>
+      </div>
+
+      <!-- Details column -->
+      <div class="space-y-2 min-w-0">
+
+        <div class="grid grid-cols-2 gap-2">
+          <div class="flex items-center gap-2.5 rounded-xl bg-slate-100 px-3 py-2.5">
+            <span class="tg-icon-sq" style="background:rgba(34,197,94,0.12);color:#4ade80;width:1.75rem;height:1.75rem;border-radius:0.45rem"><i class="fas fa-lock text-[10px]"></i></span>
+            <div class="min-w-0">
+              <p class="text-[10px] uppercase tracking-wide text-slate-500 font-semibold">Gate</p>
+              <p class="text-sm font-bold text-slate-900 truncate">{{ selectedCapture.gateId }}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2.5 rounded-xl bg-slate-100 px-3 py-2.5">
+            <span class="tg-icon-sq" style="background:rgba(99,102,241,0.12);color:#818cf8;width:1.75rem;height:1.75rem;border-radius:0.45rem"><i class="fas fa-bolt text-[10px]"></i></span>
+            <div class="min-w-0">
+              <p class="text-[10px] uppercase tracking-wide text-slate-500 font-semibold">Event</p>
+              <p class="text-sm font-bold text-slate-900 truncate">{{ selectedCapture.eventType }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div class="flex items-center gap-2.5 rounded-xl bg-slate-100 px-3 py-2.5">
+            <span class="tg-icon-sq" style="background:rgba(251,191,36,0.12);color:#fbbf24;width:1.75rem;height:1.75rem;border-radius:0.45rem"><i class="fas fa-car text-[10px]"></i></span>
+            <div class="min-w-0">
+              <p class="text-[10px] uppercase tracking-wide text-slate-500 font-semibold">Plate</p>
+              <p class="text-sm font-bold text-slate-900 font-mono">{{ selectedCapture.plateText || '&mdash;' }}</p>
+              <p *ngIf="selectedCapture.plateConfidence != null" class="text-[10px] text-slate-400">{{ selectedCapture.plateConfidence | number:'1.2-2' }} conf.</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2.5 rounded-xl bg-slate-100 px-3 py-2.5">
+            <span class="tg-icon-sq" style="background:rgba(59,130,246,0.12);color:#60a5fa;width:1.75rem;height:1.75rem;border-radius:0.45rem"><i class="fas fa-face-smile text-[10px]"></i></span>
+            <div class="min-w-0">
+              <p class="text-[10px] uppercase tracking-wide text-slate-500 font-semibold">Face</p>
+              <p class="text-sm font-bold text-slate-900 truncate">{{ selectedCapture.faceName || '&mdash;' }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2.5 rounded-xl bg-slate-100 px-3 py-2.5">
+          <span class="tg-icon-sq" style="background:rgba(168,85,247,0.12);color:#c084fc;width:1.75rem;height:1.75rem;border-radius:0.45rem"><i class="fas fa-id-card text-[10px]"></i></span>
+          <div class="min-w-0">
+            <p class="text-[10px] uppercase tracking-wide text-slate-500 font-semibold">Card UID</p>
+            <p class="text-sm font-bold text-slate-900 font-mono">{{ selectedCapture.cardUid || 'None' }}</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2.5 rounded-xl bg-slate-100 px-3 py-2.5">
+          <span class="tg-icon-sq" style="background:rgba(34,211,238,0.12);color:#22d3ee;width:1.75rem;height:1.75rem;border-radius:0.45rem"><i class="fas fa-text-slash text-[10px]"></i></span>
+          <div class="min-w-0 flex-1">
+            <p class="text-[10px] uppercase tracking-wide text-slate-500 font-semibold">OCR Status</p>
+            <span class="tg-badge mt-0.5 inline-block" [ngClass]="ocrStatusClass(selectedCapture.ocrStatus)">
+              {{ (selectedCapture.ocrStatus || 'pending') | uppercase }}
+            </span>
+            <p *ngIf="selectedCapture.ocrError" class="text-xs text-red-500 mt-1">{{ selectedCapture.ocrError }}</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2.5 rounded-xl px-3 py-2.5"
+             [ngClass]="selectedCapture.securityDecision === 'block' ? 'bg-red-50' : selectedCapture.securityDecision === 'review' ? 'bg-amber-50' : 'bg-emerald-50'">
+          <span class="tg-icon-sq" style="width:1.75rem;height:1.75rem;border-radius:0.45rem"
+                [ngClass]="selectedCapture.securityDecision === 'block' ? 'bg-red-100 text-red-600' : selectedCapture.securityDecision === 'review' ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600'">
+            <i class="fas text-[10px]"
+               [ngClass]="selectedCapture.securityDecision === 'block' ? 'fa-shield-xmark' : selectedCapture.securityDecision === 'review' ? 'fa-shield-exclamation' : 'fa-shield-check'"></i>
+          </span>
+          <div class="min-w-0 flex-1">
+            <p class="text-[10px] uppercase tracking-wide text-slate-500 font-semibold">Security Decision</p>
+            <span class="tg-badge mt-0.5 inline-block" [ngClass]="secDecisionClass(selectedCapture.securityDecision)">
+              {{ (selectedCapture.securityDecision || 'review') | uppercase }}
+            </span>
+            <p *ngIf="selectedCapture.securityReason" class="text-xs text-slate-500 mt-1">{{ selectedCapture.securityReason }}</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div *ngIf="lightboxOpen && selectedCapture"
+     class="fixed inset-0 z-[60] flex flex-col items-center justify-center"
+     style="background: rgba(2,6,23,0.94); backdrop-filter: blur(8px)"
+     (click)="closeLightbox()">
+
+  <div class="absolute top-0 inset-x-0 flex items-center justify-between px-4 py-3 z-10"
+       style="background: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent)"
+       (click)="$event.stopPropagation()">
+    <p class="text-xs text-white/70 font-semibold">
+      Capture #{{ selectedCapture.id }} &nbsp;&middot;&nbsp; {{ selectedCapture.capturedAt | date:'MMM d, y h:mm a' }}
+    </p>
+    <div class="flex items-center gap-2">
+      <button type="button" (click)="downloadImage(selectedCapture)"
+        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition">
+        <i class="fas fa-download text-[10px]"></i> Download
+      </button>
+      <button type="button" (click)="closeLightbox()"
+        class="w-8 h-8 rounded-lg flex items-center justify-center bg-white/10 hover:bg-white/20 text-white text-lg transition">&#x2715;</button>
+    </div>
+  </div>
+
+  <img [src]="displayImageUrl(selectedCapture.imagePath)"
+       alt="capture full"
+       (click)="$event.stopPropagation()"
+       class="max-w-full object-contain rounded-lg shadow-2xl"
+       style="max-height: calc(100vh - 80px)" />
+
+  <p class="absolute bottom-4 text-white/40 text-xs">Click outside to close &nbsp;&middot;&nbsp; ESC to close</p>
+</div>

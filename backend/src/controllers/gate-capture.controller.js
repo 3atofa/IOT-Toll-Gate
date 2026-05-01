@@ -180,6 +180,7 @@ const getCaptures = async (req, res, next) => {
     const where = {};
     if (req.query.hasCardUid === 'true')  where.cardUid = { [Op.ne]: null };
     if (req.query.hasCardUid === 'false') where.cardUid = null;
+    if (req.query.gateId)                 where.gateId  = req.query.gateId;
 
     const result = await GateCapture.findAndCountAll({
       where,
