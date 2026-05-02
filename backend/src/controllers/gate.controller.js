@@ -146,7 +146,8 @@ const updateGateStatus = async (req, res, next) => {
 
     if (status) {
       gate.status = status;
-      gate.lastCommand = status;
+      // lastCommand enum is ('open','close','none') — 'closed' must be mapped to 'close'
+      gate.lastCommand = status === 'closed' ? 'close' : status;
       gate.lastCommandAt = new Date();
       gate.commandedBy = commandedBy || 'system';
 
