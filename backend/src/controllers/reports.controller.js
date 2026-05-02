@@ -87,61 +87,414 @@ const getSummary = async (req, res, next) => {
   }
 };
 
+// ─── Data fetchers (shared by GET handlers and PDF export) ────────
+
+const fetchTrafficData = async (req) => {
+  const { start, end } = buildDateRange(req);
+  const w = {};
+  if (req.query.gateId) w.gateId = req.query.gateId;
+  if (start || end) {
+    w.capturedAt = {};
+    if (start) w.capturedAt[Op.gte] = start;
+    if (end)   w.capturedAt[Op.lte] = end;
+  }
+  const [byGateEvent, byHour, byDay, topPlates] = await Promise.all([
+    GateCapture.findAll({ where: w, attributes: ['gateId', 'eventType', [sequelize.fn('COUNT', sequelize.col('id')), 'count']], group: ['gateId', 'eventType'], raw: true }),
+    GateCapture.findAll({ where: w, attributes: [[sequelize.fn('EXTRACT', sequelize.literal('HOUR FROM "captured_at"')), 'hour'], [sequelize.fn('COUNT', sequelize.col('id')), 'count']], group: [sequelize.fn('EXTRACT', sequelize.literal('HOUR FROM "captured_at"'))], order: [[sequelize.fn('EXTRACT', sequelize.literal('HOUR FROM "captured_at"')), 'ASC']], raw: true }),
+    GateCapture.findAll({ where: w, attributes: [[sequelize.fn('DATE', sequelize.col('captured_at')), 'day'], [sequelize.fn('COUNT', sequelize.col('id')), 'count']], group: [sequelize.fn('DATE', sequelize.col('captured_at'))], order: [[sequelize.fn('DATE', sequelize.col('captured_at')), 'ASC']], raw: true }),
+    GateCapture.findAll({ where: { ...w, plateText: { [Op.ne]: null } }, attributes: ['plateText', [sequelize.fn('COUNT', sequelize.col('id')), 'count']], group: ['plateText'], order: [[sequelize.fn('COUNT', sequelize.col('id')), 'DESC']], limit: 10, raw: true }),
+  ]);
+  return { byGateEvent, byHour, byDay, topPlates };
+};
+
+const fetchSecurityData = async (req) => {
+  const { start, end } = buildDateRange(req);
+  const aw = {};
+  if (start || end) {
+    aw.createdAt = {};
+    if (start) aw.createdAt[Op.gte] = start;
+    if (end)   aw.createdAt[Op.lte] = end;
+  }
+  const cw = {};
+  if (start || end) {
+    cw.capturedAt = {};
+    if (start) cw.capturedAt[Op.gte] = start;
+    if (end)   cw.capturedAt[Op.lte] = end;
+  }
+  const [byType, byDecision, recentAlerts, blockedCount, reviewCount] = await Promise.all([
+    SecurityAlert.findAll({ where: aw, attributes: ['alertType', [sequelize.fn('COUNT', sequelize.col('id')), 'count']], group: ['alertType'], raw: true }),
+    SecurityAlert.findAll({ where: aw, attributes: ['decision', [sequelize.fn('COUNT', sequelize.col('id')), 'count']], group: ['decision'], raw: true }),
+    SecurityAlert.findAll({ where: aw, order: [['createdAt', 'DESC']], limit: 30 }),
+    GateCapture.count({ where: { ...cw, securityDecision: 'block' } }),
+    GateCapture.count({ where: { ...cw, securityDecision: 'review' } }),
+  ]);
+  return { byType, byDecision, recentAlerts, blockedCount, reviewCount };
+};
+
+const fetchAlprData = async (req) => {
+  const { start, end } = buildDateRange(req);
+  const w = {};
+  if (start || end) {
+    w.capturedAt = {};
+    if (start) w.capturedAt[Op.gte] = start;
+    if (end)   w.capturedAt[Op.lte] = end;
+  }
+  const [byOcrStatus, withPlate, withoutPlate, withFace, withoutFace, avgConfResult,
+         lowConf, medConf, highConf, vHighConf, recentPlates] = await Promise.all([
+    GateCapture.findAll({ where: w, attributes: ['ocrStatus', [sequelize.fn('COUNT', sequelize.col('id')), 'count']], group: ['ocrStatus'], raw: true }),
+    GateCapture.count({ where: { ...w, plateText: { [Op.ne]: null } } }),
+    GateCapture.count({ where: { ...w, plateText: null } }),
+    GateCapture.count({ where: { ...w, faceName: { [Op.ne]: null } } }),
+    GateCapture.count({ where: { ...w, faceName: null } }),
+    GateCapture.findOne({ where: { ...w, plateConfidence: { [Op.ne]: null } }, attributes: [[sequelize.fn('AVG', sequelize.col('plate_confidence')), 'avgConf']], raw: true }),
+    GateCapture.count({ where: { ...w, plateConfidence: { [Op.lt]: 0.5 } } }),
+    GateCapture.count({ where: { ...w, plateConfidence: { [Op.gte]: 0.5, [Op.lt]: 0.7 } } }),
+    GateCapture.count({ where: { ...w, plateConfidence: { [Op.gte]: 0.7, [Op.lt]: 0.85 } } }),
+    GateCapture.count({ where: { ...w, plateConfidence: { [Op.gte]: 0.85 } } }),
+    GateCapture.findAll({ where: { ...w, plateText: { [Op.ne]: null } }, order: [['capturedAt', 'DESC']], limit: 20, attributes: ['id', 'gateId', 'plateText', 'plateConfidence', 'ocrStatus', 'capturedAt'] }),
+  ]);
+  return {
+    byOcrStatus, withPlate, withoutPlate, withFace, withoutFace,
+    avgPlateConfidence: avgConfResult?.avgConf ? parseFloat(avgConfResult.avgConf).toFixed(4) : null,
+    confidenceBuckets: { low: lowConf, medium: medConf, high: highConf, veryHigh: vHighConf },
+    recentPlates,
+  };
+};
+
+// ─── PDF Export — supports ?type=summary|traffic|security|alpr|full ─
 const exportPdf = async (req, res, next) => {
   try {
-    const summary = await fetchSummaryData(req);
-    const doc = new PDFDocument({ margin: 40, size: 'A4' });
+    const type = ['summary', 'traffic', 'security', 'alpr', 'full'].includes(req.query.type)
+      ? req.query.type : 'summary';
 
-    const fileName = `toll-gate-report-${new Date().toISOString().slice(0, 10)}.pdf`;
+    const [summaryData, trafficData, securityData, alprData] = await Promise.all([
+      (type === 'summary'  || type === 'full') ? fetchSummaryData(req)  : Promise.resolve(null),
+      (type === 'traffic'  || type === 'full') ? fetchTrafficData(req)  : Promise.resolve(null),
+      (type === 'security' || type === 'full') ? fetchSecurityData(req) : Promise.resolve(null),
+      (type === 'alpr'     || type === 'full') ? fetchAlprData(req)     : Promise.resolve(null),
+    ]);
+
+    const typeLabels = {
+      summary:  'Summary Report',
+      traffic:  'Traffic Analysis Report',
+      security: 'Security Report',
+      alpr:     'ALPR Performance Report',
+      full:     'Full System Report',
+    };
+
+    const doc = new PDFDocument({ margin: 50, size: 'A4', bufferPages: true });
+    const fileName = `toll-gate-${type}-${new Date().toISOString().slice(0, 10)}.pdf`;
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-
     doc.pipe(res);
 
-    doc.fontSize(20).text('Intelligent Toll Gate System Report', { align: 'center' });
-    doc.moveDown(0.5);
-    doc.fontSize(10).fillColor('#555').text(`Generated by: ${req.user.fullName} (${req.user.role})`, { align: 'center' });
-    doc.text(`Generated at: ${new Date().toLocaleString()}`, { align: 'center' });
-    doc.moveDown();
+    // ── Design tokens ────────────────────────────────────────────
+    const C = {
+      headerBg: '#1e3a8a', primary: '#1d4ed8', green: '#059669', red: '#dc2626',
+      amber: '#d97706', purple: '#7c3aed', cyan: '#0891b2', teal: '#0d9488',
+      textDark: '#111827', textMuted: '#6b7280', rowAlt: '#f8fafc',
+      border: '#e5e7eb', white: '#ffffff',
+    };
+    const PW     = doc.page.width;   // 595
+    const ML     = 50;
+    const BODY_W = PW - ML * 2;      // 495
+    const SAFE_B = 60;
 
-    if (summary.dateRange.startDate || summary.dateRange.endDate) {
-      doc.fontSize(11).fillColor('#000').text('Date Range', { underline: true });
-      doc.fontSize(10).text(`Start: ${summary.dateRange.startDate || 'All time'}`);
-      doc.text(`End: ${summary.dateRange.endDate || 'All time'}`);
-      doc.moveDown();
-    }
+    const clip = (val, max) => {
+      const s = String(val ?? '-');
+      return s.length > max ? s.slice(0, max - 1) + '\u2026' : s;
+    };
 
-    doc.fontSize(11).text('System Summary', { underline: true });
-    const totals = summary.totals;
-    doc.fontSize(10)
-      .text(`Total Captures: ${totals.totalCaptures}`)
-      .text(`Access Granted: ${totals.accessGranted}`)
-      .text(`Access Denied: ${totals.accessDenied}`)
-      .text(`Security Checks: ${totals.securityChecks}`)
-      .text(`Security Alerts: ${totals.totalAlerts}`)
-      .text(`Registered Vehicles: ${totals.totalVehicles}`)
-      .text(`Authorized Cards: ${totals.totalCards}`);
-
-    doc.moveDown();
-    doc.fontSize(11).text('Recent Captures', { underline: true });
-    summary.recentCaptures.slice(0, 8).forEach((capture, index) => {
-      doc.fontSize(9).text(
-        `${index + 1}. ${new Date(capture.capturedAt).toLocaleString()} | ${capture.eventType} | Plate: ${capture.plateText || '-'} | Face: ${capture.faceName || '-'} | Decision: ${capture.securityDecision}`
-      );
-    });
-
-    doc.moveDown();
-    doc.fontSize(11).text('Recent Alerts', { underline: true });
-    if (summary.recentAlerts.length === 0) {
-      doc.fontSize(9).text('No security alerts in this period.');
-    } else {
-      summary.recentAlerts.slice(0, 8).forEach((alert, index) => {
-        doc.fontSize(9).text(
-          `${index + 1}. ${new Date(alert.createdAt).toLocaleString()} | ${alert.alertType} | ${alert.reason || '-'} `
+    // ── Page header ──────────────────────────────────────────────
+    const drawPageHeader = (subtitle) => {
+      doc.rect(0, 0, PW, 68).fill(C.headerBg);
+      doc.fillColor(C.white).fontSize(15).font('Helvetica-Bold')
+        .text('Intelligent Toll Gate System', ML, 14, { width: 310, lineBreak: false });
+      doc.fillColor('#bfdbfe').fontSize(10).font('Helvetica')
+        .text(subtitle, ML, 37, { width: 310, lineBreak: false });
+      doc.fillColor('#93c5fd').fontSize(7.5)
+        .text(
+          `${new Date().toLocaleString()}  \u00b7  ${req.user.fullName} (${req.user.role})`,
+          ML, 53, { width: BODY_W, align: 'right', lineBreak: false },
         );
+      doc.y = 68 + 18;
+      doc.fillColor(C.textDark).font('Helvetica').fontSize(9);
+    };
+
+    // ── Section title + rule ─────────────────────────────────────
+    const drawSection = (title, color = C.primary) => {
+      if (doc.y > doc.page.height - 120) {
+        doc.addPage();
+        drawPageHeader(typeLabels[type]);
+      }
+      doc.moveDown(0.4);
+      doc.fillColor(color).fontSize(12).font('Helvetica-Bold').text(title);
+      const ry = doc.y;
+      doc.moveTo(ML, ry).lineTo(PW - ML, ry).lineWidth(1.5).stroke(color);
+      doc.y = ry + 7;
+      doc.fillColor(C.textDark).font('Helvetica').fontSize(9);
+    };
+
+    // ── KPI stat cards ───────────────────────────────────────────
+    const drawKpiCards = (items) => {
+      const gap   = 5;
+      const cardW = (BODY_W - gap * (items.length - 1)) / items.length;
+      const cardH = 52;
+      const sy    = doc.y;
+      items.forEach((item, i) => {
+        const cx = ML + i * (cardW + gap);
+        doc.rect(cx, sy, cardW, cardH).fill(item.color || C.primary);
+        doc.fillColor(C.white).fontSize(17).font('Helvetica-Bold')
+          .text(String(item.value), cx, sy + 8, { width: cardW, align: 'center', lineBreak: false });
+        doc.fillColor(C.white).fontSize(7).font('Helvetica')
+          .text(item.label, cx, sy + 33, { width: cardW, align: 'center', lineBreak: false });
       });
+      doc.y = sy + cardH + 8;
+      doc.fillColor(C.textDark).font('Helvetica').fontSize(9);
+    };
+
+    // ── Data table ───────────────────────────────────────────────
+    const drawTable = (headers, rows, colWidths) => {
+      const rowH   = 17;
+      const totalW = colWidths.reduce((a, b) => a + b, 0);
+
+      const renderHeader = (y) => {
+        doc.rect(ML, y, totalW, rowH).fill(C.primary);
+        let x = ML;
+        headers.forEach((h, i) => {
+          doc.fillColor(C.white).fontSize(7.5).font('Helvetica-Bold')
+            .text(clip(h, 30), x + 3, y + 5, { width: colWidths[i] - 6, lineBreak: false });
+          x += colWidths[i];
+        });
+        return y + rowH;
+      };
+
+      let y = doc.y;
+      if (y + rowH * 3 > doc.page.height - SAFE_B) {
+        doc.addPage(); drawPageHeader(typeLabels[type]); y = doc.y;
+      }
+      y = renderHeader(y);
+
+      rows.forEach((row, ri) => {
+        if (y + rowH > doc.page.height - SAFE_B) {
+          doc.addPage(); drawPageHeader(typeLabels[type]); y = doc.y;
+          y = renderHeader(y);
+        }
+        doc.rect(ML, y, totalW, rowH).fill(ri % 2 === 0 ? C.white : C.rowAlt);
+        doc.rect(ML, y, totalW, rowH).stroke(C.border);
+        let x = ML;
+        row.forEach((cell, ci) => {
+          doc.fillColor(C.textDark).fontSize(7.5).font('Helvetica')
+            .text(clip(cell, 38), x + 3, y + 5, { width: colWidths[ci] - 6, lineBreak: false });
+          x += colWidths[ci];
+        });
+        y += rowH;
+      });
+      doc.y = y + 6;
+      doc.fillColor(C.textDark).font('Helvetica').fontSize(9);
+    };
+
+    // ── Date range blurb ─────────────────────────────────────────
+    const drawDateRange = (dr) => {
+      if (dr?.startDate || dr?.endDate) {
+        doc.fontSize(8).fillColor(C.textMuted)
+          .text(`Period: ${dr.startDate?.slice(0, 10) || 'All time'} \u2192 ${dr.endDate?.slice(0, 10) || 'All time'}`);
+        doc.moveDown(0.3);
+      }
+    };
+
+    // ══════════════════════════════════════════════════════════════
+    // SECTION RENDERERS
+    // ══════════════════════════════════════════════════════════════
+
+    const renderSummary = (d) => {
+      drawSection('System Summary', C.primary);
+      drawDateRange(d.dateRange);
+      const t = d.totals;
+      drawKpiCards([
+        { label: 'Total Captures',  value: t.totalCaptures, color: C.primary },
+        { label: 'Access Granted',  value: t.accessGranted, color: C.green   },
+        { label: 'Access Denied',   value: t.accessDenied,  color: C.red     },
+        { label: 'Security Alerts', value: t.totalAlerts,   color: C.amber   },
+      ]);
+      drawKpiCards([
+        { label: 'Security Checks', value: t.securityChecks, color: C.purple },
+        { label: 'Reg. Vehicles',   value: t.totalVehicles,  color: C.cyan   },
+        { label: 'Auth. Cards',     value: t.totalCards,     color: C.teal   },
+      ]);
+      if (d.recentCaptures.length > 0) {
+        drawSection('Recent Captures (Last 10)');
+        drawTable(
+          ['Captured At', 'Gate', 'Event Type', 'Plate', 'Face', 'Decision'],
+          d.recentCaptures.slice(0, 10).map(c => [
+            new Date(c.capturedAt).toLocaleString(), c.gateId, c.eventType,
+            c.plateText || '-', c.faceName || '-', c.securityDecision || '-',
+          ]),
+          [130, 65, 100, 75, 70, 55], // 495
+        );
+      }
+      if (d.recentAlerts.length > 0) {
+        drawSection('Recent Security Alerts (Last 10)', C.red);
+        drawTable(
+          ['Created At', 'Alert Type', 'Decision', 'Reason'],
+          d.recentAlerts.slice(0, 10).map(a => [
+            new Date(a.createdAt).toLocaleString(), a.alertType, a.decision || '-', a.reason || '-',
+          ]),
+          [130, 115, 75, 175], // 495
+        );
+      }
+    };
+
+    const renderTraffic = (d) => {
+      drawSection('Traffic Analysis', C.cyan);
+      if (d.byGateEvent.length > 0) {
+        doc.fontSize(9).font('Helvetica-Bold').text('Gate & Event Breakdown').moveDown(0.2);
+        drawTable(
+          ['Gate ID', 'Event Type', 'Count'],
+          d.byGateEvent.map(r => [r.gateId, r.eventType, r.count]),
+          [165, 230, 100], // 495
+        );
+      }
+      if (d.topPlates.length > 0) {
+        doc.moveDown(0.3);
+        doc.fontSize(9).font('Helvetica-Bold').text('Top 10 Most Frequent Plates').moveDown(0.2);
+        drawTable(
+          ['Rank', 'Plate Number', 'Occurrences'],
+          d.topPlates.map((r, i) => [i + 1, r.plateText, r.count]),
+          [60, 310, 125], // 495
+        );
+      }
+      if (d.byHour.length > 0) {
+        doc.moveDown(0.3);
+        doc.fontSize(9).font('Helvetica-Bold').text('Hourly Distribution').moveDown(0.2);
+        drawTable(
+          ['Hour', 'Captures'],
+          d.byHour.map(r => [`${String(r.hour).padStart(2, '0')}:00`, r.count]),
+          [247, 248], // 495
+        );
+      }
+      if (d.byDay.length > 0) {
+        doc.moveDown(0.3);
+        doc.fontSize(9).font('Helvetica-Bold').text('Daily Trend').moveDown(0.2);
+        drawTable(['Date', 'Captures'], d.byDay.map(r => [r.day, r.count]), [247, 248]);
+      }
+    };
+
+    const renderSecurity = (d) => {
+      drawSection('Security Overview', C.red);
+      drawKpiCards([
+        { label: 'Blocked Captures', value: d.blockedCount, color: C.red    },
+        { label: 'Under Review',     value: d.reviewCount,  color: C.amber  },
+        { label: 'Total Alerts',     value: d.byType.reduce((s, r) => s + +r.count, 0), color: C.purple },
+      ]);
+      if (d.byType.length > 0) {
+        drawSection('Alerts by Type', C.red);
+        drawTable(
+          ['Alert Type', 'Count'],
+          d.byType.map(r => [r.alertType, r.count]),
+          [375, 120], // 495
+        );
+      }
+      if (d.byDecision.length > 0) {
+        doc.moveDown(0.3);
+        doc.fontSize(9).font('Helvetica-Bold').text('Alerts by Decision').moveDown(0.2);
+        drawTable(
+          ['Decision', 'Count'],
+          d.byDecision.map(r => [r.decision || 'unresolved', r.count]),
+          [375, 120],
+        );
+      }
+      if (d.recentAlerts.length > 0) {
+        doc.moveDown(0.3);
+        doc.fontSize(9).font('Helvetica-Bold').text('Alert Details (Last 30)').moveDown(0.2);
+        drawTable(
+          ['Created At', 'Alert Type', 'Decision', 'Reason'],
+          d.recentAlerts.map(a => [
+            new Date(a.createdAt).toLocaleString(), a.alertType, a.decision || '-', a.reason || '-',
+          ]),
+          [130, 115, 75, 175], // 495
+        );
+      }
+    };
+
+    const renderAlpr = (d) => {
+      drawSection('ALPR Performance', C.purple);
+      const total     = d.withPlate + d.withoutPlate;
+      const plateRate = total     > 0 ? `${((d.withPlate / total) * 100).toFixed(1)}%`      : 'N/A';
+      const faceTotal = d.withFace + d.withoutFace;
+      const faceRate  = faceTotal > 0 ? `${((d.withFace / faceTotal) * 100).toFixed(1)}%`   : 'N/A';
+      const avgConf   = d.avgPlateConfidence ? `${(+d.avgPlateConfidence * 100).toFixed(1)}%` : 'N/A';
+      drawKpiCards([
+        { label: 'Plates Detected',      value: d.withPlate, color: C.green   },
+        { label: 'Plate Detection Rate', value: plateRate,   color: C.primary },
+        { label: 'Faces Detected',       value: d.withFace,  color: C.purple  },
+        { label: 'Avg Confidence',       value: avgConf,     color: C.cyan    },
+      ]);
+      if (d.byOcrStatus.length > 0) {
+        drawSection('OCR Status Breakdown', C.purple);
+        drawTable(
+          ['OCR Status', 'Count'],
+          d.byOcrStatus.map(r => [r.ocrStatus, r.count]),
+          [375, 120],
+        );
+      }
+      doc.moveDown(0.3);
+      doc.fontSize(9).font('Helvetica-Bold').text('Confidence Score Buckets').moveDown(0.2);
+      drawTable(
+        ['Confidence Range', 'Count'],
+        [
+          ['< 50%  (Low)',        d.confidenceBuckets.low],
+          ['50-70% (Medium)',     d.confidenceBuckets.medium],
+          ['70-85% (High)',       d.confidenceBuckets.high],
+          ['>= 85% (Very High)',  d.confidenceBuckets.veryHigh],
+        ],
+        [375, 120],
+      );
+      if (d.recentPlates.length > 0) {
+        doc.moveDown(0.3);
+        doc.fontSize(9).font('Helvetica-Bold').text('Recent Plates with OCR Data (Last 20)').moveDown(0.2);
+        drawTable(
+          ['Captured At', 'Gate', 'Plate', 'Confidence', 'OCR Status'],
+          d.recentPlates.map(p => [
+            new Date(p.capturedAt).toLocaleString(), p.gateId, p.plateText,
+            p.plateConfidence != null ? `${(+p.plateConfidence * 100).toFixed(1)}%` : '-',
+            p.ocrStatus,
+          ]),
+          [130, 65, 120, 80, 100], // 495
+        );
+      }
+    };
+
+    // ══════════════════════════════════════════════════════════════
+    // RENDER
+    // ══════════════════════════════════════════════════════════════
+    drawPageHeader(typeLabels[type]);
+
+    if (type === 'summary')  { renderSummary(summaryData); }
+    if (type === 'traffic')  { renderTraffic(trafficData); }
+    if (type === 'security') { renderSecurity(securityData); }
+    if (type === 'alpr')     { renderAlpr(alprData); }
+
+    if (type === 'full') {
+      renderSummary(summaryData);
+      doc.addPage(); drawPageHeader('Traffic Analysis Report');  renderTraffic(trafficData);
+      doc.addPage(); drawPageHeader('Security Report');          renderSecurity(securityData);
+      doc.addPage(); drawPageHeader('ALPR Performance Report');  renderAlpr(alprData);
     }
 
+    // Page numbers
+    const range = doc.bufferedPageRange();
+    for (let i = range.start; i < range.start + range.count; i++) {
+      doc.switchToPage(i);
+      doc.fillColor(C.textMuted).fontSize(7.5).font('Helvetica')
+        .text(
+          `Page ${i - range.start + 1} of ${range.count}  \u00b7  Intelligent Toll Gate System`,
+          ML, doc.page.height - 28,
+          { width: BODY_W, align: 'center', lineBreak: false },
+        );
+    }
+
+    doc.flushPages();
     doc.end();
   } catch (error) {
     return next(error);

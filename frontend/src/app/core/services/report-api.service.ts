@@ -52,9 +52,15 @@ export class ReportApiService {
     });
   }
 
-  downloadPdf(startDate?: string, endDate?: string): Observable<Blob> {
+  downloadPdf(
+    type: 'summary' | 'traffic' | 'security' | 'alpr' | 'full' = 'summary',
+    startDate?: string,
+    endDate?: string,
+  ): Observable<Blob> {
+    let params = this.buildParams(startDate, endDate);
+    params = params.set('type', type);
     return this.http.get(`${API_CONFIG.baseUrl}/reports/pdf`, {
-      params: this.buildParams(startDate, endDate),
+      params,
       headers: this.headers(),
       responseType: 'blob',
     });

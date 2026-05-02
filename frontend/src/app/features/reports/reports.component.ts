@@ -1,5 +1,5 @@
 import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, HostListener, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ReportApiService } from '../../core/services/report-api.service';
 import { FeedbackService } from '../../core/services/feedback.service';
@@ -22,6 +22,15 @@ export class ReportsComponent implements OnInit {
 
   loading = false;
 
+  showPdfMenu = false;
+  readonly pdfTypes: { type: 'summary' | 'traffic' | 'security' | 'alpr' | 'full'; label: string; icon: string }[] = [
+    { type: 'summary',  label: 'Summary Report',     icon: 'fa-chart-pie'     },
+    { type: 'traffic',  label: 'Traffic Report',      icon: 'fa-chart-bar'     },
+    { type: 'security', label: 'Security Report',     icon: 'fa-shield-halved' },
+    { type: 'alpr',     label: 'ALPR / OCR Report',  icon: 'fa-camera'        },
+    { type: 'full',     label: 'Full Report (All)',   icon: 'fa-file-pdf'      },
+  ];
+
   summary:  ReportSummary  | null = null;
   traffic:  TrafficReport  | null = null;
   security: SecurityReport | null = null;
@@ -29,6 +38,13 @@ export class ReportsComponent implements OnInit {
 
   private readonly reportApi = inject(ReportApiService);
   private readonly feedback  = inject(FeedbackService);
+
+  @HostListener('document:click', ['$event.target'])
+  onDocClick(target: HTMLElement): void {
+    if (this.showPdfMenu && !target.closest?.('.relative')) {
+      this.showPdfMenu = false;
+    }
+  }
 
   ngOnInit(): void { this.loadAll(); }
 
@@ -87,12 +103,13 @@ export class ReportsComponent implements OnInit {
     });
   }
 
-  downloadPdf(): void {
-    this.reportApi.downloadPdf(this.startDate || undefined, this.endDate || undefined).subscribe({
+  downloadPdf(type: 'summary' | 'traffic' | 'security' | 'alpr' | 'full' = 'summary'): void {
+    this.showPdfMenu = false;
+    this.reportApi.downloadPdf(type, this.startDate || undefined, this.endDate || undefined).subscribe({
       next: (blob) => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url; a.download = `gate-report-${this.today()}.pdf`; a.click();
+        a.href = url; a.download = `gate-${type}-report-${this.today()}.pdf`; a.click();
         URL.revokeObjectURL(url);
         this.feedback.successToast('PDF downloaded');
       },
