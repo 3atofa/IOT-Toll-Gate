@@ -54,7 +54,7 @@ const Gate = sequelize.define('Gate', {
     type: DataTypes.TEXT,
   },
   pendingCommand: {
-    type: DataTypes.ENUM('none', 'open', 'close'),
+    type: DataTypes.STRING(10),
     defaultValue: 'none',
     comment: 'Command queued by web operator, consumed and cleared by ESP32 on next poll',
   },
