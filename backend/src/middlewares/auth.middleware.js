@@ -11,17 +11,27 @@ const extractToken = (req) => {
 };
 
 const requireAuth = async (req, res, next) => {
+  const token = extractToken(req);
+  if (!token) {
+    return res.status(401).json({ message: 'Authentication required' });
+  }
+
+  if (!process.env.JWT_SECRET) {
+    return res.status(500).json({ message: 'JWT_SECRET is not configured on server' });
+  }
+
+  // Verify JWT signature / expiry separately so we get a precise error
+  let decoded;
   try {
-    const token = extractToken(req);
-    if (!token) {
-      return res.status(401).json({ message: 'Authentication required' });
-    }
+    decoded = jwt.verify(token, process.env.JWT_SECRET);
+  } catch (jwtError) {
+    // Log so it appears in PM2 / server logs for diagnosis
+    console.error('[requireAuth] jwt.verify failed:', jwtError.name, jwtError.message);
+    return res.status(401).json({ message: 'Invalid or expired token', reason: jwtError.message });
+  }
 
-    if (!process.env.JWT_SECRET) {
-      return res.status(500).json({ message: 'JWT_SECRET is not configured on server' });
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  // Look up user — wrap DB errors so they don't masquerade as auth failures
+  try {
     const user = await User.findByPk(decoded.sub, {
       attributes: { exclude: ['passwordHash'] },
     });
@@ -33,8 +43,9 @@ const requireAuth = async (req, res, next) => {
     req.user = user;
     req.auth = decoded;
     return next();
-  } catch (error) {
-    return res.status(401).json({ message: 'Invalid or expired token' });
+  } catch (dbError) {
+    console.error('[requireAuth] DB error during user lookup:', dbError.message);
+    return next(dbError); // let the global error handler return 500
   }
 };
 
