@@ -281,7 +281,11 @@
                        class="h-12 w-18 rounded-lg object-cover ring-1 ring-slate-200 cursor-zoom-in hover:ring-2 hover:ring-blue-400 transition" />
                 </td>
                 <td>
-                  <span class="font-mono text-sm font-bold text-slate-800">{{ capture.plateText || '&mdash;' }}</span>
+                  <span class="text-sm font-bold text-slate-800"
+                        [class.font-mono]="!capture.plateTextArabic"
+                        [dir]="capture.plateTextArabic ? 'rtl' : 'ltr'">
+                    {{ capture.plateTextArabic || capture.plateText || '&mdash;' }}
+                  </span>
                   <p *ngIf="capture.plateConfidence != null" class="text-[10px] text-slate-400">{{ capture.plateConfidence | number:'1.2-2' }}</p>
                 </td>
                 <td><span class="font-semibold text-slate-800 text-sm">{{ capture.eventType }}</span></td>
@@ -343,7 +347,10 @@
     <p class="text-xs text-white/70 font-semibold">
       Capture #{{ detailSelectedCapture.id }} &nbsp;&middot;&nbsp;
       {{ detailSelectedCapture.capturedAt | date:'MMM d, y h:mm a' }} &nbsp;&middot;&nbsp;
-      <span class="font-mono">{{ detailSelectedCapture.plateText || 'No plate' }}</span>
+      <span [class.font-mono]="!detailSelectedCapture.plateTextArabic"
+            [dir]="detailSelectedCapture.plateTextArabic ? 'rtl' : 'ltr'">
+        {{ detailSelectedCapture.plateTextArabic || detailSelectedCapture.plateText || 'No plate' }}
+      </span>
     </p>
     <div class="flex items-center gap-2">
       <button type="button" (click)="downloadImage(detailSelectedCapture)"

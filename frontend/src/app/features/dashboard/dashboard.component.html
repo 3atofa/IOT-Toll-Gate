@@ -100,7 +100,10 @@
           </span>
           <div class="min-w-0">
             <p class="text-[10px] uppercase tracking-wide text-slate-500 font-semibold">{{ 'dashboard.plate' | t }}</p>
-            <p class="text-sm font-bold text-slate-900">{{ latestCapture.plateText || ('dashboard.plateNotRead' | t) }}</p>
+            <p class="text-sm font-bold text-slate-900"
+               [dir]="latestCapture.plateTextArabic ? 'rtl' : 'ltr'">
+              {{ latestCapture.plateTextArabic || latestCapture.plateText || ('dashboard.plateNotRead' | t) }}
+            </p>
           </div>
         </div>
 

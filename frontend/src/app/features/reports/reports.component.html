@@ -171,7 +171,11 @@
           <div *ngFor="let c of summary?.recentCaptures ?? []"
                class="px-5 py-3 flex items-center justify-between gap-4">
             <div class="min-w-0">
-              <p class="font-bold text-slate-900 text-sm font-mono">{{ c.plateText || '— no plate —' }}</p>
+              <p class="font-bold text-slate-900 text-sm"
+                 [class.font-mono]="!c.plateTextArabic"
+                 [dir]="c.plateTextArabic ? 'rtl' : 'ltr'">
+                {{ c.plateTextArabic || c.plateText || '— no plate —' }}
+              </p>
               <p class="text-xs text-slate-500 mt-0.5">{{ c.capturedAt | date:'MMM d, y — h:mm a' }} &bull; <span class="font-medium">{{ c.gateId }}</span></p>
             </div>
             <span class="tg-badge text-xs shrink-0" [ngClass]="decisionClass(c.securityDecision)">
