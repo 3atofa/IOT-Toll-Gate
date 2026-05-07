@@ -118,7 +118,7 @@ def normalize_plate_arabic(text: str) -> str:
     """
     Preserve Arabic script — keep Arabic letters as-is, convert Eastern Arabic digits
     to Western (0-9) for readability, strip the مصر/EGYPT header, discard non-plate chars.
-    Returns a string like: 'طرد 8126' or 'أبج 123'.
+    Always returns Arabic-letters-first form: 'طرد 8126' so dir=rtl renders correctly.
     """
     if not text:
         return ""
@@ -129,8 +129,17 @@ def normalize_plate_arabic(text: str) -> str:
     # Convert Eastern Arabic / Indic digits → ASCII digits (٨١٢٦ → 8126)
     text = text.translate(_ARABIC_NUMERALS)
     # Remove everything except Arabic letters, ASCII digits, space, dash
-    text = re.sub(r"[^\u0600-\u06FF0-9 \-]", "", text)
-    return text.strip()
+    text = re.sub(r"[^\u0600-\u06FF0-9 \-]", "", text).strip()
+    if not text:
+        return ""
+    # Separate Arabic letters from digits and always put Arabic letters FIRST.
+    # With dir=rtl in HTML, 'طرد 8126' renders as: 8126 on the left, طرد on the right
+    # — matching the physical plate layout (digits left, Arabic letters right).
+    arabic_part = re.sub(r"[^\u0600-\u06FF]", "", text).strip()
+    digit_part   = re.sub(r"[^0-9]",           "", text).strip()
+    if arabic_part and digit_part:
+        return f"{arabic_part} {digit_part}"
+    return arabic_part or digit_part
 
 
 def normalize_plate(text: str) -> str:
@@ -198,8 +207,14 @@ def fetch_image(url: str) -> np.ndarray:
     return image
 
 
-def build_variants(image: np.ndarray) -> List[np.ndarray]:
-    """Return 10 pre-processed variants tuned for Egyptian plates from ESP32-CAM images."""
+def apply_gamma(gray: np.ndarray, gamma: float) -> np.ndarray:
+    """Apply gamma correction to a grayscale image. gamma<1 brightens, gamma>1 darkens."""
+    inv_gamma = 1.0 / gamma
+    table = np.array([((i / 255.0) ** inv_gamma) * 255 for i in range(256)], dtype=np.uint8)
+    return cv2.LUT(gray, table)
+
+(image: np.ndarray) -> List[np.ndarray]:
+    """Return 12 pre-processed variants tuned for Egyptian plates from ESP32-CAM images."""
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
     # 2× upscale — ESP32-CAM is low-res; cubic keeps character edges sharp
@@ -237,7 +252,16 @@ def build_variants(image: np.ndarray) -> List[np.ndarray]:
     kern_dil = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
     dilated = cv2.dilate(thresh_otsu, kern_dil, iterations=1)
 
-    return [image, up2x, clahe_img, denoised, thresh_adapt, thresh_otsu, sharpened, thresh_inv, clahe_3x, dilated]
+    # Gamma brightening — recovers Arabic strokes hidden in dark/night ESP32-CAM images
+    gamma_bright = apply_gamma(gray, 0.45)   # strong brighten; upscale after
+    gamma_bright = cv2.resize(gamma_bright, None, fx=2.0, fy=2.0, interpolation=cv2.INTER_CUBIC)
+
+    # Morphological closing on CLAHE — horizontal kernel reconnects Arabic letter stroke gaps
+    # Arabic letters have thin connecting ligatures that break under thresholding.
+    kern_close = cv2.getStructuringElement(cv2.MORPH_RECT, (4, 1))
+    morph_close = cv2.morphologyEx(clahe_img, cv2.MORPH_CLOSE, kern_close)
+
+    return [image, up2x, clahe_img, denoised, thresh_adapt, thresh_otsu, sharpened, thresh_inv, clahe_3x, dilated, gamma_bright, morph_close]
 
 
 def crop_plate_region(image: np.ndarray) -> Optional[np.ndarray]:
@@ -282,7 +306,7 @@ def crop_plate_region(image: np.ndarray) -> Optional[np.ndarray]:
 
 
 def build_plate_crop_variants(crop: np.ndarray) -> List[np.ndarray]:
-    """4 focused variants run on the isolated plate crop for higher-resolution OCR."""
+    """5 focused variants run on the isolated plate crop for higher-resolution OCR."""
     gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY) if len(crop.shape) == 3 else crop.copy()
     up2x = cv2.resize(gray, None, fx=2.0, fy=2.0, interpolation=cv2.INTER_CUBIC)
     clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(4, 4))
@@ -290,7 +314,9 @@ def build_plate_crop_variants(crop: np.ndarray) -> List[np.ndarray]:
     _, thresh_otsu = cv2.threshold(clahe_img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     kernel_sharpen = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]], dtype=np.float32)
     sharpened = cv2.filter2D(clahe_img, -1, kernel_sharpen)
-    return [up2x, clahe_img, thresh_otsu, sharpened]
+    # Gamma brighten the crop specifically — plate crop is small and often underexposed
+    gamma_bright = apply_gamma(up2x, 0.45)
+    return [up2x, clahe_img, thresh_otsu, sharpened, gamma_bright]
 
 
 def run_ocr(image: np.ndarray) -> List[Tuple[str, float]]:
@@ -315,6 +341,9 @@ def run_ocr(image: np.ndarray) -> List[Tuple[str, float]]:
         low_text=0.3,         # default 0.4 — catch smaller character regions
         link_threshold=0.3,   # default 0.4 — less aggressive char linking (better for Arabic)
         min_size=10,          # default 20 — detect small chars on low-res plates
+        contrast_ths=0.05,    # trigger built-in contrast adjustment more aggressively
+        adjust_contrast=0.5,  # EasyOCR gamma correction for low-contrast images
+        width_ths=0.7,        # default 0.5 — wider merge window for Arabic letter groups
     )
     ocr_kw_para = {**ocr_kw, "paragraph": True}
 
