@@ -1,5 +1,6 @@
 import os
 import re
+from collections import Counter
 from typing import Any, Dict, List, Optional, Tuple
 
 import cv2
@@ -56,11 +57,12 @@ _ARABIC_TO_LATIN: Dict[str, str] = {
 
 # Egyptian plate format patterns — checked in order, first match wins
 _EG_PATTERNS: List[Tuple[str, re.Pattern]] = [
-    ("egy_new",     re.compile(r"^[A-Z]{3}\d{3}$")),        # ABG123  — 2022 standard private
-    ("egy_old",     re.compile(r"^\d{1,3}[A-Z]{1,3}$")),    # 123AB   — classic private
-    ("egy_mixed",   re.compile(r"^[A-Z]{1,2}\d{3,5}$")),    # A12345  — mixed variant
-    ("egy_numeric", re.compile(r"^\d{4,9}$")),               # 12345   — trucks / old gov
-    ("generic",     re.compile(r"^[A-Z0-9]{3,9}$")),        # catch-all
+    ("egy_new",      re.compile(r"^[A-Z]{3}\d{3}$")),        # ABG123   — 2022 standard (3L+3N)
+    ("egy_old",      re.compile(r"^\d{1,3}[A-Z]{1,3}$")),    # 123AB    — classic (1-3N + letters)
+    ("egy_old_ext",  re.compile(r"^\d{4,5}[A-Z]{1,3}$")),    # 8126TRD  — extended old (4-5N + letters)
+    ("egy_mixed",    re.compile(r"^[A-Z]{1,3}\d{3,6}$")),    # TRD8126  — letter-first (1-3L + 3-6N)
+    ("egy_numeric",  re.compile(r"^\d{4,9}$")),               # 12345    — trucks / old gov
+    ("generic",      re.compile(r"^[A-Z0-9]{3,9}$")),        # catch-all
 ]
 
 # ── Egyptian plate header strip ───────────────────────────────────────────
@@ -177,15 +179,18 @@ def fetch_image(url: str) -> np.ndarray:
 
 
 def build_variants(image: np.ndarray) -> List[np.ndarray]:
-    """Return 8 pre-processed variants tuned for Egyptian plates from ESP32-CAM images."""
+    """Return 10 pre-processed variants tuned for Egyptian plates from ESP32-CAM images."""
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
     # 2× upscale — ESP32-CAM is low-res; cubic keeps character edges sharp
-    upscaled = cv2.resize(gray, None, fx=2.0, fy=2.0, interpolation=cv2.INTER_CUBIC)
+    up2x = cv2.resize(gray, None, fx=2.0, fy=2.0, interpolation=cv2.INTER_CUBIC)
 
-    # CLAHE — local contrast enhancement; critical for sun-faded / low-light plates
+    # 3× upscale with Lanczos — for small / distant plates
+    up3x = cv2.resize(gray, None, fx=3.0, fy=3.0, interpolation=cv2.INTER_LANCZOS4)
+
+    # CLAHE on 2× — local contrast enhancement; critical for sun-faded / low-light plates
     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-    clahe_img = clahe.apply(upscaled)
+    clahe_img = clahe.apply(up2x)
 
     # Bilateral denoise — smooths noise while preserving character edges
     denoised = cv2.bilateralFilter(clahe_img, 9, 75, 75)
@@ -205,17 +210,106 @@ def build_variants(image: np.ndarray) -> List[np.ndarray]:
     # Inverted adaptive — for dark-background plates (older Egyptian formats)
     thresh_inv = cv2.bitwise_not(thresh_adapt)
 
-    return [image, upscaled, clahe_img, denoised, thresh_adapt, thresh_otsu, sharpened, thresh_inv]
+    # CLAHE on 3× — extra detail for very small or distant plates
+    clahe_3x = clahe.apply(up3x)
+
+    # Morphological dilation on Otsu — thickens broken/thin Arabic strokes
+    kern_dil = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
+    dilated = cv2.dilate(thresh_otsu, kern_dil, iterations=1)
+
+    return [image, up2x, clahe_img, denoised, thresh_adapt, thresh_otsu, sharpened, thresh_inv, clahe_3x, dilated]
+
+
+def crop_plate_region(image: np.ndarray) -> Optional[np.ndarray]:
+    """
+    Detect and crop the license plate region using contour analysis.
+    Egyptian plates are white with a blue left strip; aspect ratio ~2:1 to 6:1.
+    Returns the cropped region, or None if no plate-like rectangle is found.
+    """
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+    edges = cv2.Canny(blurred, 50, 200)
+    # Close small gaps between plate border lines
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (17, 5))
+    closed = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel)
+
+    contours, _ = cv2.findContours(closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    h, w = image.shape[:2]
+    img_area = h * w
+    best: Optional[Tuple[int, int, int, int]] = None
+    best_area = 0.0
+
+    for cnt in contours:
+        rx, ry, rw, rh = cv2.boundingRect(cnt)
+        area = rw * rh
+        aspect = rw / max(rh, 1)
+        # Plate-like: aspect 1.8–7.0, area 2%–65% of image
+        if not (1.8 <= aspect <= 7.0 and 0.02 * img_area <= area <= 0.65 * img_area):
+            continue
+        if area > best_area:
+            best_area = area
+            best = (rx, ry, rw, rh)
+
+    if best is None:
+        return None
+
+    rx, ry, rw, rh = best
+    pad = 12
+    rx = max(0, rx - pad);          ry = max(0, ry - pad)
+    rw = min(w - rx, rw + 2 * pad); rh = min(h - ry, rh + 2 * pad)
+    crop = image[ry:ry + rh, rx:rx + rw]
+    return crop if crop.size > 0 else None
+
+
+def build_plate_crop_variants(crop: np.ndarray) -> List[np.ndarray]:
+    """4 focused variants run on the isolated plate crop for higher-resolution OCR."""
+    gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY) if len(crop.shape) == 3 else crop.copy()
+    up2x = cv2.resize(gray, None, fx=2.0, fy=2.0, interpolation=cv2.INTER_CUBIC)
+    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(4, 4))
+    clahe_img = clahe.apply(up2x)
+    _, thresh_otsu = cv2.threshold(clahe_img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    kernel_sharpen = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]], dtype=np.float32)
+    sharpened = cv2.filter2D(clahe_img, -1, kernel_sharpen)
+    return [up2x, clahe_img, thresh_otsu, sharpened]
 
 
 def run_ocr(image: np.ndarray) -> List[Tuple[str, float]]:
     out: List[Tuple[str, float]] = []
 
-    for variant in build_variants(image):
-        # ── Pass 1: per-region (paragraph=False) ──────────────────────────
-        results = reader.readtext(variant, detail=1, paragraph=False)
+    # Full-image variants + focused plate-crop variants (if a plate region is detected)
+    all_variant_sets: List[List[np.ndarray]] = [build_variants(image)]
+    plate_crop = crop_plate_region(image)
+    if plate_crop is not None:
+        all_variant_sets.append(build_plate_crop_variants(plate_crop))
+
+    # EasyOCR params tuned for ESP32-CAM low-res images and Arabic plate text
+    # Lower text_threshold/low_text/link_threshold to catch faded/blurry Arabic chars
+    ocr_kw = dict(
+        detail=1,
+        paragraph=False,
+        text_threshold=0.5,   # default 0.7 — lower catches faded / blurry Arabic
+        low_text=0.3,         # default 0.4 — catch smaller character regions
+        link_threshold=0.3,   # default 0.4 — less aggressive char linking (better for Arabic)
+        min_size=10,          # default 20 — detect small chars on low-res plates
+    )
+    ocr_kw_para = {**ocr_kw, "paragraph": True}
+
+    def _ocr_variant(variant: np.ndarray, do_para: bool) -> None:
+        # ── Pass 1: per-region OCR ──────────────────────────────────────
+        try:
+            raw = reader.readtext(variant, **ocr_kw)
+        except Exception:
+            return
+
+        # Sort by leftmost x-coordinate of bbox (left→right image order).
+        # Egyptian plates: digits are on the LEFT, Arabic letters on the RIGHT.
+        # Sorted left→right gives digits-first → combined = "8126TRD" (egy_old_ext).
+        # Reversed gives letters-first  → combined = "TRD8126" (egy_mixed).
+        # Both orders are tried so pick_best can choose the best-matching format.
+        raw.sort(key=lambda r: min(pt[0] for pt in r[0]))
+
         variant_frags: List[Tuple[str, float]] = []
-        for _, text, confidence in results:
+        for bbox, text, confidence in raw:
             raw_stripped = _EG_HEADER_RE.sub("", text).strip()
             if not raw_stripped:
                 continue
@@ -226,34 +320,35 @@ def run_ocr(image: np.ndarray) -> List[Tuple[str, float]]:
             out.append((plate, conf))
             variant_frags.append((plate, conf))
 
-        # ── Combine fragments from this variant ───────────────────────────
-        # Egyptian plates often appear as two separate OCR regions:
-        # one for letters (طرد) and one for digits (٨١٢٦).
-        # Concatenating them produces the full plate candidate (e.g. TRD8126).
+        # ── Combine adjacent fragments (left→right AND right→left) ───────
         if len(variant_frags) >= 2:
-            # Try all ordered concatenations (letters+digits and digits+letters)
-            frags_text = [p for p, _ in variant_frags]
+            frags = [p for p, _ in variant_frags]
             avg_conf = sum(c for _, c in variant_frags) / len(variant_frags)
-            combined_fwd = re.sub(r"[^A-Z0-9]", "", "".join(frags_text).upper())
-            combined_rev = re.sub(r"[^A-Z0-9]", "", "".join(reversed(frags_text)).upper())
-            for combined in (combined_fwd, combined_rev):
-                if combined and combined not in _EG_HEADER_NORMALIZED and 3 <= len(combined) <= 9:
+            for order in (frags, list(reversed(frags))):
+                combined = re.sub(r"[^A-Z0-9]", "", "".join(order).upper())
+                if combined and combined not in _EG_HEADER_NORMALIZED and 3 <= len(combined) <= 10:
                     out.append((combined, avg_conf))
 
-        # ── Pass 2: paragraph=True — EasyOCR merges regions itself ────────
-        try:
-            para_results = reader.readtext(variant, detail=1, paragraph=True)
-            for _, text, confidence in para_results:
-                raw_stripped = _EG_HEADER_RE.sub("", text).strip()
-                if not raw_stripped:
-                    continue
-                plate = normalize_plate(text)
-                conf = float(confidence)
-                if not plate or plate in _EG_HEADER_NORMALIZED:
-                    continue
-                out.append((plate, conf))
-        except Exception:
-            pass
+        # ── Pass 2: paragraph=True (EasyOCR merges nearby text regions) ──
+        # Only run on first 3 variants per set — paragraph inference is expensive.
+        if do_para:
+            try:
+                para = reader.readtext(variant, **ocr_kw_para)
+                for _, text, confidence in para:
+                    raw_stripped = _EG_HEADER_RE.sub("", text).strip()
+                    if not raw_stripped:
+                        continue
+                    plate = normalize_plate(text)
+                    conf = float(confidence)
+                    if not plate or plate in _EG_HEADER_NORMALIZED:
+                        continue
+                    out.append((plate, conf))
+            except Exception:
+                pass
+
+    for variant_set in all_variant_sets:
+        for i, variant in enumerate(variant_set):
+            _ocr_variant(variant, do_para=(i < 3))
 
     return out
 
@@ -261,38 +356,53 @@ def run_ocr(image: np.ndarray) -> List[Tuple[str, float]]:
 def pick_best(
     candidates: List[Tuple[str, float]],
 ) -> Tuple[Optional[str], Optional[float], bool, List[Dict[str, Any]], str, Optional[str]]:
-    """Select the best OCR candidate with Egyptian-format-aware confidence thresholds."""
-    ranked: Dict[str, float] = {}
-    for plate, conf in candidates:
-        if plate not in ranked or conf > ranked[plate]:
-            ranked[plate] = conf
+    """Select the best OCR candidate using format priority + vote frequency + confidence."""
+    if not candidates:
+        return None, None, True, [], "unknown", None
 
-    # Prefer plates that match a known Egyptian format when confidence is equal
-    sorted_items = sorted(
-        ranked.items(),
-        key=lambda x: (x[1], 0 if classify_eg_plate(x[0]) == "unknown" else 1),
-        reverse=True,
-    )
+    # Count appearances across all variants/passes — high vote count = reliable reading
+    vote_counts: Counter = Counter(plate for plate, _ in candidates)
+
+    # Keep highest confidence per unique plate
+    best_conf_per: Dict[str, float] = {}
+    for plate, conf in candidates:
+        if plate not in best_conf_per or conf > best_conf_per[plate]:
+            best_conf_per[plate] = conf
+
+    # Format priority: known Egyptian formats strongly outrank generic/unknown strings.
+    # This ensures "8126TRD" (egy_old_ext, 0.65 conf) beats "8126" (generic, 0.99 conf).
+    _FMT_PRIORITY: Dict[str, float] = {
+        "egy_new": 3.0, "egy_old": 2.8, "egy_old_ext": 2.8,
+        "egy_mixed": 2.5, "egy_numeric": 2.0, "generic": 1.0, "unknown": 0.0,
+    }
+
+    def _score(plate: str) -> float:
+        fmt_p = _FMT_PRIORITY.get(classify_eg_plate(plate), 0.0)
+        # +0.04 per extra vote (beyond first), capped at +0.20 for 6+ votes
+        vote_bonus = min(vote_counts[plate] - 1, 5) * 0.04
+        return fmt_p + vote_bonus + best_conf_per[plate]
+
+    sorted_items = sorted(best_conf_per.items(), key=lambda x: _score(x[0]), reverse=True)
+
     response_candidates = [
-        {"plateText": p, "confidence": round(c, 4), "formatType": classify_eg_plate(p)}
+        {
+            "plateText": p,
+            "confidence": round(c, 4),
+            "formatType": classify_eg_plate(p),
+            "votes": vote_counts[p],
+        }
         for p, c in sorted_items[:10]
     ]
-
-    if not sorted_items:
-        return None, None, True, response_candidates, "unknown", None
 
     best_plate, best_conf = sorted_items[0]
     fmt = classify_eg_plate(best_plate)
     valid_pattern = fmt != "unknown"
 
-    # Relax the confidence threshold for plates that exactly match a known Egyptian format.
-    # A correctly-formatted plate at 62% is far more trustworthy than a random string at 76%.
+    # Relax confidence threshold for known Egyptian formats
     effective_min = ALPR_MIN_CONFIDENCE
-    if fmt == "egy_new" or fmt == "egy_old":
+    if fmt in ("egy_new", "egy_old", "egy_old_ext"):
         effective_min = max(0.50, ALPR_MIN_CONFIDENCE - 0.15)   # −15 pp bonus
-    elif fmt == "egy_mixed":
-        effective_min = max(0.55, ALPR_MIN_CONFIDENCE - 0.10)   # −10 pp bonus
-    elif fmt == "egy_numeric":
+    elif fmt in ("egy_mixed", "egy_numeric"):
         effective_min = max(0.55, ALPR_MIN_CONFIDENCE - 0.10)   # −10 pp bonus
 
     review_required = (best_conf < effective_min) or (not valid_pattern)
