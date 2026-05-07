@@ -212,21 +212,48 @@ def run_ocr(image: np.ndarray) -> List[Tuple[str, float]]:
     out: List[Tuple[str, float]] = []
 
     for variant in build_variants(image):
+        # ── Pass 1: per-region (paragraph=False) ──────────────────────────
         results = reader.readtext(variant, detail=1, paragraph=False)
+        variant_frags: List[Tuple[str, float]] = []
         for _, text, confidence in results:
-            # Skip if the raw text is purely a header token (مصر / EGYPT)
             raw_stripped = _EG_HEADER_RE.sub("", text).strip()
             if not raw_stripped:
-                continue  # entire result was just the header — discard
-
+                continue
             plate = normalize_plate(text)
             conf = float(confidence)
-
-            # Discard if normalization produced only a known header artifact
             if not plate or plate in _EG_HEADER_NORMALIZED:
                 continue
-
             out.append((plate, conf))
+            variant_frags.append((plate, conf))
+
+        # ── Combine fragments from this variant ───────────────────────────
+        # Egyptian plates often appear as two separate OCR regions:
+        # one for letters (طرد) and one for digits (٨١٢٦).
+        # Concatenating them produces the full plate candidate (e.g. TRD8126).
+        if len(variant_frags) >= 2:
+            # Try all ordered concatenations (letters+digits and digits+letters)
+            frags_text = [p for p, _ in variant_frags]
+            avg_conf = sum(c for _, c in variant_frags) / len(variant_frags)
+            combined_fwd = re.sub(r"[^A-Z0-9]", "", "".join(frags_text).upper())
+            combined_rev = re.sub(r"[^A-Z0-9]", "", "".join(reversed(frags_text)).upper())
+            for combined in (combined_fwd, combined_rev):
+                if combined and combined not in _EG_HEADER_NORMALIZED and 3 <= len(combined) <= 9:
+                    out.append((combined, avg_conf))
+
+        # ── Pass 2: paragraph=True — EasyOCR merges regions itself ────────
+        try:
+            para_results = reader.readtext(variant, detail=1, paragraph=True)
+            for _, text, confidence in para_results:
+                raw_stripped = _EG_HEADER_RE.sub("", text).strip()
+                if not raw_stripped:
+                    continue
+                plate = normalize_plate(text)
+                conf = float(confidence)
+                if not plate or plate in _EG_HEADER_NORMALIZED:
+                    continue
+                out.append((plate, conf))
+        except Exception:
+            pass
 
     return out
 
