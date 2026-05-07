@@ -213,7 +213,8 @@ def apply_gamma(gray: np.ndarray, gamma: float) -> np.ndarray:
     table = np.array([((i / 255.0) ** inv_gamma) * 255 for i in range(256)], dtype=np.uint8)
     return cv2.LUT(gray, table)
 
-(image: np.ndarray) -> List[np.ndarray]:
+
+def build_variants(image: np.ndarray) -> List[np.ndarray]:
     """Return 12 pre-processed variants tuned for Egyptian plates from ESP32-CAM images."""
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
