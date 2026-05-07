@@ -9,7 +9,15 @@ const { getSocket } = require('./socket.service');
 const queue = [];
 let busy = false;
 
-const normalizePlate = (plateText) => String(plateText || '').toUpperCase().replace(/\s+/g, '');
+const normalizePlate = (plateText) => {
+  if (!plateText) return '';
+  // Convert Eastern Arabic / Indic digits (\u0660-\u0669) to ASCII digits
+  const arabicDigits = { '\u0660': '0', '\u0661': '1', '\u0662': '2', '\u0663': '3', '\u0664': '4',
+                         '\u0665': '5', '\u0666': '6', '\u0667': '7', '\u0668': '8', '\u0669': '9' };
+  let p = String(plateText).replace(/[\u0660-\u0669]/g, (d) => arabicDigits[d] || d);
+  // Strip all non-alphanumeric chars (covers Arabic letters that slipped through), uppercase
+  return p.replace(/[^A-Za-z0-9\-]/g, '').toUpperCase();
+};
 
 const emitCaptureUpdate = (capture) => {
   const io = getSocket();
@@ -107,7 +115,7 @@ const shouldRequireReview = (plateText, confidence) => {
   if (confidence == null) return true;
 
   const minConfidence = Number(process.env.ALPR_MIN_CONFIDENCE || 0.75);
-  const platePattern = new RegExp(process.env.ALPR_PLATE_REGEX || '^[A-Z0-9-]{4,12}$');
+  const platePattern = new RegExp(process.env.ALPR_PLATE_REGEX || '^[A-Z0-9]{3,9}$');
 
   return confidence < minConfidence || !platePattern.test(plateText);
 };

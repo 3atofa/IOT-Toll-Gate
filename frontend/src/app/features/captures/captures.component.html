@@ -56,7 +56,15 @@
                      class="h-14 w-20 rounded-lg object-cover ring-1 ring-slate-200 cursor-zoom-in hover:ring-2 hover:ring-blue-400 transition" />
               </td>
               <td><span class="font-semibold text-slate-900">{{ item.eventType }}</span></td>
-              <td><span class="font-mono text-sm font-semibold text-slate-800">{{ item.plateText || '&mdash;' }}</span></td>
+              <td>
+                <div class="flex flex-col items-start gap-0.5">
+                  <span class="font-mono text-sm font-black text-slate-900 tracking-widest">{{ formatPlate(item.plateText) }}</span>
+                  <span *ngIf="item.plateText"
+                        class="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                    {{ plateFormatLabel(item.plateText) }}
+                  </span>
+                </div>
+              </td>
               <td class="text-slate-700">{{ item.faceName || ('common.notRecognized' | t) }}</td>
               <td>
                 <span class="tg-badge" [ngClass]="ocrStatusClass(item.ocrStatus)">
@@ -148,7 +156,7 @@
         <!-- Plate badge overlay (bottom-left) -->
         <div *ngIf="selectedCapture.plateText"
              class="absolute bottom-3 left-3 bg-black/70 text-white font-mono font-bold text-lg px-4 py-1.5 rounded-xl tracking-widest backdrop-blur-sm">
-          {{ selectedCapture.plateText }}
+          {{ formatPlate(selectedCapture.plateText) }}
         </div>
 
         <!-- Decision badge overlay (bottom-right) -->
@@ -197,28 +205,73 @@
           </div>
         </div>
 
-        <!-- Plate + Face (side by side) -->
-        <div class="grid grid-cols-2 gap-1.5">
-          <div class="flex items-center gap-3 rounded-xl bg-slate-100 px-4 py-3">
-            <span class="tg-icon-sq shrink-0" style="background:rgba(251,191,36,0.12);color:#fbbf24;width:2rem;height:2rem;border-radius:0.5rem">
-              <i class="fas fa-car text-xs"></i>
-            </span>
-            <div class="min-w-0">
-              <p class="text-[10px] uppercase tracking-wide text-slate-500 font-bold">Plate</p>
-              <p class="text-base font-bold text-slate-900 font-mono tracking-wider">{{ selectedCapture.plateText || '—' }}</p>
-              <p *ngIf="selectedCapture.plateConfidence != null" class="text-[10px] text-slate-400 mt-0.5">{{ selectedCapture.plateConfidence | number:'1.2-2' }} confidence</p>
+          <!-- Plate + Face (side by side) -->
+          <div class="grid grid-cols-2 gap-1.5">
+            <!-- Plate card -->
+            <div class="rounded-xl bg-slate-100 px-4 py-3">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="tg-icon-sq shrink-0" style="background:rgba(251,191,36,0.12);color:#fbbf24;width:2rem;height:2rem;border-radius:0.5rem">
+                  <i class="fas fa-car text-xs"></i>
+                </span>
+                <div class="flex-1 flex items-center justify-between gap-1">
+                  <p class="text-[10px] uppercase tracking-wide text-slate-500 font-bold">Plate</p>
+                  <span *ngIf="selectedCapture.plateText"
+                        class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                    {{ plateFormatLabel(selectedCapture.plateText) }}
+                  </span>
+                </div>
+              </div>
+              <!-- Styled plate card -->
+              <div *ngIf="selectedCapture.plateText; else noPlate"
+                   class="rounded-lg border-2 border-slate-300 bg-white text-center py-1.5 px-2 shadow-sm">
+                <p class="font-mono font-black text-xl text-slate-900 tracking-[0.2em] leading-tight">
+                  {{ formatPlate(selectedCapture.plateText) }}
+                </p>
+                <p class="text-[8px] text-slate-400 font-semibold uppercase tracking-widest">Arab Rep. of Egypt</p>
+              </div>
+              <ng-template #noPlate>
+                <p class="text-sm text-slate-400 italic text-center py-1">Not recognized</p>
+              </ng-template>
+              <!-- Confidence bar -->
+              <div *ngIf="selectedCapture.plateConfidence != null" class="mt-2">
+                <div class="flex items-center justify-between mb-1">
+                  <p class="text-[9px] text-slate-500 font-semibold">OCR Confidence</p>
+                  <p class="text-[9px] font-black" [ngClass]="confidenceTextClass(selectedCapture.plateConfidence)">
+                    {{ confidencePct(selectedCapture.plateConfidence) }}%
+                  </p>
+                </div>
+                <div class="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
+                  <div class="h-full rounded-full transition-all duration-500"
+                       [ngClass]="confidenceBarClass(selectedCapture.plateConfidence)"
+                       [style.width.%]="confidencePct(selectedCapture.plateConfidence)"></div>
+                </div>
+              </div>
+            </div>
+            <!-- Face card -->
+            <div class="flex items-center gap-3 rounded-xl bg-slate-100 px-4 py-3">
+              <span class="tg-icon-sq shrink-0" style="background:rgba(59,130,246,0.12);color:#60a5fa;width:2rem;height:2rem;border-radius:0.5rem">
+                <i class="fas fa-face-smile text-xs"></i>
+              </span>
+              <div class="min-w-0">
+                <p class="text-[10px] uppercase tracking-wide text-slate-500 font-bold">Face</p>
+                <p class="text-sm font-bold text-slate-900 break-all">{{ selectedCapture.faceName || '—' }}</p>
+                <!-- Face confidence bar -->
+                <div *ngIf="selectedCapture.faceConfidence != null" class="mt-1.5">
+                  <div class="flex items-center justify-between mb-0.5">
+                    <p class="text-[9px] text-slate-500 font-semibold">Confidence</p>
+                    <p class="text-[9px] font-black" [ngClass]="confidenceTextClass(selectedCapture.faceConfidence)">
+                      {{ confidencePct(selectedCapture.faceConfidence) }}%
+                    </p>
+                  </div>
+                  <div class="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
+                    <div class="h-full rounded-full transition-all duration-500"
+                         [ngClass]="confidenceBarClass(selectedCapture.faceConfidence)"
+                         [style.width.%]="confidencePct(selectedCapture.faceConfidence)"></div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-          <div class="flex items-center gap-3 rounded-xl bg-slate-100 px-4 py-3">
-            <span class="tg-icon-sq shrink-0" style="background:rgba(59,130,246,0.12);color:#60a5fa;width:2rem;height:2rem;border-radius:0.5rem">
-              <i class="fas fa-face-smile text-xs"></i>
-            </span>
-            <div class="min-w-0">
-              <p class="text-[10px] uppercase tracking-wide text-slate-500 font-bold">Face</p>
-              <p class="text-sm font-bold text-slate-900 break-all">{{ selectedCapture.faceName || '—' }}</p>
-            </div>
-          </div>
-        </div>
 
         <!-- Card UID (full width) -->
         <div class="flex items-center gap-3 rounded-xl bg-slate-100 px-4 py-3">

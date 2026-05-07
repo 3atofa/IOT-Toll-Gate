@@ -97,5 +97,49 @@ export class CapturesComponent implements OnInit {
     if (d === 'review') return 'tg-badge-amber';
     return 'tg-badge-green';
   }
+
+  // ── Egyptian plate helpers ─────────────────────────────────────────────
+
+  /** Return a spaced, formatted plate: ABG123 → ABG 123 / 123AB → 123 AB */
+  formatPlate(plate: string | null | undefined): string {
+    if (!plate) return '—';
+    if (/^[A-Z]{3}\d{3}$/.test(plate)) return `${plate.slice(0, 3)} ${plate.slice(3)}`;
+    const old = plate.match(/^(\d{1,3})([A-Z]{1,3})$/);
+    if (old) return `${old[1]} ${old[2]}`;
+    const mixed = plate.match(/^([A-Z]{1,2})(\d{3,5})$/);
+    if (mixed) return `${mixed[1]} ${mixed[2]}`;
+    return plate;
+  }
+
+  /** Short label identifying the Egyptian plate format type */
+  plateFormatLabel(plate: string | null | undefined): string {
+    if (!plate) return '';
+    if (/^[A-Z]{3}\d{3}$/.test(plate))    return 'EGY · NEW';
+    if (/^\d{1,3}[A-Z]{1,3}$/.test(plate)) return 'EGY · OLD';
+    if (/^[A-Z]{1,2}\d{3,5}$/.test(plate)) return 'EGY';
+    if (/^\d{4,9}$/.test(plate))            return 'EGY · NUM';
+    return 'UNKNOWN';
+  }
+
+  /** Confidence 0–1 → percentage integer */
+  confidencePct(c: number | null | undefined): number {
+    return c != null ? Math.round(c * 100) : 0;
+  }
+
+  /** Tailwind colour class for the confidence progress bar */
+  confidenceBarClass(c: number | null | undefined): string {
+    const p = this.confidencePct(c);
+    if (p >= 80) return 'bg-emerald-500';
+    if (p >= 60) return 'bg-amber-400';
+    return 'bg-red-400';
+  }
+
+  /** Text colour class for the confidence percentage label */
+  confidenceTextClass(c: number | null | undefined): string {
+    const p = this.confidencePct(c);
+    if (p >= 80) return 'text-emerald-600';
+    if (p >= 60) return 'text-amber-500';
+    return 'text-red-500';
+  }
 }
 

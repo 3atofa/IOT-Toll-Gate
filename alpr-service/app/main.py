@@ -16,7 +16,7 @@ ALPR_API_KEY = os.getenv("ALPR_API_KEY", "")
 ALPR_REQUEST_TIMEOUT = float(os.getenv("ALPR_REQUEST_TIMEOUT", "8"))
 ALPR_MIN_CONFIDENCE = float(os.getenv("ALPR_MIN_CONFIDENCE", "0.75"))
 ALPR_FACE_MIN_CONFIDENCE = float(os.getenv("ALPR_FACE_MIN_CONFIDENCE", "0.55"))
-ALPR_PLATE_REGEX = os.getenv("ALPR_PLATE_REGEX", r"^[A-Z0-9-]{4,12}$")
+ALPR_PLATE_REGEX = os.getenv("ALPR_PLATE_REGEX", r"^[A-Z0-9]{3,9}$")
 ALPR_BASE_URL = os.getenv("ALPR_BASE_URL", "")
 
 try:
@@ -24,7 +24,61 @@ try:
 except re.error as exc:
     raise RuntimeError(f"Invalid ALPR_PLATE_REGEX: {exc}") from exc
 
-reader = easyocr.Reader(["en"], gpu=False)
+# ── Egyptian plate support ─────────────────────────────────────────────────
+# Eastern Arabic / Indic digits (٠١٢٣٤٥٦٧٨٩) → ASCII digits
+_ARABIC_NUMERALS = str.maketrans("\u0660\u0661\u0662\u0663\u0664\u0665\u0666\u0667\u0668\u0669",
+                                  "0123456789")
+
+# Arabic letter → closest Latin used on Egyptian plates
+_ARABIC_TO_LATIN: Dict[str, str] = {
+    "\u0623": "A", "\u0627": "A", "\u0625": "A", "\u0622": "A", "\u0621": "A",  # أ ا إ آ ء
+    "\u0628": "B",                                                               # ب
+    "\u062a": "T", "\u062b": "T",                                               # ت ث
+    "\u062c": "G",                                                               # ج
+    "\u062d": "H", "\u062e": "K",                                               # ح خ
+    "\u062f": "D", "\u0630": "D",                                               # د ذ
+    "\u0631": "R",                                                               # ر
+    "\u0632": "Z",                                                               # ز
+    "\u0633": "S", "\u0634": "S", "\u0635": "S", "\u0636": "D",               # س ش ص ض
+    "\u0637": "T", "\u0638": "Z",                                               # ط ظ
+    "\u0639": "A", "\u063a": "G",                                               # ع غ
+    "\u0641": "F",                                                               # ف
+    "\u0642": "Q",                                                               # ق
+    "\u0643": "K",                                                               # ك
+    "\u0644": "L",                                                               # ل
+    "\u0645": "M",                                                               # م
+    "\u0646": "N",                                                               # ن
+    "\u0647": "H",                                                               # ه
+    "\u0648": "W",                                                               # و
+    "\u064a": "Y", "\u0649": "Y",                                               # ي ى
+    "\u0629": "H",                                                               # ة
+}
+
+# Egyptian plate format patterns — checked in order, first match wins
+_EG_PATTERNS: List[Tuple[str, re.Pattern]] = [
+    ("egy_new",     re.compile(r"^[A-Z]{3}\d{3}$")),        # ABG123  — 2022 standard private
+    ("egy_old",     re.compile(r"^\d{1,3}[A-Z]{1,3}$")),    # 123AB   — classic private
+    ("egy_mixed",   re.compile(r"^[A-Z]{1,2}\d{3,5}$")),    # A12345  — mixed variant
+    ("egy_numeric", re.compile(r"^\d{4,9}$")),               # 12345   — trucks / old gov
+    ("generic",     re.compile(r"^[A-Z0-9]{3,9}$")),        # catch-all
+]
+
+# ── Egyptian plate header strip ───────────────────────────────────────────
+# Egyptian plates print "مصر" (Egypt in Arabic) or "EGYPT" at the top/side.
+# EasyOCR often reads this text as part of the plate result. We must remove
+# it before processing — otherwise مصر → MSR, or مصرABG123 → MSRABG123.
+_EG_HEADER_RE = re.compile(
+    r"(\u0645\s*\u0635\s*\u0631"   # مصر  (with optional spaces between letters)
+    r"|EGYPT"                        # English variant
+    r"|egypt)"                       # lowercase variant
+    r"\s*[|\-_.,;:]*\s*",           # optional separator after header
+    re.IGNORECASE | re.UNICODE,
+)
+
+# Standalone header tokens that after normalization would become junk
+_EG_HEADER_NORMALIZED = {"MSR", "EGYPT"}  # exact matches to discard entirely
+
+reader = easyocr.Reader(["en", "ar"], gpu=False)  # "ar" enables Arabic script OCR for Egyptian plate letters
 
 
 class RecognizeRequest(BaseModel):
@@ -39,6 +93,8 @@ class RecognizeRequest(BaseModel):
 class RecognizeResponse(BaseModel):
     plateText: Optional[str] = None
     plateConfidence: Optional[float] = None
+    plateFormatted: Optional[str] = None
+    plateFormatType: str = "unknown"
     faceName: Optional[str] = None
     faceConfidence: Optional[float] = None
     faceDetected: bool = False
@@ -56,7 +112,43 @@ app = FastAPI(title="Toll Gate ALPR Service", version="1.0.0")
 
 
 def normalize_plate(text: str) -> str:
-    return re.sub(r"\s+", "", (text or "").upper())
+    """Strip noise and transliterate Arabic so every plate becomes plain A-Z0-9."""
+    if not text:
+        return ""
+    # 0. Remove Egyptian plate header "مصر" / "EGYPT" before any transliteration.
+    #    This handles cases where OCR reads the whole plate as one region:
+    #    "مصر ABG123" → "ABG123",  "EGYPT 123AB" → "123AB"
+    text = _EG_HEADER_RE.sub("", text).strip()
+    if not text:
+        return ""
+    # 1. Convert Eastern Arabic / Indic digits → ASCII
+    text = text.translate(_ARABIC_NUMERALS)
+    # 2. Transliterate Arabic letters → Latin equivalents
+    for ar, lat in _ARABIC_TO_LATIN.items():
+        text = text.replace(ar, lat)
+    # 3. Drop everything except letters, digits, dash — then uppercase
+    return re.sub(r"[^A-Za-z0-9\-]", "", text).upper()
+
+
+def classify_eg_plate(plate: str) -> str:
+    """Return the Egyptian plate format label for a normalised plate string."""
+    for name, pat in _EG_PATTERNS:
+        if pat.match(plate):
+            return name
+    return "unknown"
+
+
+def format_eg_plate(plate: str, fmt: str) -> str:
+    """Return a human-readable spaced plate string for UI display."""
+    if fmt == "egy_new" and len(plate) == 6:          # ABG123 → ABG 123
+        return f"{plate[:3]} {plate[3:]}"
+    m = re.match(r"^(\d+)([A-Z]+)$", plate)           # 123AB  → 123 AB
+    if m:
+        return f"{m.group(1)} {m.group(2)}"
+    m = re.match(r"^([A-Z]+)(\d+)$", plate)           # A12345 → A 12345
+    if m:
+        return f"{m.group(1)} {m.group(2)}"
+    return plate
 
 
 def to_absolute_image_url(image_path: str) -> str:
@@ -85,19 +177,35 @@ def fetch_image(url: str) -> np.ndarray:
 
 
 def build_variants(image: np.ndarray) -> List[np.ndarray]:
+    """Return 8 pre-processed variants tuned for Egyptian plates from ESP32-CAM images."""
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    upscaled = cv2.resize(gray, None, fx=1.8, fy=1.8, interpolation=cv2.INTER_CUBIC)
-    denoised = cv2.bilateralFilter(upscaled, 9, 75, 75)
-    thresh = cv2.adaptiveThreshold(
-        denoised,
-        255,
-        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-        cv2.THRESH_BINARY,
-        11,
-        2,
+
+    # 2× upscale — ESP32-CAM is low-res; cubic keeps character edges sharp
+    upscaled = cv2.resize(gray, None, fx=2.0, fy=2.0, interpolation=cv2.INTER_CUBIC)
+
+    # CLAHE — local contrast enhancement; critical for sun-faded / low-light plates
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    clahe_img = clahe.apply(upscaled)
+
+    # Bilateral denoise — smooths noise while preserving character edges
+    denoised = cv2.bilateralFilter(clahe_img, 9, 75, 75)
+
+    # Adaptive threshold — handles uneven plate lighting
+    thresh_adapt = cv2.adaptiveThreshold(
+        denoised, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2,
     )
 
-    return [image, gray, upscaled, denoised, thresh]
+    # Otsu global threshold — best for clean high-contrast Egyptian white plates
+    _, thresh_otsu = cv2.threshold(denoised, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+    # Sharpening kernel — recovers detail lost in gate-camera blur
+    kernel_sharpen = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]], dtype=np.float32)
+    sharpened = cv2.filter2D(clahe_img, -1, kernel_sharpen)
+
+    # Inverted adaptive — for dark-background plates (older Egyptian formats)
+    thresh_inv = cv2.bitwise_not(thresh_adapt)
+
+    return [image, upscaled, clahe_img, denoised, thresh_adapt, thresh_otsu, sharpened, thresh_inv]
 
 
 def run_ocr(image: np.ndarray) -> List[Tuple[str, float]]:
@@ -106,31 +214,64 @@ def run_ocr(image: np.ndarray) -> List[Tuple[str, float]]:
     for variant in build_variants(image):
         results = reader.readtext(variant, detail=1, paragraph=False)
         for _, text, confidence in results:
+            # Skip if the raw text is purely a header token (مصر / EGYPT)
+            raw_stripped = _EG_HEADER_RE.sub("", text).strip()
+            if not raw_stripped:
+                continue  # entire result was just the header — discard
+
             plate = normalize_plate(text)
             conf = float(confidence)
-            if plate:
-                out.append((plate, conf))
+
+            # Discard if normalization produced only a known header artifact
+            if not plate or plate in _EG_HEADER_NORMALIZED:
+                continue
+
+            out.append((plate, conf))
 
     return out
 
 
-def pick_best(candidates: List[Tuple[str, float]]) -> Tuple[Optional[str], Optional[float], bool, List[Dict[str, Any]]]:
+def pick_best(
+    candidates: List[Tuple[str, float]],
+) -> Tuple[Optional[str], Optional[float], bool, List[Dict[str, Any]], str, Optional[str]]:
+    """Select the best OCR candidate with Egyptian-format-aware confidence thresholds."""
     ranked: Dict[str, float] = {}
     for plate, conf in candidates:
         if plate not in ranked or conf > ranked[plate]:
             ranked[plate] = conf
 
-    sorted_items = sorted(ranked.items(), key=lambda x: x[1], reverse=True)
-    response_candidates = [{"plateText": p, "confidence": round(c, 4)} for p, c in sorted_items[:10]]
+    # Prefer plates that match a known Egyptian format when confidence is equal
+    sorted_items = sorted(
+        ranked.items(),
+        key=lambda x: (x[1], 0 if classify_eg_plate(x[0]) == "unknown" else 1),
+        reverse=True,
+    )
+    response_candidates = [
+        {"plateText": p, "confidence": round(c, 4), "formatType": classify_eg_plate(p)}
+        for p, c in sorted_items[:10]
+    ]
 
     if not sorted_items:
-        return None, None, True, response_candidates
+        return None, None, True, response_candidates, "unknown", None
 
     best_plate, best_conf = sorted_items[0]
-    valid_pattern = bool(PLATE_RE.match(best_plate))
-    review_required = (best_conf < ALPR_MIN_CONFIDENCE) or (not valid_pattern)
+    fmt = classify_eg_plate(best_plate)
+    valid_pattern = fmt != "unknown"
 
-    return best_plate, round(best_conf, 4), review_required, response_candidates
+    # Relax the confidence threshold for plates that exactly match a known Egyptian format.
+    # A correctly-formatted plate at 62% is far more trustworthy than a random string at 76%.
+    effective_min = ALPR_MIN_CONFIDENCE
+    if fmt == "egy_new" or fmt == "egy_old":
+        effective_min = max(0.50, ALPR_MIN_CONFIDENCE - 0.15)   # −15 pp bonus
+    elif fmt == "egy_mixed":
+        effective_min = max(0.55, ALPR_MIN_CONFIDENCE - 0.10)   # −10 pp bonus
+    elif fmt == "egy_numeric":
+        effective_min = max(0.55, ALPR_MIN_CONFIDENCE - 0.10)   # −10 pp bonus
+
+    review_required = (best_conf < effective_min) or (not valid_pattern)
+    plate_formatted = format_eg_plate(best_plate, fmt)
+
+    return best_plate, round(best_conf, 4), review_required, response_candidates, fmt, plate_formatted
 
 
 def get_face_cascade() -> cv2.CascadeClassifier:
@@ -264,7 +405,7 @@ def recognize(
     image = fetch_image(image_url)
 
     candidates = run_ocr(image)
-    plate_text, confidence, review_required, response_candidates = pick_best(candidates)
+    plate_text, confidence, review_required, response_candidates, plate_format_type, plate_formatted = pick_best(candidates)
     face_name, face_confidence, face_review_required, face_error, face_detected = recognize_face(image, payload.wantedPersons)
     # Always attempt watchlist plate matching even if OCR is marked for review.
     # This allows exact wanted/stolen plate hits (e.g., short formats like BT2)
@@ -285,6 +426,8 @@ def recognize(
     return RecognizeResponse(
         plateText=plate_text,
         plateConfidence=confidence,
+        plateFormatted=plate_formatted,
+        plateFormatType=plate_format_type or "unknown",
         faceName=face_name,
         faceConfidence=face_confidence,
         faceDetected=face_detected,
