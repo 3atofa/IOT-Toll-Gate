@@ -93,7 +93,8 @@ class RecognizeRequest(BaseModel):
 
 
 class RecognizeResponse(BaseModel):
-    plateText: Optional[str] = None
+    plateText: Optional[str] = None            # Latin-normalised e.g. TRD8126 (used for matching)
+    plateTextArabic: Optional[str] = None      # Original Arabic script e.g. طرد 8126 (used for display)
     plateConfidence: Optional[float] = None
     plateFormatted: Optional[str] = None
     plateFormatType: str = "unknown"
@@ -111,6 +112,25 @@ class RecognizeResponse(BaseModel):
 
 
 app = FastAPI(title="Toll Gate ALPR Service", version="1.0.0")
+
+
+def normalize_plate_arabic(text: str) -> str:
+    """
+    Preserve Arabic script — keep Arabic letters as-is, convert Eastern Arabic digits
+    to Western (0-9) for readability, strip the مصر/EGYPT header, discard non-plate chars.
+    Returns a string like: 'طرد 8126' or 'أبج 123'.
+    """
+    if not text:
+        return ""
+    # Strip مصر / EGYPT header first
+    text = _EG_HEADER_RE.sub("", text).strip()
+    if not text:
+        return ""
+    # Convert Eastern Arabic / Indic digits → ASCII digits (٨١٢٦ → 8126)
+    text = text.translate(_ARABIC_NUMERALS)
+    # Remove everything except Arabic letters, ASCII digits, space, dash
+    text = re.sub(r"[^\u0600-\u06FF0-9 \-]", "", text)
+    return text.strip()
 
 
 def normalize_plate(text: str) -> str:
@@ -275,6 +295,10 @@ def build_plate_crop_variants(crop: np.ndarray) -> List[np.ndarray]:
 
 def run_ocr(image: np.ndarray) -> List[Tuple[str, float]]:
     out: List[Tuple[str, float]] = []
+    # Track raw Arabic text alongside each normalised Latin plate.
+    # key = latin_plate_text, value = Arabic original; key+"__conf__" = best conf seen.
+    global _last_arabic_map
+    _last_arabic_map = {}
 
     # Full-image variants + focused plate-crop variants (if a plate region is detected)
     all_variant_sets: List[List[np.ndarray]] = [build_variants(image)]
@@ -314,11 +338,18 @@ def run_ocr(image: np.ndarray) -> List[Tuple[str, float]]:
             if not raw_stripped:
                 continue
             plate = normalize_plate(text)
+            plate_ar = normalize_plate_arabic(text)
             conf = float(confidence)
             if not plate or plate in _EG_HEADER_NORMALIZED:
                 continue
             out.append((plate, conf))
             variant_frags.append((plate, conf))
+            # Keep highest-conf Arabic original for each Latin plate
+            if plate_ar:
+                prev_conf = _last_arabic_map.get(plate + "__conf__", -1.0)
+                if conf > prev_conf:
+                    _last_arabic_map[plate] = plate_ar
+                    _last_arabic_map[plate + "__conf__"] = conf
 
         # ── Combine adjacent fragments (left→right AND right→left) ───────
         if len(variant_frags) >= 2:
@@ -328,6 +359,12 @@ def run_ocr(image: np.ndarray) -> List[Tuple[str, float]]:
                 combined = re.sub(r"[^A-Z0-9]", "", "".join(order).upper())
                 if combined and combined not in _EG_HEADER_NORMALIZED and 3 <= len(combined) <= 10:
                     out.append((combined, avg_conf))
+                    # Build Arabic combined from same fragment order
+                    if combined not in _last_arabic_map:
+                        frags_ar = [_last_arabic_map.get(p, "") for p in order]
+                        combined_ar = " ".join(a for a in frags_ar if a).strip()
+                        if combined_ar:
+                            _last_arabic_map[combined] = combined_ar
 
         # ── Pass 2: paragraph=True (EasyOCR merges nearby text regions) ──
         # Only run on first 3 variants per set — paragraph inference is expensive.
@@ -339,10 +376,13 @@ def run_ocr(image: np.ndarray) -> List[Tuple[str, float]]:
                     if not raw_stripped:
                         continue
                     plate = normalize_plate(text)
+                    plate_ar = normalize_plate_arabic(text)
                     conf = float(confidence)
                     if not plate or plate in _EG_HEADER_NORMALIZED:
                         continue
                     out.append((plate, conf))
+                    if plate_ar and plate not in _last_arabic_map:
+                        _last_arabic_map[plate] = plate_ar
             except Exception:
                 pass
 
@@ -355,10 +395,10 @@ def run_ocr(image: np.ndarray) -> List[Tuple[str, float]]:
 
 def pick_best(
     candidates: List[Tuple[str, float]],
-) -> Tuple[Optional[str], Optional[float], bool, List[Dict[str, Any]], str, Optional[str]]:
+) -> Tuple[Optional[str], Optional[float], bool, List[Dict[str, Any]], str, Optional[str], Optional[str]]:
     """Select the best OCR candidate using format priority + vote frequency + confidence."""
     if not candidates:
-        return None, None, True, [], "unknown", None
+        return None, None, True, [], "unknown", None, None
 
     # Count appearances across all variants/passes — high vote count = reliable reading
     vote_counts: Counter = Counter(plate for plate, _ in candidates)
@@ -407,8 +447,10 @@ def pick_best(
 
     review_required = (best_conf < effective_min) or (not valid_pattern)
     plate_formatted = format_eg_plate(best_plate, fmt)
+    # Retrieve Arabic original for the winning plate (best-confidence Arabic seen)
+    plate_arabic = _last_arabic_map.get(best_plate) or None
 
-    return best_plate, round(best_conf, 4), review_required, response_candidates, fmt, plate_formatted
+    return best_plate, round(best_conf, 4), review_required, response_candidates, fmt, plate_formatted, plate_arabic
 
 
 def get_face_cascade() -> cv2.CascadeClassifier:
@@ -542,7 +584,7 @@ def recognize(
     image = fetch_image(image_url)
 
     candidates = run_ocr(image)
-    plate_text, confidence, review_required, response_candidates, plate_format_type, plate_formatted = pick_best(candidates)
+    plate_text, confidence, review_required, response_candidates, plate_format_type, plate_formatted, plate_text_arabic = pick_best(candidates)
     face_name, face_confidence, face_review_required, face_error, face_detected = recognize_face(image, payload.wantedPersons)
     # Always attempt watchlist plate matching even if OCR is marked for review.
     # This allows exact wanted/stolen plate hits (e.g., short formats like BT2)
@@ -562,6 +604,7 @@ def recognize(
 
     return RecognizeResponse(
         plateText=plate_text,
+        plateTextArabic=plate_text_arabic,
         plateConfidence=confidence,
         plateFormatted=plate_formatted,
         plateFormatType=plate_format_type or "unknown",

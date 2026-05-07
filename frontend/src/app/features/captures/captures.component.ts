@@ -100,9 +100,18 @@ export class CapturesComponent implements OnInit {
 
   // ── Egyptian plate helpers ─────────────────────────────────────────────
 
+  /** Return the display plate text — Arabic if available, otherwise Latin */
+  displayPlate(capture: GateCapture): string {
+    const text = capture.plateTextArabic || capture.plateText;
+    if (!text) return '—';
+    return text;
+  }
+
   /** Return a spaced, formatted plate: ABG123 → ABG 123 / 123AB → 123 AB */
   formatPlate(plate: string | null | undefined): string {
     if (!plate) return '—';
+    // Arabic plate — already spaced naturally by normalize_plate_arabic
+    if (/[\u0600-\u06FF]/.test(plate)) return plate;
     if (/^[A-Z]{3}\d{3}$/.test(plate)) return `${plate.slice(0, 3)} ${plate.slice(3)}`;
     const old = plate.match(/^(\d{1,3})([A-Z]{1,3})$/);
     if (old) return `${old[1]} ${old[2]}`;

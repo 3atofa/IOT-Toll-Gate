@@ -31,6 +31,10 @@ module.exports = (sequelize) => {
         type: DataTypes.STRING(32),
         allowNull: true,
       },
+      plateTextArabic: {
+        type: DataTypes.STRING(64),
+        allowNull: true,
+      },
       plateConfidence: {
         type: DataTypes.FLOAT,
         allowNull: true,

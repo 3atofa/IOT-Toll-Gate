@@ -5,6 +5,7 @@ export interface GateCapture {
   cardUid: string | null;
   imagePath: string;
   plateText?: string | null;
+  plateTextArabic?: string | null;
   plateConfidence?: number | null;
   faceName?: string | null;
   faceConfidence?: number | null;

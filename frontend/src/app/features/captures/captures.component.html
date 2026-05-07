@@ -58,7 +58,11 @@
               <td><span class="font-semibold text-slate-900">{{ item.eventType }}</span></td>
               <td>
                 <div class="flex flex-col items-start gap-0.5">
-                  <span class="font-mono text-sm font-black text-slate-900 tracking-widest">{{ formatPlate(item.plateText) }}</span>
+                  <span class="text-sm font-black text-slate-900 tracking-widest"
+                        [class.font-mono]="!item.plateTextArabic"
+                        [dir]="item.plateTextArabic ? 'rtl' : 'ltr'">
+                    {{ displayPlate(item) }}
+                  </span>
                   <span *ngIf="item.plateText"
                         class="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
                     {{ plateFormatLabel(item.plateText) }}
@@ -154,9 +158,11 @@
         </div>
 
         <!-- Plate badge overlay (bottom-left) -->
-        <div *ngIf="selectedCapture.plateText"
-             class="absolute bottom-3 left-3 bg-black/70 text-white font-mono font-bold text-lg px-4 py-1.5 rounded-xl tracking-widest backdrop-blur-sm">
-          {{ formatPlate(selectedCapture.plateText) }}
+        <div *ngIf="selectedCapture.plateText || selectedCapture.plateTextArabic"
+             class="absolute bottom-3 left-3 bg-black/70 text-white font-bold text-lg px-4 py-1.5 rounded-xl tracking-widest backdrop-blur-sm"
+             [class.font-mono]="!selectedCapture.plateTextArabic"
+             [dir]="selectedCapture.plateTextArabic ? 'rtl' : 'ltr'">
+          {{ selectedCapture.plateTextArabic || formatPlate(selectedCapture.plateText) }}
         </div>
 
         <!-- Decision badge overlay (bottom-right) -->
@@ -222,9 +228,16 @@
                 </div>
               </div>
               <!-- Styled plate card -->
-              <div *ngIf="selectedCapture.plateText; else noPlate"
+              <div *ngIf="selectedCapture.plateText || selectedCapture.plateTextArabic; else noPlate"
                    class="rounded-lg border-2 border-slate-300 bg-white text-center py-1.5 px-2 shadow-sm">
-                <p class="font-mono font-black text-xl text-slate-900 tracking-[0.2em] leading-tight">
+                <p class="font-black text-xl text-slate-900 leading-tight"
+                   [class.font-mono]="!selectedCapture.plateTextArabic"
+                   [class.tracking-\[0\.2em\]]="!selectedCapture.plateTextArabic"
+                   [dir]="selectedCapture.plateTextArabic ? 'rtl' : 'ltr'">
+                  {{ selectedCapture.plateTextArabic || formatPlate(selectedCapture.plateText) }}
+                </p>
+                <p *ngIf="selectedCapture.plateTextArabic && selectedCapture.plateText"
+                   class="text-[9px] text-slate-400 font-mono font-semibold tracking-widest mt-0.5">
                   {{ formatPlate(selectedCapture.plateText) }}
                 </p>
                 <p class="text-[8px] text-slate-400 font-semibold uppercase tracking-widest">Arab Rep. of Egypt</p>

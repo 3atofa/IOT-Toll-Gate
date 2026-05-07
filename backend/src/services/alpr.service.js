@@ -194,6 +194,7 @@ const processCapture = async (captureId) => {
       stolenCars: watchlists.stolenCars,
     });
     const plateText = normalizePlate(payload.plateText || payload.plate || '');
+    const plateTextArabic = payload.plateTextArabic || null;
     const confidenceRaw = payload.plateConfidence ?? payload.confidence;
     const confidence = confidenceRaw == null ? null : Number(confidenceRaw);
     const faceName = payload.faceName || payload.faceLabel || null;
@@ -209,6 +210,7 @@ const processCapture = async (captureId) => {
 
     await capture.update({
       plateText: plateText || null,
+      plateTextArabic: plateTextArabic || null,
       plateConfidence: Number.isFinite(confidence) ? confidence : null,
       faceName,
       faceConfidence: Number.isFinite(faceConfidence) ? faceConfidence : null,
