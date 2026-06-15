@@ -33,11 +33,26 @@ if (localPath || (deployPath && !host && !user)) {
     mkdirSync(targetPath, { recursive: true });
     cpSync(distDir, targetPath, { recursive: true });
     log('Local deployment completed successfully.');
-    process.exit(0);
   } catch (error) {
     console.error('[deploy] Local deployment failed.');
     process.exit(1);
   }
+
+  // Reload nginx so the new files are served immediately
+  try {
+    execSync('nginx -s reload', { stdio: 'inherit', shell: true });
+    log('nginx reloaded.');
+  } catch {
+    // nginx -s reload requires root; try sudo silently
+    try {
+      execSync('sudo nginx -s reload', { stdio: 'inherit', shell: true });
+      log('nginx reloaded (via sudo).');
+    } catch {
+      log('Could not reload nginx automatically. Run: sudo nginx -s reload');
+    }
+  }
+
+  process.exit(0);
 }
 
 if (!host || !user || !deployPath) {
@@ -53,7 +68,7 @@ if (sshKey) {
 }
 sshBase.push(`${user}@${host}`);
 
-const remoteCommand = `mkdir -p '${deployPath}' && find '${deployPath}' -mindepth 1 -maxdepth 1 -exec rm -rf {} + && tar -xf - -C '${deployPath}'`;
+const remoteCommand = `mkdir -p '${deployPath}' && find '${deployPath}' -mindepth 1 -maxdepth 1 -exec rm -rf {} + && tar -xf - -C '${deployPath}' && (nginx -s reload 2>/dev/null || sudo nginx -s reload 2>/dev/null || echo '[deploy] nginx reload skipped - run manually')`;
 const sshCommand = sshBase.map((part) => `"${part.replace(/"/g, '\\"')}"`).join(' ');
 const tarCommand = `tar -C "${distDir}" -cf - . | ${sshCommand} "${remoteCommand.replace(/"/g, '\\"')}"`;
 

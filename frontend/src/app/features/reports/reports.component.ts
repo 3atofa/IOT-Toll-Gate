@@ -270,16 +270,16 @@ export class ReportsComponent implements OnInit {
     return Math.round((resolved / alerts.length) * 100);
   }
 
-  decisionClass(decision: string): string {
+  decisionClass(decision: string | undefined): string {
     const map: Record<string, string> = {
       block:  'tg-badge-red',
       allow:  'tg-badge-green',
       review: 'tg-badge-amber',
     };
-    return map[decision] ?? 'tg-badge-blue';
+    return map[decision ?? ''] ?? 'tg-badge-blue';
   }
 
-  alertTypeLabel(alertType: string): string {
+  alertTypeLabel(alertType: string | undefined): string {
     const map: Record<string, string> = {
       wanted_person: 'Wanted Person',
       stolen_car:    'Stolen Car',
@@ -287,14 +287,14 @@ export class ReportsComponent implements OnInit {
       overstay:      'Overstay',
       blacklist:     'Blacklist',
     };
-    return map[alertType] ?? alertType?.replace(/_/g, ' ') ?? 'Unknown';
+    return map[alertType ?? ''] ?? ((alertType ?? '').replace(/_/g, ' ') || 'Unknown');
   }
 
-  alertTypeClass(alertType: string): string {
+  alertTypeClass(alertType: string | undefined): string {
     const danger = ['wanted_person', 'stolen_car', 'blacklist'];
     const warn   = ['suspicious', 'overstay'];
-    if (danger.includes(alertType)) return 'tg-badge-red';
-    if (warn.includes(alertType))   return 'tg-badge-amber';
+    if (danger.includes(alertType ?? '')) return 'tg-badge-red';
+    if (warn.includes(alertType ?? ''))   return 'tg-badge-amber';
     return 'tg-badge-blue';
   }
 
@@ -313,14 +313,14 @@ export class ReportsComponent implements OnInit {
     return Math.round(((this.alpr?.withFace ?? 0) / this.alprTotal) * 100);
   }
 
-  ocrClass(status: string): string {
+  ocrClass(status: string | undefined): string {
     const map: Record<string, string> = {
       done:       'tg-badge-green',
       failed:     'tg-badge-red',
       processing: 'tg-badge-blue',
       pending:    'tg-badge-amber',
     };
-    return map[status] ?? 'tg-badge-blue';
+    return map[status ?? ''] ?? 'tg-badge-blue';
   }
 
   // Traffic helpers
