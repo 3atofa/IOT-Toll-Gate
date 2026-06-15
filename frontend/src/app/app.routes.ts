@@ -11,6 +11,9 @@ import { WantedPersonsComponent } from './features/wanted-persons/wanted-persons
 import { ReportsComponent } from './features/reports/reports.component';
 import { LoginComponent } from './features/auth/login.component';
 import { UsersComponent } from './features/users/users.component';
+import { IncidentsComponent } from './features/incidents/incidents.component';
+import { TechniciansComponent } from './features/technicians/technicians.component';
+import { SearchComponent } from './features/search/search.component';
 import { authGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
@@ -29,6 +32,9 @@ export const routes: Routes = [
       { path: 'wanted-cars', component: WantedCarsComponent },
       { path: 'captures', component: CapturesComponent },
       { path: 'reports', component: ReportsComponent },
+      { path: 'incidents', component: IncidentsComponent },
+      { path: 'technicians', component: TechniciansComponent },
+      { path: 'search', component: SearchComponent },
       { path: 'users', component: UsersComponent },
       { path: 'settings', component: DashboardComponent }, // Placeholder
     ],

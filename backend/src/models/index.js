@@ -7,20 +7,27 @@ const User = require('./user.model');
 const WantedPerson = require('./wanted-person.model');
 const StolenCar = require('./stolen-car.model');
 const SecurityAlert = require('./security-alert.model');
+const Technician = require('./technician.model');
+const Incident = require('./incident.model');
+const TechnicianTask = require('./technician-task.model');
 
 const GateCapture = createGateCapture(sequelize);
-const createWantedPerson = WantedPerson;
-const createStolenCar = StolenCar;
-const createSecurityAlert = SecurityAlert;
+const WantedPersonModel = WantedPerson(sequelize);
+const StolenCarModel = StolenCar(sequelize);
+const SecurityAlertModel = SecurityAlert(sequelize);
 
-const WantedPersonModel = createWantedPerson(sequelize);
-const StolenCarModel = createStolenCar(sequelize);
-const SecurityAlertModel = createSecurityAlert(sequelize);
+// ─── Associations ──────────────────────────────────────────────────
+// Incident ↔ Technician (assigned tech)
+Incident.belongsTo(Technician, { foreignKey: 'assignedTechnicianId', as: 'assignedTechnician', constraints: false });
+Technician.hasMany(Incident, { foreignKey: 'assignedTechnicianId', as: 'assignedIncidents', constraints: false });
 
-// Define associations (without constraints to avoid schema conflicts)
-// GateCapture uses gateId as a string identifier, not a foreign key
-// Vehicle.hasMany(GateCapture, { foreignKey: 'vehicleId', onDelete: 'SET NULL' });
-// GateCapture.belongsTo(Vehicle, { foreignKey: 'vehicleId' });
+// TechnicianTask ↔ Incident
+TechnicianTask.belongsTo(Incident, { foreignKey: 'incidentId', as: 'incident', constraints: false });
+Incident.hasMany(TechnicianTask, { foreignKey: 'incidentId', as: 'tasks', constraints: false });
+
+// TechnicianTask ↔ Technician
+TechnicianTask.belongsTo(Technician, { foreignKey: 'technicianId', as: 'technician', constraints: false });
+Technician.hasMany(TechnicianTask, { foreignKey: 'technicianId', as: 'tasks', constraints: false });
 
 module.exports = {
   sequelize,
@@ -32,4 +39,7 @@ module.exports = {
   WantedPerson: WantedPersonModel,
   StolenCar: StolenCarModel,
   SecurityAlert: SecurityAlertModel,
+  Technician,
+  Incident,
+  TechnicianTask,
 };

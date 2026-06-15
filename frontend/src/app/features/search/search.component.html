@@ -1,0 +1,176 @@
+<section class="min-h-full bg-slate-100 p-3 sm:p-5 md:p-8 page-enter">
+  <div class="mx-auto max-w-4xl space-y-5">
+
+    <!-- Header + Search Box -->
+    <div class="tg-card p-6">
+      <div class="text-center mb-5">
+        <h1 class="text-2xl font-black text-slate-900 flex items-center justify-center gap-2">
+          <i class="fa-solid fa-magnifying-glass text-blue-500"></i>
+          Global Search
+        </h1>
+        <p class="text-sm text-slate-500 mt-1">Search across captures, vehicles, incidents, and technicians</p>
+      </div>
+
+      <!-- Search input -->
+      <div class="relative">
+        <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+        <input
+          [(ngModel)]="query"
+          (ngModelChange)="onInput()"
+          (keydown.enter)="doSearch()"
+          placeholder="Type at least 2 characters…"
+          class="tg-input w-full pl-10 pr-12 py-3 text-base"
+          autofocus
+        />
+        <button *ngIf="query" (click)="clear()"
+          class="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+
+      <!-- Type toggles -->
+      <div class="flex flex-wrap gap-2 mt-3 justify-center">
+        <button (click)="activeTypes.captures = !activeTypes.captures; doSearch()"
+          class="px-3 py-1.5 rounded-full text-xs font-semibold transition-colors"
+          [class]="activeTypes.captures ? 'bg-blue-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'">
+          <i class="fa-solid fa-camera text-[10px] mr-1"></i> Captures
+        </button>
+        <button (click)="activeTypes.vehicles = !activeTypes.vehicles; doSearch()"
+          class="px-3 py-1.5 rounded-full text-xs font-semibold transition-colors"
+          [class]="activeTypes.vehicles ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'">
+          <i class="fa-solid fa-car text-[10px] mr-1"></i> Vehicles
+        </button>
+        <button (click)="activeTypes.incidents = !activeTypes.incidents; doSearch()"
+          class="px-3 py-1.5 rounded-full text-xs font-semibold transition-colors"
+          [class]="activeTypes.incidents ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'">
+          <i class="fa-solid fa-triangle-exclamation text-[10px] mr-1"></i> Incidents
+        </button>
+        <button (click)="activeTypes.technicians = !activeTypes.technicians; doSearch()"
+          class="px-3 py-1.5 rounded-full text-xs font-semibold transition-colors"
+          [class]="activeTypes.technicians ? 'bg-purple-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'">
+          <i class="fa-solid fa-helmet-safety text-[10px] mr-1"></i> Technicians
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading spinner -->
+    <div *ngIf="loading" class="flex justify-center py-10">
+      <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+    </div>
+
+    <!-- No results -->
+    <div *ngIf="!loading && searched && totalResults === 0" class="tg-card p-10 text-center text-slate-400">
+      <i class="fa-solid fa-face-frown text-4xl text-slate-200 mb-3 block"></i>
+      No results found for "<strong class="text-slate-600">{{ results?.query }}</strong>"
+    </div>
+
+    <!-- Results summary -->
+    <div *ngIf="!loading && results && totalResults > 0" class="text-sm text-slate-500 px-1">
+      Found <strong class="text-slate-700">{{ totalResults }}</strong> result{{ totalResults !== 1 ? 's' : '' }}
+      for "<strong class="text-slate-700">{{ results.query }}</strong>"
+    </div>
+
+    <!-- ── Captures ── -->
+    <div *ngIf="results?.results?.captures?.length" class="tg-card overflow-hidden">
+      <div class="flex items-center gap-2 px-5 py-3 border-b border-slate-100 bg-blue-50">
+        <i class="fa-solid fa-camera text-blue-500 text-sm"></i>
+        <span class="text-sm font-bold text-blue-700">Captures</span>
+        <span class="ml-auto text-xs text-blue-500">{{ results!.results.captures!.length }} result{{ results!.results.captures!.length !== 1 ? 's' : '' }}</span>
+      </div>
+      <div class="divide-y divide-slate-100">
+        <div *ngFor="let c of results!.results.captures" class="flex items-center gap-4 px-5 py-3 hover:bg-slate-50">
+          <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+            <i class="fa-solid fa-camera text-blue-500 text-xs"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold text-slate-800">{{ c.plateText || c.faceName || 'No plate' }}</p>
+            <p class="text-xs text-slate-400">Gate: {{ c.gateId }} · {{ c.eventType }}</p>
+          </div>
+          <div class="text-right flex-shrink-0">
+            <span class="text-xs text-slate-400">{{ c.capturedAt | date:'dd MMM, HH:mm' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Vehicles ── -->
+    <div *ngIf="results?.results?.vehicles?.length" class="tg-card overflow-hidden">
+      <div class="flex items-center gap-2 px-5 py-3 border-b border-slate-100 bg-emerald-50">
+        <i class="fa-solid fa-car text-emerald-600 text-sm"></i>
+        <span class="text-sm font-bold text-emerald-700">Vehicles</span>
+        <span class="ml-auto text-xs text-emerald-500">{{ results!.results.vehicles!.length }} result{{ results!.results.vehicles!.length !== 1 ? 's' : '' }}</span>
+      </div>
+      <div class="divide-y divide-slate-100">
+        <div *ngFor="let v of results!.results.vehicles" class="flex items-center gap-4 px-5 py-3 hover:bg-slate-50">
+          <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+            <i class="fa-solid fa-car text-emerald-600 text-xs"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold text-slate-800 font-mono">{{ v.plateNumber }}</p>
+            <p class="text-xs text-slate-400">{{ v.ownerName || '—' }} · {{ v.vehicleType | titlecase }}</p>
+          </div>
+          <span class="text-xs px-2 py-0.5 rounded-full {{ v.isAllowed ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600' }}">
+            {{ v.isAllowed ? 'Allowed' : 'Denied' }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Incidents ── -->
+    <div *ngIf="results?.results?.incidents?.length" class="tg-card overflow-hidden">
+      <div class="flex items-center gap-2 px-5 py-3 border-b border-slate-100 bg-amber-50">
+        <i class="fa-solid fa-triangle-exclamation text-amber-600 text-sm"></i>
+        <span class="text-sm font-bold text-amber-700">Incidents</span>
+        <span class="ml-auto text-xs text-amber-500">{{ results!.results.incidents!.length }} result{{ results!.results.incidents!.length !== 1 ? 's' : '' }}</span>
+      </div>
+      <div class="divide-y divide-slate-100">
+        <div *ngFor="let i of results!.results.incidents" class="flex items-center gap-4 px-5 py-3 hover:bg-slate-50">
+          <div class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+            <i class="fa-solid fa-triangle-exclamation text-amber-600 text-xs"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold text-slate-800">{{ i.title }}</p>
+            <p class="text-xs text-slate-400">Gate: {{ i.gateId }} · {{ i.reportedAt | date:'dd MMM yyyy' }}</p>
+          </div>
+          <div class="flex gap-1.5 flex-shrink-0">
+            <span class="text-[11px] px-2 py-0.5 rounded-full font-semibold {{ severityClass(i.severity) }}">{{ i.severity }}</span>
+            <span class="text-[11px] px-2 py-0.5 rounded-full font-semibold {{ statusClass(i.status) }}">{{ i.status }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Technicians ── -->
+    <div *ngIf="results?.results?.technicians?.length" class="tg-card overflow-hidden">
+      <div class="flex items-center gap-2 px-5 py-3 border-b border-slate-100 bg-purple-50">
+        <i class="fa-solid fa-helmet-safety text-purple-600 text-sm"></i>
+        <span class="text-sm font-bold text-purple-700">Technicians</span>
+        <span class="ml-auto text-xs text-purple-500">{{ results!.results.technicians!.length }} result{{ results!.results.technicians!.length !== 1 ? 's' : '' }}</span>
+      </div>
+      <div class="divide-y divide-slate-100">
+        <div *ngFor="let t of results!.results.technicians" class="flex items-center gap-4 px-5 py-3 hover:bg-slate-50">
+          <div class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0 font-bold text-purple-700 text-sm">
+            {{ t.fullName.charAt(0) }}
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold text-slate-800">{{ t.fullName }}</p>
+            <p class="text-xs text-slate-400">{{ t.specialization | titlecase }}
+              <span *ngIf="t.phone"> · {{ t.phone }}</span>
+            </p>
+          </div>
+          <div class="flex gap-1.5 flex-shrink-0 items-center">
+            <span class="text-[11px] px-2 py-0.5 rounded-full font-semibold {{ statusClass(t.status) }}">{{ t.status }}</span>
+            <span class="text-xs font-mono text-slate-600 font-semibold">EGP {{ t.monthlySalary | number:'1.0-0' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Prompt to search -->
+    <div *ngIf="!searched && !loading" class="tg-card p-10 text-center text-slate-300">
+      <i class="fa-solid fa-magnifying-glass text-5xl mb-3 block"></i>
+      <p class="text-sm">Start typing to search across the system</p>
+    </div>
+
+  </div>
+</section>

@@ -58,6 +58,12 @@ const Gate = sequelize.define('Gate', {
     defaultValue: 'none',
     comment: 'Command queued by web operator, consumed and cleared by ESP32 on next poll',
   },
+  tollFeePerPass: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false,
+    defaultValue: 5.00,
+    comment: 'Fee charged per access_granted event at this gate',
+  },
 }, {
   timestamps: true,
   tableName: 'gates',

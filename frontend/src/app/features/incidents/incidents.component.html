@@ -1,0 +1,403 @@
+<section class="min-h-full bg-slate-100 p-3 sm:p-5 md:p-8 page-enter">
+  <div class="mx-auto max-w-7xl space-y-4">
+
+    <!-- Header -->
+    <div class="tg-card p-4 sm:p-6">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p class="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">Operations</p>
+          <h1 class="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
+            <i class="fa-solid fa-triangle-exclamation text-amber-500"></i>
+            Gate Incidents
+          </h1>
+          <p class="text-sm text-slate-500 mt-0.5">Record gate crashes, track repairs, and assign technicians</p>
+        </div>
+        <div class="flex gap-2">
+          <button (click)="load()" class="tg-btn tg-btn-secondary text-sm">
+            <i class="fa-solid fa-arrows-rotate text-xs" [class.animate-spin]="loading"></i>
+            <span>Refresh</span>
+          </button>
+          <button (click)="openCreate()" class="tg-btn tg-btn-primary text-sm">
+            <i class="fa-solid fa-plus text-xs"></i>
+            <span>Report Incident</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats row -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div class="tg-card p-4 text-center">
+        <p class="text-2xl font-black text-slate-800">{{ incidents.length }}</p>
+        <p class="text-xs text-slate-500 mt-0.5">Total</p>
+      </div>
+      <div class="tg-card p-4 text-center">
+        <p class="text-2xl font-black text-red-600">{{ openCount }}</p>
+        <p class="text-xs text-slate-500 mt-0.5">Open</p>
+      </div>
+      <div class="tg-card p-4 text-center">
+        <p class="text-2xl font-black text-amber-600">{{ inProgressCount }}</p>
+        <p class="text-xs text-slate-500 mt-0.5">In Progress</p>
+      </div>
+      <div class="tg-card p-4 text-center">
+        <p class="text-2xl font-black text-emerald-600">{{ resolvedCount }}</p>
+        <p class="text-xs text-slate-500 mt-0.5">Resolved</p>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="tg-card p-4">
+      <div class="flex flex-wrap gap-3 items-end">
+        <div class="flex-1 min-w-[180px]">
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Search</label>
+          <input [(ngModel)]="filterSearch" (ngModelChange)="load()"
+            placeholder="Search title, gate, reporter…"
+            class="tg-input w-full text-sm" />
+        </div>
+        <div class="min-w-[130px]">
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Status</label>
+          <select [(ngModel)]="filterStatus" (ngModelChange)="load()" class="tg-input text-sm">
+            <option value="">All Statuses</option>
+            <option value="open">Open</option>
+            <option value="in_progress">In Progress</option>
+            <option value="resolved">Resolved</option>
+          </select>
+        </div>
+        <div class="min-w-[130px]">
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Severity</label>
+          <select [(ngModel)]="filterSeverity" (ngModelChange)="load()" class="tg-input text-sm">
+            <option value="">All Severities</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="critical">Critical</option>
+          </select>
+        </div>
+        <button (click)="filterStatus=''; filterSeverity=''; filterSearch=''; load()" class="tg-btn tg-btn-ghost text-sm">
+          <i class="fa-solid fa-xmark text-xs"></i> Clear
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading skeleton -->
+    <div *ngIf="loading" class="tg-card p-6 space-y-3">
+      <div *ngFor="let _ of [1,2,3,4,5]" class="flex items-center gap-4">
+        <div class="skeleton h-4 w-24"></div>
+        <div class="skeleton h-4 flex-1"></div>
+        <div class="skeleton h-6 w-16 rounded-full"></div>
+        <div class="skeleton h-6 w-16 rounded-full"></div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div *ngIf="!loading" class="tg-card overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="tg-table min-w-[900px]">
+          <thead>
+            <tr>
+              <th>Gate</th>
+              <th>Title</th>
+              <th>Severity</th>
+              <th>Status</th>
+              <th>Assigned To</th>
+              <th>Repair Cost</th>
+              <th>Reported At</th>
+              <th class="text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let inc of incidents" class="hover:bg-slate-50 transition-colors">
+              <td><span class="font-mono text-xs bg-slate-100 px-2 py-0.5 rounded">{{ inc.gateId }}</span></td>
+              <td>
+                <button (click)="openDetail(inc.id)" class="text-left font-semibold text-slate-800 hover:text-blue-600 transition-colors">
+                  {{ inc.title }}
+                </button>
+                <p *ngIf="inc.description" class="text-xs text-slate-400 truncate max-w-[220px]">{{ inc.description }}</p>
+              </td>
+              <td>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wide {{ severityClass(inc.severity) }}">
+                  {{ inc.severity }}
+                </span>
+              </td>
+              <td>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold {{ statusClass(inc.status) }}">
+                  {{ inc.status | titlecase }}
+                </span>
+              </td>
+              <td class="text-sm text-slate-600">{{ techName(inc.assignedTechnicianId) }}</td>
+              <td class="text-sm font-mono">
+                <span *ngIf="inc.repairCost && inc.repairCost > 0" class="text-red-600">EGP {{ inc.repairCost | number:'1.2-2' }}</span>
+                <span *ngIf="!inc.repairCost || inc.repairCost === 0" class="text-slate-400">—</span>
+              </td>
+              <td class="text-xs text-slate-500">{{ inc.reportedAt | date:'dd MMM yyyy, HH:mm' }}</td>
+              <td>
+                <div class="flex justify-end gap-1">
+                  <button (click)="openDetail(inc.id)" title="View Details"
+                    class="p-1.5 rounded hover:bg-blue-50 text-blue-500 hover:text-blue-700 transition-colors">
+                    <i class="fa-solid fa-eye text-xs"></i>
+                  </button>
+                  <button *ngIf="inc.status !== 'resolved'" (click)="openAssign(inc.id)" title="Assign Technician"
+                    class="p-1.5 rounded hover:bg-amber-50 text-amber-500 hover:text-amber-700 transition-colors">
+                    <i class="fa-solid fa-user-gear text-xs"></i>
+                  </button>
+                  <button *ngIf="inc.status !== 'resolved'" (click)="openResolve(inc.id, inc.repairCost || 0)" title="Mark Resolved"
+                    class="p-1.5 rounded hover:bg-emerald-50 text-emerald-500 hover:text-emerald-700 transition-colors">
+                    <i class="fa-solid fa-check text-xs"></i>
+                  </button>
+                  <button (click)="openEdit(inc)" title="Edit"
+                    class="p-1.5 rounded hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors">
+                    <i class="fa-solid fa-pen text-xs"></i>
+                  </button>
+                  <button (click)="deleteIncident(inc.id)" title="Delete"
+                    class="p-1.5 rounded hover:bg-red-50 text-red-400 hover:text-red-600 transition-colors">
+                    <i class="fa-solid fa-trash text-xs"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="incidents.length === 0">
+              <td colspan="8" class="text-center py-12 text-slate-400">
+                <i class="fa-solid fa-circle-check text-3xl text-emerald-300 mb-2 block"></i>
+                No incidents found
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════ CREATE / EDIT MODAL ═══════════════════ -->
+<div *ngIf="showFormModal" class="fixed inset-0 z-50 flex items-center justify-center p-4"
+  (click)="showFormModal = false">
+  <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+  <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 z-10" (click)="$event.stopPropagation()">
+    <div class="flex items-center justify-between mb-5">
+      <h2 class="text-lg font-black text-slate-900">{{ editingId ? 'Edit Incident' : 'Report New Incident' }}</h2>
+      <button (click)="showFormModal = false" class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div class="space-y-3">
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Title *</label>
+        <input [(ngModel)]="formData.title" class="tg-input w-full" placeholder="e.g. Servo motor stuck open" />
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Gate ID *</label>
+          <input [(ngModel)]="formData.gateId" class="tg-input w-full" placeholder="gate-1" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Reported By</label>
+          <input [(ngModel)]="formData.reportedBy" class="tg-input w-full" placeholder="Name or ID" />
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Severity</label>
+          <select [(ngModel)]="formData.severity" class="tg-input w-full">
+            <option *ngFor="let s of severities" [value]="s">{{ s | titlecase }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Status</label>
+          <select [(ngModel)]="formData.status" class="tg-input w-full">
+            <option *ngFor="let s of statuses" [value]="s">{{ s | titlecase }}</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Description</label>
+        <textarea [(ngModel)]="formData.description" class="tg-input w-full" rows="3"
+          placeholder="Describe what happened in detail…"></textarea>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Repair Cost (EGP)</label>
+          <input [(ngModel)]="formData.repairCost" type="number" min="0" step="0.01" class="tg-input w-full" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Assign Technician</label>
+          <select [(ngModel)]="formData.assignedTechnicianId" class="tg-input w-full">
+            <option value="">— None —</option>
+            <option *ngFor="let t of technicians" [value]="t.id">{{ t.fullName }}</option>
+          </select>
+        </div>
+      </div>
+      <div *ngIf="formData.status === 'resolved'">
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Resolution Notes</label>
+        <textarea [(ngModel)]="formData.resolutionNotes" class="tg-input w-full" rows="2"
+          placeholder="What was done to fix it?"></textarea>
+      </div>
+    </div>
+    <div class="flex gap-3 mt-5 justify-end">
+      <button (click)="showFormModal = false" class="tg-btn tg-btn-ghost">Cancel</button>
+      <button (click)="saveForm()" class="tg-btn tg-btn-primary">
+        <i class="fa-solid fa-floppy-disk text-xs"></i>
+        {{ editingId ? 'Update' : 'Create' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ DETAIL MODAL ═══════════════════ -->
+<div *ngIf="showDetailModal && detailIncident" class="fixed inset-0 z-50 flex items-center justify-center p-4"
+  (click)="showDetailModal = false">
+  <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+  <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-6 z-10 max-h-[90vh] overflow-y-auto"
+    (click)="$event.stopPropagation()">
+    <div class="flex items-start justify-between mb-5">
+      <div>
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold uppercase {{ severityClass(detailIncident.severity) }} mb-1">
+          {{ detailIncident.severity }}
+        </span>
+        <h2 class="text-xl font-black text-slate-900">{{ detailIncident.title }}</h2>
+        <p class="text-sm text-slate-500">Gate: <strong>{{ detailIncident.gateId }}</strong> · Reported by {{ detailIncident.reportedBy || 'Unknown' }}</p>
+      </div>
+      <button (click)="showDetailModal = false" class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 flex-shrink-0 ml-4">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <!-- Status + times -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+      <div class="bg-slate-50 rounded-xl p-3">
+        <p class="text-xs text-slate-500">Status</p>
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold mt-1 {{ statusClass(detailIncident.status) }}">
+          {{ detailIncident.status | titlecase }}
+        </span>
+      </div>
+      <div class="bg-slate-50 rounded-xl p-3">
+        <p class="text-xs text-slate-500">Reported</p>
+        <p class="text-sm font-semibold text-slate-800 mt-0.5">{{ detailIncident.reportedAt | date:'dd MMM yyyy' }}</p>
+        <p class="text-xs text-slate-500">{{ detailIncident.reportedAt | date:'HH:mm' }}</p>
+      </div>
+      <div class="bg-slate-50 rounded-xl p-3">
+        <p class="text-xs text-slate-500">Repair Cost</p>
+        <p class="text-sm font-bold text-red-600 mt-0.5">
+          {{ detailIncident.repairCost && detailIncident.repairCost > 0 ? 'EGP ' + (detailIncident.repairCost | number:'1.2-2') : '—' }}
+        </p>
+      </div>
+    </div>
+
+    <!-- Description -->
+    <div *ngIf="detailIncident.description" class="bg-amber-50 rounded-xl p-4 mb-4">
+      <p class="text-xs font-bold text-amber-700 mb-1">INCIDENT DESCRIPTION</p>
+      <p class="text-sm text-slate-700">{{ detailIncident.description }}</p>
+    </div>
+
+    <!-- Resolution notes -->
+    <div *ngIf="detailIncident.resolutionNotes" class="bg-emerald-50 rounded-xl p-4 mb-4">
+      <p class="text-xs font-bold text-emerald-700 mb-1">RESOLUTION NOTES</p>
+      <p class="text-sm text-slate-700">{{ detailIncident.resolutionNotes }}</p>
+    </div>
+
+    <!-- Assigned technician -->
+    <div *ngIf="detailIncident.assignedTechnician" class="border border-slate-200 rounded-xl p-4 mb-4">
+      <p class="text-xs font-bold text-slate-500 mb-2">ASSIGNED TECHNICIAN</p>
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm flex-shrink-0">
+          {{ detailIncident.assignedTechnician.fullName.charAt(0) }}
+        </div>
+        <div>
+          <p class="font-semibold text-slate-800">{{ detailIncident.assignedTechnician.fullName }}</p>
+          <p class="text-xs text-slate-500">{{ detailIncident.assignedTechnician.specialization | titlecase }}
+            <span *ngIf="detailIncident.assignedTechnician.phone"> · {{ detailIncident.assignedTechnician.phone }}</span>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tasks -->
+    <div *ngIf="detailIncident.tasks && detailIncident.tasks.length > 0">
+      <p class="text-xs font-bold text-slate-500 mb-2">TASKS ({{ detailIncident.tasks.length }})</p>
+      <div class="space-y-2">
+        <div *ngFor="let task of detailIncident.tasks"
+          class="flex items-center justify-between border border-slate-200 rounded-xl px-4 py-3">
+          <div>
+            <p class="text-sm font-semibold text-slate-800">{{ task.technician?.fullName || '—' }}</p>
+            <p class="text-xs text-slate-500">{{ task.technician?.specialization | titlecase }}</p>
+          </div>
+          <div class="text-right">
+            <span class="inline-block px-2 py-0.5 rounded-full text-[11px] font-semibold"
+              [ngClass]="task.status === 'completed' ? 'bg-emerald-100 text-emerald-700' : task.status === 'in_progress' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'">
+              {{ task.status | titlecase }}
+            </span>
+            <p class="text-[10px] text-slate-400 mt-0.5">{{ task.assignedAt | date:'dd MMM, HH:mm' }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex gap-3 mt-5 justify-end">
+      <button (click)="showDetailModal = false" class="tg-btn tg-btn-ghost">Close</button>
+      <button *ngIf="detailIncident.status !== 'resolved'" (click)="showDetailModal=false; openAssign(detailIncident.id)" class="tg-btn tg-btn-secondary text-sm">
+        <i class="fa-solid fa-user-gear text-xs"></i> Assign
+      </button>
+      <button *ngIf="detailIncident.status !== 'resolved'" (click)="showDetailModal=false; openResolve(detailIncident.id, detailIncident.repairCost || 0)" class="tg-btn tg-btn-primary text-sm">
+        <i class="fa-solid fa-check text-xs"></i> Resolve
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ ASSIGN MODAL ═══════════════════ -->
+<div *ngIf="showAssignModal" class="fixed inset-0 z-50 flex items-center justify-center p-4"
+  (click)="showAssignModal = false">
+  <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+  <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 z-10" (click)="$event.stopPropagation()">
+    <h2 class="text-lg font-black text-slate-900 mb-4">Assign Technician</h2>
+    <div class="space-y-3">
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Technician *</label>
+        <select [(ngModel)]="assignTechId" class="tg-input w-full">
+          <option value="">— Select technician —</option>
+          <option *ngFor="let t of technicians" [value]="t.id">
+            {{ t.fullName }} ({{ t.specialization | titlecase }})
+          </option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Notes (optional)</label>
+        <textarea [(ngModel)]="assignNotes" class="tg-input w-full" rows="2" placeholder="Task instructions…"></textarea>
+      </div>
+    </div>
+    <div class="flex gap-3 mt-5 justify-end">
+      <button (click)="showAssignModal = false" class="tg-btn tg-btn-ghost">Cancel</button>
+      <button (click)="doAssign()" [disabled]="!assignTechId || assignLoading" class="tg-btn tg-btn-primary">
+        <i class="fa-solid fa-user-check text-xs"></i>
+        {{ assignLoading ? 'Assigning…' : 'Assign' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ RESOLVE MODAL ═══════════════════ -->
+<div *ngIf="showResolveModal" class="fixed inset-0 z-50 flex items-center justify-center p-4"
+  (click)="showResolveModal = false">
+  <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+  <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 z-10" (click)="$event.stopPropagation()">
+    <h2 class="text-lg font-black text-slate-900 mb-1">Resolve Incident</h2>
+    <p class="text-sm text-slate-500 mb-4">Describe what was done to fix the issue and record any costs.</p>
+    <div class="space-y-3">
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Resolution Notes</label>
+        <textarea [(ngModel)]="resolveNotes" class="tg-input w-full" rows="3"
+          placeholder="What was done to fix it? Parts replaced, steps taken…"></textarea>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Repair Cost (EGP)</label>
+        <input [(ngModel)]="resolveRepairCost" type="number" min="0" step="0.01" class="tg-input w-full" />
+      </div>
+    </div>
+    <div class="flex gap-3 mt-5 justify-end">
+      <button (click)="showResolveModal = false" class="tg-btn tg-btn-ghost">Cancel</button>
+      <button (click)="doResolve()" class="tg-btn tg-btn-primary bg-emerald-600 hover:bg-emerald-700">
+        <i class="fa-solid fa-circle-check text-xs"></i> Mark Resolved
+      </button>
+    </div>
+  </div>
+</div>

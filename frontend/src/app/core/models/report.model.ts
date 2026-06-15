@@ -59,3 +59,48 @@ export interface AlprReport {
   confidenceBuckets: { low: number; medium: number; high: number; veryHigh: number; };
   recentPlates:      Partial<GateCapture>[];
 }
+
+// ─── Financial Report ─────────────────────────────────────────────
+export interface GateRevenue {
+  gateId: string;
+  count: number;
+  feePerPass: number;
+  revenue: number;
+}
+
+export interface DailyRevenue {
+  day: string;
+  gateId: string;
+  count: number;
+  revenue: number;
+}
+
+export interface FinancialReport {
+  dateRange: { startDate: string | null; endDate: string | null; months: number; };
+  revenue: {
+    total: number;
+    byGate: GateRevenue[];
+    dailyTrend: DailyRevenue[];
+  };
+  expenses: {
+    repairTotal: number;
+    incidentCount: number;
+    resolvedCount: number;
+    staffMonthlyCost: number;
+    staffPeriodCost: number;
+    activeTechCount: number;
+    total: number;
+  };
+  netPnL: number;
+}
+
+// ─── Incidents Report ─────────────────────────────────────────────
+export interface IncidentsReport {
+  dateRange: { startDate: string | null; endDate: string | null; };
+  totals: { total: number; open: number; inProgress: number; resolved: number; };
+  totalRepairCost: number;
+  avgResolutionHours: number | null;
+  bySeverity: { severity: string; count: string }[];
+  byGate: { gateId: string; count: string }[];
+  recentIncidents: any[];
+}

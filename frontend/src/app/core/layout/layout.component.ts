@@ -101,6 +101,24 @@ import { SecurityAlert } from '../models/security.model';
             <span class="nav-indicator"></span>
           </a>
 
+          <!-- Operations section -->
+          <p class="px-3 pt-4 pb-2 text-[10px] font-bold uppercase tracking-[0.18em]" style="color: rgba(148,163,184,0.55)">Operations</p>
+
+          <a routerLink="/incidents" routerLinkActive="nav-active" (click)="closeDrawer()" class="sidebar-nav-item">
+            <span class="nav-icon" style="background: rgba(245,158,11,0.12); color: #fbbf24"><i class="fas fa-circle-exclamation"></i></span>
+            <span class="nav-label">Gate Incidents</span>
+            <span class="nav-indicator"></span>
+          </a>
+
+          <!-- Staff section -->
+          <p class="px-3 pt-4 pb-2 text-[10px] font-bold uppercase tracking-[0.18em]" style="color: rgba(148,163,184,0.55)">Staff</p>
+
+          <a routerLink="/technicians" routerLinkActive="nav-active" (click)="closeDrawer()" class="sidebar-nav-item">
+            <span class="nav-icon" style="background: rgba(139,92,246,0.12); color: #a78bfa"><i class="fas fa-helmet-safety"></i></span>
+            <span class="nav-label">Technicians</span>
+            <span class="nav-indicator"></span>
+          </a>
+
           <!-- Admin section -->
           <p class="px-3 pt-4 pb-2 text-[10px] font-bold uppercase tracking-[0.18em]" style="color: rgba(148,163,184,0.55)">{{ 'nav.admin' | t }}</p>
 
@@ -165,6 +183,13 @@ import { SecurityAlert } from '../models/security.model';
 
           <!-- Right controls -->
           <div class="flex items-center gap-2 shrink-0">
+            <!-- Search -->
+            <a routerLink="/search"
+              class="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition">
+              <i class="fas fa-magnifying-glass text-slate-400 text-xs"></i>
+              <span class="hidden sm:inline">Search</span>
+            </a>
+
             <!-- Lang -->
             <button type="button" (click)="toggleLang()"
               class="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition"

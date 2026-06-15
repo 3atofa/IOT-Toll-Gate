@@ -6,6 +6,9 @@ const cardRoutes = require('./allowed-card.routes');
 const securityRoutes = require('./security.routes');
 const authRoutes = require('./auth.routes');
 const reportsRoutes = require('./reports.routes');
+const technicianRoutes = require('./technician.routes');
+const incidentRoutes = require('./incident.routes');
+const searchRoutes = require('./search.routes');
 
 const router = express.Router();
 
@@ -33,5 +36,14 @@ router.use('/auth', authRoutes);
 
 // PDF reports and summaries
 router.use('/reports', reportsRoutes);
+
+// Technician management
+router.use('/technicians', technicianRoutes);
+
+// Incidents / gate crashes
+router.use('/incidents', incidentRoutes);
+
+// Global search
+router.use('/search', searchRoutes);
 
 module.exports = router;

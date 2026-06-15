@@ -3,9 +3,9 @@ import { Component, HostListener, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ReportApiService } from '../../core/services/report-api.service';
 import { FeedbackService } from '../../core/services/feedback.service';
-import { ReportSummary, TrafficReport, SecurityReport, AlprReport } from '../../core/models/report.model';
+import { ReportSummary, TrafficReport, SecurityReport, AlprReport, FinancialReport, IncidentsReport } from '../../core/models/report.model';
 
-type TabId = 'summary' | 'traffic' | 'security' | 'alpr';
+type TabId = 'summary' | 'traffic' | 'security' | 'alpr' | 'financial' | 'incidents';
 
 @Component({
   selector: 'app-reports',
@@ -23,6 +23,7 @@ export class ReportsComponent implements OnInit {
   loading = false;
 
   showPdfMenu = false;
+  pdfLang: 'en' | 'ar' = 'en';
   readonly pdfTypes: { type: 'summary' | 'traffic' | 'security' | 'alpr' | 'full'; label: string; icon: string }[] = [
     { type: 'summary',  label: 'Summary Report',     icon: 'fa-chart-pie'     },
     { type: 'traffic',  label: 'Traffic Report',      icon: 'fa-chart-bar'     },
@@ -31,10 +32,12 @@ export class ReportsComponent implements OnInit {
     { type: 'full',     label: 'Full Report (All)',   icon: 'fa-file-pdf'      },
   ];
 
-  summary:  ReportSummary  | null = null;
-  traffic:  TrafficReport  | null = null;
-  security: SecurityReport | null = null;
-  alpr:     AlprReport     | null = null;
+  summary:    ReportSummary    | null = null;
+  traffic:    TrafficReport    | null = null;
+  security:   SecurityReport   | null = null;
+  alpr:       AlprReport       | null = null;
+  financial:  FinancialReport  | null = null;
+  incidents:  IncidentsReport  | null = null;
 
   private readonly reportApi = inject(ReportApiService);
   private readonly feedback  = inject(FeedbackService);
@@ -46,28 +49,47 @@ export class ReportsComponent implements OnInit {
     }
   }
 
-  ngOnInit(): void { this.loadAll(); }
+  // On init: only load the active (summary) tab — others load on demand
+  ngOnInit(): void { this.loadSummary(); }
 
   setTab(tab: TabId): void {
     this.activeTab = tab;
     this.loadTab(tab);
   }
 
+  // Reload all with cleared data (called by Apply Filters)
   loadAll(): void {
+    this.summary   = null; this.traffic   = null;
+    this.security  = null; this.alpr      = null;
+    this.financial = null; this.incidents = null;
     this.loadSummary();
     this.loadTraffic();
     this.loadSecurity();
     this.loadAlpr();
   }
 
+  // Refresh only the active tab
+  refreshTab(): void {
+    switch (this.activeTab) {
+      case 'summary':   this.summary   = null; this.loadSummary();    break;
+      case 'traffic':   this.traffic   = null; this.loadTraffic();    break;
+      case 'security':  this.security  = null; this.loadSecurity();   break;
+      case 'alpr':      this.alpr      = null; this.loadAlpr();       break;
+      case 'financial': this.financial = null; this.loadFinancial();  break;
+      case 'incidents': this.incidents = null; this.loadIncidents();  break;
+    }
+  }
+
   applyFilters(): void { this.loadAll(); }
 
   private loadTab(tab: TabId): void {
     switch (tab) {
-      case 'summary':  if (!this.summary)  this.loadSummary();  break;
-      case 'traffic':  if (!this.traffic)  this.loadTraffic();  break;
-      case 'security': if (!this.security) this.loadSecurity(); break;
-      case 'alpr':     if (!this.alpr)     this.loadAlpr();     break;
+      case 'summary':   if (!this.summary)   this.loadSummary();   break;
+      case 'traffic':   if (!this.traffic)   this.loadTraffic();   break;
+      case 'security':  if (!this.security)  this.loadSecurity();  break;
+      case 'alpr':      if (!this.alpr)      this.loadAlpr();      break;
+      case 'financial': if (!this.financial) this.loadFinancial(); break;
+      case 'incidents': if (!this.incidents) this.loadIncidents(); break;
     }
   }
 
@@ -103,13 +125,59 @@ export class ReportsComponent implements OnInit {
     });
   }
 
-  downloadPdf(type: 'summary' | 'traffic' | 'security' | 'alpr' | 'full' = 'summary'): void {
-    this.showPdfMenu = false;
-    this.reportApi.downloadPdf(type, this.startDate || undefined, this.endDate || undefined).subscribe({
+  loadFinancial(): void {
+    this.loading = true;
+    this.reportApi.getFinancialReport(this.startDate || undefined, this.endDate || undefined).subscribe({
+      next: (d) => { this.financial = d; this.loading = false; },
+      error: () => { this.loading = false; this.feedback.errorToast('Failed to load financial report'); },
+    });
+  }
+
+  loadIncidents(): void {
+    this.loading = true;
+    this.reportApi.getIncidentsReport(this.startDate || undefined, this.endDate || undefined).subscribe({
+      next: (d) => { this.incidents = d; this.loading = false; },
+      error: () => { this.loading = false; this.feedback.errorToast('Failed to load incidents report'); },
+    });
+  }
+
+  togglePdfLang(): void {
+    this.pdfLang = this.pdfLang === 'en' ? 'ar' : 'en';
+  }
+
+  downloadFinancialPdf(): void {
+    this.reportApi.downloadFinancialPdf(this.startDate || undefined, this.endDate || undefined, this.pdfLang).subscribe({
       next: (blob) => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url; a.download = `gate-${type}-report-${this.today()}.pdf`; a.click();
+        a.href = url; a.download = `gate-financial-report-${this.today()}-${this.pdfLang}.pdf`; a.click();
+        URL.revokeObjectURL(url);
+        this.feedback.successToast('Financial PDF downloaded');
+      },
+      error: () => this.feedback.errorToast('PDF download failed'),
+    });
+  }
+
+  downloadIncidentsPdf(): void {
+    this.reportApi.downloadIncidentsPdf(this.startDate || undefined, this.endDate || undefined, this.pdfLang).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `gate-incidents-report-${this.today()}-${this.pdfLang}.pdf`; a.click();
+        URL.revokeObjectURL(url);
+        this.feedback.successToast('Incidents PDF downloaded');
+      },
+      error: () => this.feedback.errorToast('PDF download failed'),
+    });
+  }
+
+  downloadPdf(type: 'summary' | 'traffic' | 'security' | 'alpr' | 'full' = 'summary'): void {
+    this.showPdfMenu = false;
+    this.reportApi.downloadPdf(type, this.startDate || undefined, this.endDate || undefined, this.pdfLang).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `gate-${type}-report-${this.today()}-${this.pdfLang}.pdf`; a.click();
         URL.revokeObjectURL(url);
         this.feedback.successToast('PDF downloaded');
       },
@@ -160,76 +228,22 @@ export class ReportsComponent implements OnInit {
   gateDenied(gateId: string): number {
     return +(this.traffic?.byGateEvent.find(r => r.gateId === gateId && r.eventType === 'access_denied')?.count ?? 0);
   }
+  // ─── Financial helpers ────────────────────────────────────────────
+  get netPnLPositive(): boolean { return (this.financial?.netPnL ?? 0) >= 0; }
 
-  // OCR status class
-  ocrClass(status: string): string {
-    switch (status) {
-      case 'done':   return 'tg-badge-green';
-      case 'failed': return 'tg-badge-red';
-      case 'processing': return 'tg-badge-blue';
-      default:       return 'tg-badge-slate';
-    }
+  incidentsSeverityCount(sev: string): number {
+    return +(this.incidents?.bySeverity.find(r => r.severity === sev)?.count ?? 0);
   }
 
-  // Decision class
-  decisionClass(decision?: string | null): string {
-    switch (decision) {
-      case 'allow':  return 'tg-badge-green';
-      case 'block':  return 'tg-badge-red';
-      default:       return 'tg-badge-amber';
-    }
+  severityBarClass(sev: string): string {
+    const map: Record<string, string> = {
+      low: 'bg-blue-400', medium: 'bg-amber-400', high: 'bg-orange-500', critical: 'bg-red-600',
+    };
+    return map[sev] ?? 'bg-slate-400';
   }
 
-  alertTypeClass(type: string): string {
-    switch (type) {
-      case 'wanted_person': return 'tg-badge-red';
-      case 'stolen_car':    return 'tg-badge-red';
-      case 'plate_review':  return 'tg-badge-amber';
-      case 'face_review':   return 'tg-badge-amber';
-      default:              return 'tg-badge-slate';
-    }
-  }
-
-  alertTypeLabel(type: string): string {
-    switch (type) {
-      case 'wanted_person': return 'Wanted Person';
-      case 'stolen_car':    return 'Stolen Car';
-      case 'plate_review':  return 'Plate Review';
-      case 'face_review':   return 'Face Review';
-      default:              return type;
-    }
-  }
-
-  // fill 24 hours ensuring all slots exist
-  get hourlyData(): { hour: number; count: number }[] {
-    const map = new Map<number, number>();
-    (this.traffic?.byHour ?? []).forEach(r => map.set(+r.hour, +r.count));
-    return Array.from({ length: 24 }, (_, h) => ({ hour: h, count: map.get(h) ?? 0 }));
-  }
-
-  // alpr detection rate
-  get plateDetectionRate(): number {
-    if (!this.alpr) return 0;
-    const total = this.alpr.withPlate + this.alpr.withoutPlate;
-    return total === 0 ? 0 : Math.round((this.alpr.withPlate / total) * 100);
-  }
-
-  get faceDetectionRate(): number {
-    if (!this.alpr) return 0;
-    const total = this.alpr.withFace + this.alpr.withoutFace;
-    return total === 0 ? 0 : Math.round((this.alpr.withFace / total) * 100);
-  }
-
-  get alprTotal(): number {
-    if (!this.alpr) return 0;
-    return this.alpr.withPlate + this.alpr.withoutPlate;
-  }
-
-  get wantedCount(): number {
-    return +(this.security?.byType.find(r => r.alertType === 'wanted_person')?.count ?? 0);
-  }
-
-  get stolenCount(): number {
-    return +(this.security?.byType.find(r => r.alertType === 'stolen_car')?.count ?? 0);
+  maxSeverityCount(): number {
+    if (!this.incidents) return 1;
+    return Math.max(1, ...this.incidents.bySeverity.map(r => +r.count));
   }
 }
