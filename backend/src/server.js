@@ -28,7 +28,7 @@ const bootstrap = async () => {
   }
 
   await sequelize.sync({
-    alter: true,
+    alter: false,
     force: shouldForceSync,
   });
 
