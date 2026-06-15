@@ -246,4 +246,93 @@ export class ReportsComponent implements OnInit {
     if (!this.incidents) return 1;
     return Math.max(1, ...this.incidents.bySeverity.map(r => +r.count));
   }
+
+  // Summary helpers
+  get grantRate(): number {
+    const t = this.summary?.totals;
+    if (!t || !t.totalCaptures) return 0;
+    return Math.round((t.accessGranted / t.totalCaptures) * 100);
+  }
+
+  // Security helpers
+  get wantedCount(): number {
+    return +(this.security?.byType.find(r => r.alertType === 'wanted_person')?.count ?? 0);
+  }
+
+  get stolenCount(): number {
+    return +(this.security?.byType.find(r => r.alertType === 'stolen_car')?.count ?? 0);
+  }
+
+  get alertResolutionRate(): number {
+    const alerts = this.security?.recentAlerts ?? [];
+    if (!alerts.length) return 0;
+    const resolved = alerts.filter((a: any) => a.resolvedAt).length;
+    return Math.round((resolved / alerts.length) * 100);
+  }
+
+  decisionClass(decision: string): string {
+    const map: Record<string, string> = {
+      block:  'tg-badge-red',
+      allow:  'tg-badge-green',
+      review: 'tg-badge-amber',
+    };
+    return map[decision] ?? 'tg-badge-blue';
+  }
+
+  alertTypeLabel(alertType: string): string {
+    const map: Record<string, string> = {
+      wanted_person: 'Wanted Person',
+      stolen_car:    'Stolen Car',
+      suspicious:    'Suspicious',
+      overstay:      'Overstay',
+      blacklist:     'Blacklist',
+    };
+    return map[alertType] ?? alertType?.replace(/_/g, ' ') ?? 'Unknown';
+  }
+
+  alertTypeClass(alertType: string): string {
+    const danger = ['wanted_person', 'stolen_car', 'blacklist'];
+    const warn   = ['suspicious', 'overstay'];
+    if (danger.includes(alertType)) return 'tg-badge-red';
+    if (warn.includes(alertType))   return 'tg-badge-amber';
+    return 'tg-badge-blue';
+  }
+
+  // ALPR helpers
+  get alprTotal(): number {
+    return (this.alpr?.withPlate ?? 0) + (this.alpr?.withoutPlate ?? 0);
+  }
+
+  get plateDetectionRate(): number {
+    if (!this.alprTotal) return 0;
+    return Math.round(((this.alpr?.withPlate ?? 0) / this.alprTotal) * 100);
+  }
+
+  get faceDetectionRate(): number {
+    if (!this.alprTotal) return 0;
+    return Math.round(((this.alpr?.withFace ?? 0) / this.alprTotal) * 100);
+  }
+
+  ocrClass(status: string): string {
+    const map: Record<string, string> = {
+      done:       'tg-badge-green',
+      failed:     'tg-badge-red',
+      processing: 'tg-badge-blue',
+      pending:    'tg-badge-amber',
+    };
+    return map[status] ?? 'tg-badge-blue';
+  }
+
+  // Traffic helpers
+  get hourlyData(): { hour: number; count: number }[] {
+    const raw = this.traffic?.byHour ?? [];
+    const map = new Map(raw.map(r => [+r.hour, +r.count]));
+    return Array.from({ length: 24 }, (_, i) => ({ hour: i, count: map.get(i) ?? 0 }));
+  }
+
+  // Donut arc helper
+  donutArc(pct: number): string {
+    const clamped = Math.max(0, Math.min(100, pct ?? 0));
+    return clamped + ' ' + (100 - clamped);
+  }
 }
