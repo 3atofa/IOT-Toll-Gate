@@ -7,8 +7,16 @@ const { enqueueCaptureForAlpr, processCaptureImmediately } = require('../service
 const toPublicImageUrl = (req, absolutePath) => {
   const uploadsRoot = path.join(process.cwd(), 'uploads');
   const rel = path.relative(uploadsRoot, absolutePath).replace(/\\/g, '/');
+
+  // Prefer explicit BACKEND_URL env var — reliable regardless of proxy headers.
+  const backendUrl = process.env.BACKEND_URL;
+  if (backendUrl) {
+    return `${backendUrl.replace(/\/$/, '')}/uploads/${rel}`;
+  }
+
+  // Fall back to request headers; always default to https, never http.
   const forwardedProto = String(req.get('x-forwarded-proto') || '').split(',')[0].trim();
-  const protocol = forwardedProto || req.protocol || 'https';
+  const protocol = forwardedProto || 'https';
   const host = req.get('x-forwarded-host') || req.get('host');
 
   if (host) {
