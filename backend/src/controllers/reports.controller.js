@@ -829,7 +829,7 @@ const getFinancialReport = async (req, res, next) => {
     // Expenses: sum incident repairCosts
     const incidentCostResult = await Incident.findOne({
       where: incidentWhere,
-      attributes: [[sequelize.fn('SUM', sequelize.col('repair_cost')), 'total']],
+      attributes: [[sequelize.fn('SUM', sequelize.col('repairCost')), 'total']],
       raw: true,
     });
     const totalRepairCost = parseFloat(incidentCostResult?.total || 0);
@@ -927,7 +927,7 @@ const getIncidentsReport = async (req, res, next) => {
       }),
       Incident.findOne({
         where,
-        attributes: [[sequelize.fn('SUM', sequelize.col('repair_cost')), 'total']],
+        attributes: [[sequelize.fn('SUM', sequelize.col('repairCost')), 'total']],
         raw: true,
       }),
       Incident.findOne({
