@@ -98,20 +98,20 @@ import { SecurityAlert } from '../models/security.model';
           </a>
 
           <!-- Operations section -->
-          <p class="px-3 pt-4 pb-2 text-[10px] font-bold uppercase tracking-[0.18em]" style="color: rgba(148,163,184,0.55)">Operations</p>
+          <p class="px-3 pt-4 pb-2 text-[10px] font-bold uppercase tracking-[0.18em]" style="color: rgba(148,163,184,0.55)">{{ 'nav.operations' | t }}</p>
 
           <a routerLink="/incidents" routerLinkActive="nav-active" (click)="closeDrawer()" class="sidebar-nav-item">
             <span class="nav-icon" style="background: rgba(245,158,11,0.12); color: #fbbf24"><i class="fas fa-circle-exclamation"></i></span>
-            <span class="nav-label">Gate Incidents</span>
+            <span class="nav-label">{{ 'nav.incidents' | t }}</span>
             <span class="nav-indicator"></span>
           </a>
 
           <!-- Staff section -->
-          <p class="px-3 pt-4 pb-2 text-[10px] font-bold uppercase tracking-[0.18em]" style="color: rgba(148,163,184,0.55)">Staff</p>
+          <p class="px-3 pt-4 pb-2 text-[10px] font-bold uppercase tracking-[0.18em]" style="color: rgba(148,163,184,0.55)">{{ 'nav.staff' | t }}</p>
 
           <a routerLink="/technicians" routerLinkActive="nav-active" (click)="closeDrawer()" class="sidebar-nav-item">
             <span class="nav-icon" style="background: rgba(139,92,246,0.12); color: #a78bfa"><i class="fas fa-helmet-safety"></i></span>
-            <span class="nav-label">Technicians</span>
+            <span class="nav-label">{{ 'nav.technicians' | t }}</span>
             <span class="nav-indicator"></span>
           </a>
 

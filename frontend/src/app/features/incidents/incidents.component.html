@@ -207,57 +207,124 @@
 
     <!-- Form body -->
     <div class="bg-white overflow-y-auto flex-1 p-6 space-y-4">
+
+      <!-- Title -->
       <div>
-        <label class="block text-xs font-semibold text-slate-600 mb-1.5">{{ i18n.t('incidents.col.title') }} *</label>
-        <input [(ngModel)]="formData.title" class="tg-input w-full" placeholder="e.g. Servo motor stuck open" />
+        <label class="flex items-center gap-1.5 text-xs font-semibold text-slate-600 mb-1.5">
+          <i class="fa-solid fa-pen-nib text-blue-400 text-[10px]"></i>
+          {{ i18n.t('incidents.col.title') }} *
+        </label>
+        <div class="relative">
+          <i class="fa-solid fa-pen-nib absolute start-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+          <input [(ngModel)]="formData.title" class="tg-input w-full ps-9" placeholder="e.g. Servo motor stuck open" />
+        </div>
       </div>
+
+      <!-- Gate ID + Reported By -->
       <div class="grid grid-cols-2 gap-3">
         <div>
-          <label class="block text-xs font-semibold text-slate-600 mb-1.5">{{ i18n.t('incidents.gateId') }} *</label>
-          <input [(ngModel)]="formData.gateId" class="tg-input w-full" placeholder="gate-1" />
+          <label class="flex items-center gap-1.5 text-xs font-semibold text-slate-600 mb-1.5">
+            <i class="fa-solid fa-door-open text-blue-400 text-[10px]"></i>
+            {{ i18n.t('incidents.gateId') }} *
+          </label>
+          <div class="relative">
+            <i class="fa-solid fa-door-open absolute start-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+            <input [(ngModel)]="formData.gateId" class="tg-input w-full ps-9" placeholder="gate-1" />
+          </div>
         </div>
         <div>
-          <label class="block text-xs font-semibold text-slate-600 mb-1.5">{{ i18n.t('incidents.reportedBy') }}</label>
-          <input [(ngModel)]="formData.reportedBy" class="tg-input w-full" placeholder="Name or ID" />
+          <label class="flex items-center gap-1.5 text-xs font-semibold text-slate-600 mb-1.5">
+            <i class="fa-solid fa-user text-blue-400 text-[10px]"></i>
+            {{ i18n.t('incidents.reportedBy') }}
+          </label>
+          <div class="relative">
+            <i class="fa-solid fa-user absolute start-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+            <input [(ngModel)]="formData.reportedBy" class="tg-input w-full ps-9" placeholder="Name or ID" />
+          </div>
         </div>
       </div>
+
+      <!-- Severity + Status -->
       <div class="grid grid-cols-2 gap-3">
         <div>
-          <label class="block text-xs font-semibold text-slate-600 mb-1.5">{{ i18n.t('incidents.col.severity') }}</label>
-          <select [(ngModel)]="formData.severity" class="tg-input w-full">
-            <option *ngFor="let s of severities" [value]="s">{{ sevLabel(s) }}</option>
-          </select>
+          <label class="flex items-center gap-1.5 text-xs font-semibold text-slate-600 mb-1.5">
+            <i class="fa-solid fa-gauge-high text-blue-400 text-[10px]"></i>
+            {{ i18n.t('incidents.col.severity') }}
+          </label>
+          <div class="relative">
+            <i class="fa-solid fa-gauge-high absolute start-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+            <select [(ngModel)]="formData.severity" class="tg-input w-full ps-9">
+              <option *ngFor="let s of severities" [value]="s">{{ sevLabel(s) }}</option>
+            </select>
+          </div>
         </div>
         <div>
-          <label class="block text-xs font-semibold text-slate-600 mb-1.5">{{ i18n.t('incidents.col.status') }}</label>
-          <select [(ngModel)]="formData.status" class="tg-input w-full">
-            <option *ngFor="let s of statuses" [value]="s">{{ statusLabel(s) }}</option>
-          </select>
+          <label class="flex items-center gap-1.5 text-xs font-semibold text-slate-600 mb-1.5">
+            <i class="fa-solid fa-circle-dot text-blue-400 text-[10px]"></i>
+            {{ i18n.t('incidents.col.status') }}
+          </label>
+          <div class="relative">
+            <i class="fa-solid fa-circle-dot absolute start-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+            <select [(ngModel)]="formData.status" class="tg-input w-full ps-9">
+              <option *ngFor="let s of statuses" [value]="s">{{ statusLabel(s) }}</option>
+            </select>
+          </div>
         </div>
       </div>
+
+      <!-- Description -->
       <div>
-        <label class="block text-xs font-semibold text-slate-600 mb-1.5">{{ i18n.t('incidents.description') }}</label>
-        <textarea [(ngModel)]="formData.description" class="tg-input w-full" rows="3"
-          [placeholder]="i18n.t('incidents.descriptionPlaceholder')"></textarea>
+        <label class="flex items-center gap-1.5 text-xs font-semibold text-slate-600 mb-1.5">
+          <i class="fa-solid fa-align-left text-blue-400 text-[10px]"></i>
+          {{ i18n.t('incidents.description') }}
+        </label>
+        <div class="relative">
+          <i class="fa-solid fa-align-left absolute start-3 top-3 text-slate-400 text-xs pointer-events-none"></i>
+          <textarea [(ngModel)]="formData.description" class="tg-input w-full ps-9" rows="3"
+            [placeholder]="i18n.t('incidents.descriptionPlaceholder')"></textarea>
+        </div>
       </div>
+
+      <!-- Repair Cost + Assign Tech -->
       <div class="grid grid-cols-2 gap-3">
         <div>
-          <label class="block text-xs font-semibold text-slate-600 mb-1.5">{{ i18n.t('incidents.repairCostEgp') }}</label>
-          <input [(ngModel)]="formData.repairCost" type="number" min="0" step="0.01" class="tg-input w-full" />
+          <label class="flex items-center gap-1.5 text-xs font-semibold text-slate-600 mb-1.5">
+            <i class="fa-solid fa-coins text-blue-400 text-[10px]"></i>
+            {{ i18n.t('incidents.repairCostEgp') }}
+          </label>
+          <div class="relative">
+            <i class="fa-solid fa-coins absolute start-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+            <input [(ngModel)]="formData.repairCost" type="number" min="0" step="0.01" class="tg-input w-full ps-9" />
+          </div>
         </div>
         <div>
-          <label class="block text-xs font-semibold text-slate-600 mb-1.5">{{ i18n.t('incidents.assignTechLabel') }}</label>
-          <select [(ngModel)]="formData.assignedTechnicianId" class="tg-input w-full">
-            <option value="">{{ i18n.t('incidents.noTech') }}</option>
-            <option *ngFor="let t of technicians" [value]="t.id">{{ t.fullName }}</option>
-          </select>
+          <label class="flex items-center gap-1.5 text-xs font-semibold text-slate-600 mb-1.5">
+            <i class="fa-solid fa-user-gear text-blue-400 text-[10px]"></i>
+            {{ i18n.t('incidents.assignTechLabel') }}
+          </label>
+          <div class="relative">
+            <i class="fa-solid fa-user-gear absolute start-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+            <select [(ngModel)]="formData.assignedTechnicianId" class="tg-input w-full ps-9">
+              <option value="">{{ i18n.t('incidents.noTech') }}</option>
+              <option *ngFor="let t of technicians" [value]="t.id">{{ t.fullName }}</option>
+            </select>
+          </div>
         </div>
       </div>
+
+      <!-- Resolution Notes (resolved status only) -->
       <div *ngIf="formData.status === 'resolved'">
-        <label class="block text-xs font-semibold text-slate-600 mb-1.5">{{ i18n.t('incidents.resolutionNotes') }}</label>
-        <textarea [(ngModel)]="formData.resolutionNotes" class="tg-input w-full" rows="2"
-          [placeholder]="i18n.t('incidents.resolutionPlaceholder')"></textarea>
+        <label class="flex items-center gap-1.5 text-xs font-semibold text-slate-600 mb-1.5">
+          <i class="fa-solid fa-clipboard-check text-blue-400 text-[10px]"></i>
+          {{ i18n.t('incidents.resolutionNotes') }}
+        </label>
+        <div class="relative">
+          <i class="fa-solid fa-clipboard-check absolute start-3 top-3 text-slate-400 text-xs pointer-events-none"></i>
+          <textarea [(ngModel)]="formData.resolutionNotes" class="tg-input w-full ps-9" rows="2"
+            [placeholder]="i18n.t('incidents.resolutionPlaceholder')"></textarea>
+        </div>
       </div>
+
     </div>
 
     <!-- Footer -->
@@ -423,20 +490,37 @@
 
     <!-- Form body -->
     <div class="bg-white p-6 space-y-4 overflow-y-auto flex-1">
+
+      <!-- Technician select -->
       <div>
-        <label class="block text-xs font-semibold text-slate-600 mb-1.5">{{ i18n.t('incidents.col.assignedTo') }} *</label>
-        <select [(ngModel)]="assignTechId" class="tg-input w-full">
-          <option value="">{{ i18n.t('incidents.selectTech') }}</option>
-          <option *ngFor="let t of technicians" [value]="t.id">
-            {{ t.fullName }} ({{ t.specialization | titlecase }})
-          </option>
-        </select>
+        <label class="flex items-center gap-1.5 text-xs font-semibold text-slate-600 mb-1.5">
+          <i class="fa-solid fa-user-gear text-amber-500 text-[10px]"></i>
+          {{ i18n.t('incidents.col.assignedTo') }} *
+        </label>
+        <div class="relative">
+          <i class="fa-solid fa-user-gear absolute start-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+          <select [(ngModel)]="assignTechId" class="tg-input w-full ps-9">
+            <option value="">{{ i18n.t('incidents.selectTech') }}</option>
+            <option *ngFor="let t of technicians" [value]="t.id">
+              {{ t.fullName }} ({{ t.specialization | titlecase }})
+            </option>
+          </select>
+        </div>
       </div>
+
+      <!-- Notes -->
       <div>
-        <label class="block text-xs font-semibold text-slate-600 mb-1.5">{{ i18n.t('incidents.taskNotes') }}</label>
-        <textarea [(ngModel)]="assignNotes" class="tg-input w-full" rows="3"
-          [placeholder]="i18n.t('incidents.taskNotesPlaceholder')"></textarea>
+        <label class="flex items-center gap-1.5 text-xs font-semibold text-slate-600 mb-1.5">
+          <i class="fa-solid fa-note-sticky text-amber-500 text-[10px]"></i>
+          {{ i18n.t('incidents.taskNotes') }}
+        </label>
+        <div class="relative">
+          <i class="fa-solid fa-note-sticky absolute start-3 top-3 text-slate-400 text-xs pointer-events-none"></i>
+          <textarea [(ngModel)]="assignNotes" class="tg-input w-full ps-9" rows="3"
+            [placeholder]="i18n.t('incidents.taskNotesPlaceholder')"></textarea>
+        </div>
       </div>
+
     </div>
 
     <!-- Footer -->
@@ -477,15 +561,32 @@
     <!-- Form body -->
     <div class="bg-white p-6 space-y-4 overflow-y-auto flex-1">
       <p class="text-sm text-slate-500 -mt-1">{{ i18n.t('incidents.resolveSubtitle') }}</p>
+
+      <!-- Resolution Notes -->
       <div>
-        <label class="block text-xs font-semibold text-slate-600 mb-1.5">{{ i18n.t('incidents.resolutionNotes') }}</label>
-        <textarea [(ngModel)]="resolveNotes" class="tg-input w-full" rows="4"
-          [placeholder]="i18n.t('incidents.resolutionPlaceholder')"></textarea>
+        <label class="flex items-center gap-1.5 text-xs font-semibold text-slate-600 mb-1.5">
+          <i class="fa-solid fa-clipboard-check text-emerald-500 text-[10px]"></i>
+          {{ i18n.t('incidents.resolutionNotes') }}
+        </label>
+        <div class="relative">
+          <i class="fa-solid fa-clipboard-check absolute start-3 top-3 text-slate-400 text-xs pointer-events-none"></i>
+          <textarea [(ngModel)]="resolveNotes" class="tg-input w-full ps-9" rows="4"
+            [placeholder]="i18n.t('incidents.resolutionPlaceholder')"></textarea>
+        </div>
       </div>
+
+      <!-- Repair Cost -->
       <div>
-        <label class="block text-xs font-semibold text-slate-600 mb-1.5">{{ i18n.t('incidents.repairCostEgp') }}</label>
-        <input [(ngModel)]="resolveRepairCost" type="number" min="0" step="0.01" class="tg-input w-full" />
+        <label class="flex items-center gap-1.5 text-xs font-semibold text-slate-600 mb-1.5">
+          <i class="fa-solid fa-coins text-emerald-500 text-[10px]"></i>
+          {{ i18n.t('incidents.repairCostEgp') }}
+        </label>
+        <div class="relative">
+          <i class="fa-solid fa-coins absolute start-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+          <input [(ngModel)]="resolveRepairCost" type="number" min="0" step="0.01" class="tg-input w-full ps-9" />
+        </div>
       </div>
+
     </div>
 
     <!-- Footer -->

@@ -421,6 +421,27 @@ html.dark { color-scheme: dark; }
 .dark .tg-table tbody td  { color: #cbd5e1; border-bottom-color: #1e293b; }
 .dark .tg-table tbody tr:hover td { background: #243347; }
 
+/* ── Inputs ──────────────────────────────────────────────────── */
+@layer components {
+  .tg-input {
+    @apply block w-full rounded-xl border border-slate-200 bg-slate-50
+           px-3 py-2.5 text-sm text-slate-800 placeholder:text-slate-400
+           transition duration-150 appearance-auto
+           focus:outline-none focus:border-blue-500 focus:bg-white
+           focus:ring-2 focus:ring-blue-500/10 hover:border-slate-300;
+  }
+  .tg-btn-ghost {
+    @apply bg-transparent text-slate-600 border border-slate-200
+           hover:bg-slate-50 hover:border-slate-300 hover:text-slate-700;
+  }
+}
+.dark .tg-input          { background:#334155; border-color:#475569; color:#f1f5f9; }
+.dark .tg-input:hover    { border-color:#64748b; }
+.dark .tg-input:focus    { background:#243347; border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,0.2); }
+.dark .tg-input::placeholder { color:#64748b; }
+.dark .tg-btn-ghost      { border-color:#334155; color:#94a3b8; }
+.dark .tg-btn-ghost:hover { background:#1e293b; border-color:#475569; }
+
 /* ── Modal ──────────────────────────────────────────────────── */
 .tg-modal-wrap {
   position: fixed; inset: 0; z-index: 40;
