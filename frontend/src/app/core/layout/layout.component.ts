@@ -71,11 +71,7 @@ import { SecurityAlert } from '../models/security.model';
             <span class="nav-label">{{ 'nav.gateControl' | t }}</span>
             <span class="nav-indicator"></span>
           </a>
-          <a routerLink="/vehicles" routerLinkActive="nav-active" (click)="closeDrawer()" class="sidebar-nav-item">
-            <span class="nav-icon" style="background: rgba(251,191,36,0.12); color: #fbbf24"><i class="fas fa-car"></i></span>
-            <span class="nav-label">{{ 'nav.vehicles' | t }}</span>
-            <span class="nav-indicator"></span>
-          </a>
+          
           <a routerLink="/cards" routerLinkActive="nav-active" (click)="closeDrawer()" class="sidebar-nav-item">
             <span class="nav-icon" style="background: rgba(34,197,94,0.12); color: #4ade80"><i class="fas fa-money-bill-wave"></i></span>
             <span class="nav-label">{{ 'nav.cards' | t }}</span>

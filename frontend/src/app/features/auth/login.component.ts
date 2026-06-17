@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
@@ -13,113 +13,287 @@ import { TranslatePipe } from '../../core/pipes/translate.pipe';
   standalone: true,
   imports: [CommonModule, FormsModule, TranslatePipe],
   template: `
-    <div class="min-h-screen bg-slate-950 text-white flex items-center justify-center p-3 sm:p-6">
-      <!-- Top-right language switcher -->
-      <button
-        type="button"
-        (click)="i18n.toggle()"
-        class="fixed top-4 z-10 inline-flex items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm font-semibold text-white hover:bg-white/20 transition backdrop-blur"
-        [style.right]="i18n.isRtl() ? 'auto' : '1rem'"
-        [style.left]="i18n.isRtl() ? '1rem' : 'auto'"
-        [attr.aria-label]="'app.language' | t"
-      >
-        <i class="fas fa-globe"></i>
-        <span>{{ i18n.lang() === 'en' ? 'العربية' : 'English' }}</span>
-      </button>
-      <!-- Dark mode toggle -->
-      <button
-        type="button"
-        (click)="theme.toggle()"
-        class="fixed top-4 z-10 inline-flex items-center justify-center w-10 h-10 rounded-lg border border-white/20 bg-white/10 text-white hover:bg-white/20 transition backdrop-blur"
-        [style.right]="i18n.isRtl() ? 'auto' : '5.5rem'"
-        [style.left]="i18n.isRtl() ? '5.5rem' : 'auto'"
-        [attr.aria-label]="(theme.isDark() ? 'app.lightMode' : 'app.darkMode') | t"
-      >
-        <i class="fas" [ngClass]="theme.isDark() ? 'fa-sun text-amber-300' : 'fa-moon'"></i>
-      </button>
-      <div class="w-full max-w-5xl grid md:grid-cols-2 gap-0 rounded-3xl overflow-hidden shadow-2xl border border-slate-800 bg-slate-900">
-        <div class="hidden md:flex flex-col justify-between p-8 lg:p-10 bg-gradient-to-br from-blue-700 via-slate-900 to-slate-950">
-          <div>
-            <div class="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-white/10 border border-white/10">
-              <i class="fas fa-shield-halved text-blue-300"></i>
-              <span class="text-sm">{{ 'login.heroBadge' | t }}</span>
+    <div
+      class="min-h-screen flex items-center justify-center p-4"
+      [class.bg-slate-950]="theme.isDark()"
+      [class.bg-slate-100]="!theme.isDark()"
+    >
+
+      <!-- ── Top-right controls ──────────────────────────── -->
+      <div class="fixed top-4 z-20 flex items-center gap-2"
+           [style.right]="i18n.isRtl() ? 'auto' : '1rem'"
+           [style.left]="i18n.isRtl() ? '1rem' : 'auto'">
+        <button type="button" (click)="i18n.toggle()"
+          class="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition backdrop-blur"
+          [class.border-white_20]="theme.isDark()"
+          [class.bg-white_10]="theme.isDark()"
+          [class.text-white]="theme.isDark()"
+          [class.hover_bg-white_20]="theme.isDark()"
+          [class.border-slate-300]="!theme.isDark()"
+          [class.bg-white]="!theme.isDark()"
+          [class.text-slate-700]="!theme.isDark()"
+          style="border-color:rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:rgba(255,255,255,.9)"
+          [style.border-color]="theme.isDark() ? 'rgba(255,255,255,.2)' : '#e2e8f0'"
+          [style.background]="theme.isDark() ? 'rgba(255,255,255,.08)' : 'white'"
+          [style.color]="theme.isDark() ? 'rgba(255,255,255,.9)' : '#334155'"
+        >
+          <i class="fas fa-globe text-xs"></i>
+          <span>{{ i18n.lang() === 'en' ? 'العربية' : 'English' }}</span>
+        </button>
+
+        <button type="button" (click)="theme.toggle()"
+          class="inline-flex items-center justify-center w-10 h-10 rounded-lg border transition"
+          [style.border-color]="theme.isDark() ? 'rgba(255,255,255,.2)' : '#e2e8f0'"
+          [style.background]="theme.isDark() ? 'rgba(255,255,255,.08)' : 'white'"
+          [style.color]="theme.isDark() ? 'rgba(255,255,255,.9)' : '#334155'"
+        >
+          <i class="fas" [ngClass]="theme.isDark() ? 'fa-sun text-amber-300' : 'fa-moon'"></i>
+        </button>
+      </div>
+
+      <!-- ── Card ───────────────────────────────────────── -->
+      <div class="w-full max-w-4xl grid md:grid-cols-5 rounded-2xl overflow-hidden shadow-2xl"
+           [style.background]="theme.isDark() ? '#0f172a' : 'white'"
+           [style.border]="theme.isDark() ? '1px solid rgba(255,255,255,.08)' : '1px solid #e2e8f0'">
+
+        <!-- Left panel (3/5) -->
+        <div class="md:col-span-3 relative overflow-hidden p-8 lg:p-12 flex flex-col justify-between"
+             style="background: linear-gradient(135deg, #1e3a8a 0%, #1e293b 50%, #0f172a 100%)">
+
+          <!-- decorative grid -->
+          <div class="absolute inset-0 opacity-10"
+               style="background-image: repeating-linear-gradient(0deg,transparent,transparent 40px,rgba(255,255,255,.15) 40px,rgba(255,255,255,.15) 41px),repeating-linear-gradient(90deg,transparent,transparent 40px,rgba(255,255,255,.15) 40px,rgba(255,255,255,.15) 41px)"></div>
+          <!-- glow -->
+          <div class="absolute -top-24 -right-24 w-64 h-64 rounded-full opacity-20"
+               style="background:radial-gradient(circle, #3b82f6, transparent 70%)"></div>
+          <div class="absolute -bottom-20 -left-20 w-56 h-56 rounded-full opacity-15"
+               style="background:radial-gradient(circle, #06b6d4, transparent 70%)"></div>
+
+          <!-- top badge -->
+          <div class="relative z-10">
+            <div class="inline-flex items-center gap-3 px-4 py-2 rounded-full mb-8"
+                 style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15)">
+              <div class="w-7 h-7 rounded-full flex items-center justify-center"
+                   style="background:linear-gradient(135deg,#3b82f6,#06b6d4)">
+                <i class="fas fa-tower-broadcast text-white" style="font-size:11px"></i>
+              </div>
+              <span class="text-xs font-semibold text-blue-200 tracking-widest uppercase">Smart IoT Gate System</span>
             </div>
-            <h1 class="text-3xl lg:text-4xl font-black mt-8 leading-tight">{{ 'login.heroTitle' | t }}</h1>
-            <p class="text-slate-300 mt-4 text-base lg:text-lg max-w-md">{{ 'login.heroDesc' | t }}</p>
+
+            <h1 class="text-3xl lg:text-4xl font-black text-white leading-tight mb-4">
+              {{ 'login.heroTitle' | t }}
+            </h1>
+            <p class="text-slate-300 text-sm lg:text-base leading-relaxed max-w-sm">
+              {{ 'login.heroDesc' | t }}
+            </p>
           </div>
-          <div class="space-y-3 text-slate-300 text-sm mt-8">
-            <p><i class="fas fa-circle-check text-emerald-400 me-2"></i> {{ 'login.feat1' | t }}</p>
-            <p><i class="fas fa-circle-check text-emerald-400 me-2"></i> {{ 'login.feat2' | t }}</p>
-            <p><i class="fas fa-circle-check text-emerald-400 me-2"></i> {{ 'login.feat3' | t }}</p>
+
+          <!-- feature list -->
+          <div class="relative z-10 space-y-3">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                   style="background:rgba(16,185,129,.2);border:1px solid rgba(16,185,129,.3)">
+                <i class="fas fa-circle-check text-emerald-400" style="font-size:11px"></i>
+              </div>
+              <span class="text-slate-300 text-sm">{{ 'login.feat1' | t }}</span>
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                   style="background:rgba(16,185,129,.2);border:1px solid rgba(16,185,129,.3)">
+                <i class="fas fa-circle-check text-emerald-400" style="font-size:11px"></i>
+              </div>
+              <span class="text-slate-300 text-sm">{{ 'login.feat2' | t }}</span>
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                   style="background:rgba(16,185,129,.2);border:1px solid rgba(16,185,129,.3)">
+                <i class="fas fa-circle-check text-emerald-400" style="font-size:11px"></i>
+              </div>
+              <span class="text-slate-300 text-sm">{{ 'login.feat3' | t }}</span>
+            </div>
+
+            <!-- stat row -->
+            <div class="grid grid-cols-3 gap-3 pt-4 mt-2 border-t"
+                 style="border-color:rgba(255,255,255,.1)">
+              <div class="text-center">
+                <div class="text-xl font-black text-white">24/7</div>
+                <div class="text-xs text-slate-400 mt-0.5">Monitoring</div>
+              </div>
+              <div class="text-center" style="border-left:1px solid rgba(255,255,255,.1);border-right:1px solid rgba(255,255,255,.1)">
+                <div class="text-xl font-black text-white">99.9%</div>
+                <div class="text-xs text-slate-400 mt-0.5">Uptime</div>
+              </div>
+              <div class="text-center">
+                <div class="text-xl font-black text-white">AI</div>
+                <div class="text-xs text-slate-400 mt-0.5">Powered</div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div class="bg-white text-slate-800 p-6 sm:p-8 md:p-12">
-          <div class="max-w-md mx-auto">
-            <div class="mb-6 sm:mb-8">
-              <p class="text-sm font-semibold text-blue-700 uppercase tracking-[0.25em]">{{ 'login.portal' | t }}</p>
-              <h2 class="text-2xl sm:text-3xl font-black mt-2">{{ 'login.title' | t }}</h2>
-              <p class="text-slate-500 mt-2 text-sm sm:text-base">{{ 'login.subtitle' | t }}</p>
-            </div>
+        <!-- Right panel (2/5) — form -->
+        <div class="md:col-span-2 p-8 lg:p-10 flex flex-col justify-center"
+             [style.background]="theme.isDark() ? '#0f172a' : 'white'">
 
-            <form class="space-y-4 sm:space-y-5" (ngSubmit)="submit()">
-              <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">{{ 'login.email' | t }}</label>
+          <!-- logo mark -->
+          <div class="flex justify-center mb-8">
+            <div class="relative">
+              <div class="w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg"
+                   style="background:linear-gradient(135deg,#1d4ed8,#0ea5e9)">
+                <i class="fas fa-shield-halved text-white text-2xl"></i>
+              </div>
+              <div class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center"
+                   style="background:#10b981;border:2px solid white">
+                <i class="fas fa-bolt text-white" style="font-size:8px"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- heading -->
+          <div class="text-center mb-8">
+            <p class="text-xs font-bold tracking-[0.2em] uppercase mb-1"
+               style="color:#3b82f6">{{ 'login.portal' | t }}</p>
+            <h2 class="text-2xl font-black mb-1"
+                [style.color]="theme.isDark() ? 'white' : '#0f172a'">{{ 'login.title' | t }}</h2>
+            <p class="text-sm" [style.color]="theme.isDark() ? '#94a3b8' : '#64748b'">{{ 'login.subtitle' | t }}</p>
+          </div>
+
+          <!-- form -->
+          <form class="space-y-4" (ngSubmit)="submit()">
+
+            <!-- email -->
+            <div>
+              <label class="block text-xs font-bold mb-1.5 uppercase tracking-wide"
+                     [style.color]="theme.isDark() ? '#94a3b8' : '#475569'">
+                {{ 'login.email' | t }}
+              </label>
+              <div class="relative">
+                <div class="absolute inset-y-0 flex items-center pointer-events-none"
+                     [style.left]="i18n.isRtl() ? 'auto' : '12px'"
+                     [style.right]="i18n.isRtl() ? '12px' : 'auto'">
+                  <i class="fas fa-envelope text-xs" style="color:#64748b"></i>
+                </div>
                 <input
                   name="email"
                   [(ngModel)]="email"
                   type="email"
                   required
-                  class="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  autocomplete="email"
+                  class="w-full rounded-xl border py-3 text-sm outline-none transition"
+                  [style.padding-left]="i18n.isRtl() ? '12px' : '38px'"
+                  [style.padding-right]="i18n.isRtl() ? '38px' : '12px'"
+                  [style.background]="theme.isDark() ? '#1e293b' : '#f8fafc'"
+                  [style.border-color]="theme.isDark() ? 'rgba(255,255,255,.1)' : '#e2e8f0'"
+                  [style.color]="theme.isDark() ? 'white' : '#0f172a'"
                   placeholder="admin&#64;tollgate.iot"
                 />
               </div>
+            </div>
 
-              <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">{{ 'login.password' | t }}</label>
+            <!-- password -->
+            <div>
+              <label class="block text-xs font-bold mb-1.5 uppercase tracking-wide"
+                     [style.color]="theme.isDark() ? '#94a3b8' : '#475569'">
+                {{ 'login.password' | t }}
+              </label>
+              <div class="relative">
+                <div class="absolute inset-y-0 flex items-center pointer-events-none"
+                     [style.left]="i18n.isRtl() ? 'auto' : '12px'"
+                     [style.right]="i18n.isRtl() ? '12px' : 'auto'">
+                  <i class="fas fa-lock text-xs" style="color:#64748b"></i>
+                </div>
                 <input
                   name="password"
                   [(ngModel)]="password"
-                  type="password"
+                  [type]="showPassword() ? 'text' : 'password'"
                   required
-                  class="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  autocomplete="current-password"
+                  class="w-full rounded-xl border py-3 text-sm outline-none transition"
+                  [style.padding-left]="i18n.isRtl() ? '40px' : '38px'"
+                  [style.padding-right]="i18n.isRtl() ? '38px' : '40px'"
+                  [style.background]="theme.isDark() ? '#1e293b' : '#f8fafc'"
+                  [style.border-color]="theme.isDark() ? 'rgba(255,255,255,.1)' : '#e2e8f0'"
+                  [style.color]="theme.isDark() ? 'white' : '#0f172a'"
                   placeholder="••••••••"
                 />
+                <button type="button" (click)="showPassword.set(!showPassword())"
+                  class="absolute inset-y-0 flex items-center px-3 transition"
+                  [style.right]="i18n.isRtl() ? 'auto' : '0'"
+                  [style.left]="i18n.isRtl() ? '0' : 'auto'"
+                  style="color:#64748b">
+                  <i class="fas text-xs" [ngClass]="showPassword() ? 'fa-eye-slash' : 'fa-eye'"></i>
+                </button>
               </div>
+            </div>
 
-              <button
-                type="submit"
-                [disabled]="loading"
-                class="w-full rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold py-3 transition"
-              >
-                <span *ngIf="!loading">{{ 'app.signIn' | t }}</span>
-                <span *ngIf="loading">{{ 'app.signingIn' | t }}</span>
-              </button>
-            </form>
+            <!-- submit -->
+            <button
+              type="submit"
+              [disabled]="loading"
+              class="w-full rounded-xl font-bold py-3 text-sm text-white transition mt-2 flex items-center justify-center gap-2"
+              style="background:linear-gradient(135deg,#1d4ed8,#0ea5e9)"
+              [style.opacity]="loading ? '0.7' : '1'"
+              [style.cursor]="loading ? 'not-allowed' : 'pointer'"
+            >
+              <ng-container *ngIf="!loading">
+                <i class="fas fa-right-to-bracket text-xs"></i>
+                <span>{{ 'app.signIn' | t }}</span>
+              </ng-container>
+              <ng-container *ngIf="loading">
+                <svg class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                </svg>
+                <span>{{ 'app.signingIn' | t }}</span>
+              </ng-container>
+            </button>
+          </form>
 
-            <div class="mt-6 rounded-2xl bg-slate-50 border border-slate-200 p-4 text-sm text-slate-600">
-              <p class="font-semibold text-slate-700 mb-2">{{ 'login.demoTitle' | t }}</p>
-              <p>{{ 'login.email' | t }}: admin&#64;tollgate.iot</p>
-              <p>{{ 'login.password' | t }}: Admin&#64;123456</p>
+          <!-- demo credentials -->
+          <div class="mt-5 rounded-xl p-3.5 text-xs"
+               [style.background]="theme.isDark() ? 'rgba(255,255,255,.04)' : '#f1f5f9'"
+               [style.border]="theme.isDark() ? '1px solid rgba(255,255,255,.07)' : '1px solid #e2e8f0'">
+            <div class="flex items-center gap-2 mb-2">
+              <i class="fas fa-circle-info" style="color:#3b82f6;font-size:11px"></i>
+              <span class="font-bold" [style.color]="theme.isDark() ? '#94a3b8' : '#475569'">{{ 'login.demoTitle' | t }}</span>
+            </div>
+            <div class="space-y-1" [style.color]="theme.isDark() ? '#64748b' : '#64748b'">
+              <div class="flex items-center gap-2">
+                <i class="fas fa-at text-xs w-3"></i>
+                <span class="font-mono">admin&#64;tollgate.iot</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <i class="fas fa-key text-xs w-3"></i>
+                <span class="font-mono">Admin&#64;123456</span>
+              </div>
             </div>
           </div>
+
+          <!-- footer -->
+          <p class="text-center text-xs mt-5" style="color:#475569">
+            Smart IoT Gate System &copy; {{ year }}
+          </p>
         </div>
+
       </div>
     </div>
   `,
 })
 export class LoginComponent {
-  email = 'admin@tollgate.iot';
+  email    = 'admin@tollgate.iot';
   password = 'Admin@123456';
-  loading = false;
+  loading  = false;
+  year     = new Date().getFullYear();
+
+  showPassword = signal(false);
 
   readonly i18n  = inject(I18nService);
-  readonly theme  = inject(ThemeService);
+  readonly theme = inject(ThemeService);
 
   constructor(
-    private readonly auth: AuthService,
-    private readonly router: Router,
-    private readonly feedback: FeedbackService
+    private readonly auth:     AuthService,
+    private readonly router:   Router,
+    private readonly feedback: FeedbackService,
   ) {}
 
   submit(): void {
@@ -127,12 +301,14 @@ export class LoginComponent {
       this.feedback.errorToast(this.i18n.t('login.requiredError'));
       return;
     }
-
     this.loading = true;
     this.auth.login({ email: this.email, password: this.password }).subscribe({
       next: (user) => {
         this.loading = false;
-        this.feedback.successToast(`${this.i18n.t('login.welcome')}, ${user.fullName}.`, this.i18n.t('login.success'));
+        this.feedback.successToast(
+          `${this.i18n.t('login.welcome')}, ${user.fullName}.`,
+          this.i18n.t('login.success'),
+        );
         this.router.navigate(['/dashboard']);
       },
       error: (error) => {

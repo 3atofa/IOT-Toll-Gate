@@ -9,6 +9,13 @@
  *   3. Eastern Arabic numerals      → always use en-GB locale for dates
  *   4. Columns in wrong order       → physically mirror x-positions for RTL tables
  *   5. Font lost after page break   → setupFonts() called inside doc.on('pageAdded') handler
+ *
+ * Arabic government/formal styling (when lang === 'ar'):
+ *   • Header: gold top + bottom stripes, centered title, thin gold divider line
+ *   • Footer: gold separator line (1.5 pt) + secondary thin line
+ *   • Section bars: gold right-edge accent strip (4 pt)
+ *   • Tables: full-grid vertical column dividers on header + every row
+ *   • KPI cards: gold top stripe + subtle outer border
  */
 
 'use strict';
@@ -131,6 +138,9 @@ const BRAND = {
   surface: '#f9fafb',
   white:   '#ffffff',
 };
+
+// ── Government gold accent colour (Arabic formal style) ───────────────────
+const GOLD = '#c8a84b';
 
 // ── Per-report color themes ────────────────────────────────────────────────
 const THEMES = {
@@ -343,63 +353,145 @@ const LABELS = {
 /**
  * Draw the full-width header band on the current page.
  * Uses state.pageNum which is already correct (incremented in pageAdded handler).
+ *
+ * Arabic lang → government/formal style:
+ *   gold top stripe · centered system name · thin gold divider · centered title · gold bottom stripe
+ * English lang → original coloured band style.
  */
 function drawPageHeader(doc, state) {
   const L     = LABELS[state.lang];
   const isRtl = state.lang === 'ar';
   const theme = state.theme;
 
-  // Background band
-  doc.rect(0, 0, A4W, HEADER_H).fill(theme.header);
+  if (isRtl) {
+    // ── Arabic: government formal header ────────────────────────────────────
 
-  // Thin accent stripe
-  doc.rect(0, HEADER_H - 4, A4W, 4).fill(theme.accent + '44');
+    // Gold top stripe (5 pt)
+    doc.rect(0, 0, A4W, 5).fill(GOLD);
 
-  // System name (large)
-  doc.fillColor('#ffffff').fontSize(13).font('bold');
-  txt(doc, L.systemName, ML, 12, { width: CW, lineBreak: false }, state.lang);
+    // Dark header background band
+    doc.rect(0, 5, A4W, HEADER_H - 10).fill(theme.header);
 
-  // Report title
-  doc.fillColor(theme.accent).fontSize(10).font('body');
-  txt(doc, state.title, ML, 32, { width: CW, lineBreak: false }, state.lang);
+    // System name — centered, white, bold, 14 pt
+    doc.fillColor('#ffffff').fontSize(14).font('bold');
+    txt(doc, L.systemName, ML, 10, { width: CW, align: 'center', lineBreak: false }, state.lang);
 
-  // Generated-by line
-  const metaText = `${L.generatedBy}: ${state.user?.fullName || '—'}  ·  ${fmtDateTime(new Date())}`;
-  doc.fillColor('#cccccc').fontSize(7).font('body');
-  txt(doc, metaText, ML, 52, { width: CW, align: isRtl ? 'right' : 'left', lineBreak: false }, state.lang);
+    // Thin gold decorative divider line
+    doc.moveTo(ML + 60, 30)
+       .lineTo(A4W - MR - 60, 30)
+       .lineWidth(0.7)
+       .stroke(GOLD);
 
-  // Page number (top-right for LTR, top-left for RTL)
-  const pageText = `${L.page} ${state.pageNum}`;
-  doc.fillColor('#aaaaaa').fontSize(7).font('body');
-  txt(doc, pageText, ML, 68, { width: CW, align: isRtl ? 'left' : 'right', lineBreak: false }, state.lang);
+    // Report title — centered, gold, bold, 11 pt
+    doc.fillColor('#f5d78e').fontSize(11).font('bold');
+    txt(doc, state.title, ML, 33, { width: CW, align: 'center', lineBreak: false }, state.lang);
+
+    // Generated-by + timestamp — centered, light gray, 7 pt
+    const metaText = `${L.generatedBy}: ${state.user && state.user.fullName ? state.user.fullName : '—'}  ·  ${fmtDateTime(new Date())}`;
+    doc.fillColor('#cccccc').fontSize(7).font('body');
+    txt(doc, metaText, ML, 53, { width: CW, align: 'center', lineBreak: false }, state.lang);
+
+    // Page number — left side (RTL convention), 7 pt
+    const pageText = `${L.page} ${state.pageNum}`;
+    doc.fillColor('#aaaaaa').fontSize(7).font('body');
+    txt(doc, pageText, ML, 67, { width: CW, align: 'left', lineBreak: false }, state.lang);
+
+    // Gold bottom stripe (5 pt)
+    doc.rect(0, HEADER_H - 5, A4W, 5).fill(GOLD);
+
+  } else {
+    // ── English: original coloured band ─────────────────────────────────────
+
+    // Background band
+    doc.rect(0, 0, A4W, HEADER_H).fill(theme.header);
+
+    // Thin accent stripe
+    doc.rect(0, HEADER_H - 4, A4W, 4).fill(theme.accent + '44');
+
+    // System name (large)
+    doc.fillColor('#ffffff').fontSize(13).font('bold');
+    txt(doc, L.systemName, ML, 12, { width: CW, lineBreak: false }, state.lang);
+
+    // Report title
+    doc.fillColor(theme.accent).fontSize(10).font('body');
+    txt(doc, state.title, ML, 32, { width: CW, lineBreak: false }, state.lang);
+
+    // Generated-by line
+    const metaText = `${L.generatedBy}: ${state.user && state.user.fullName ? state.user.fullName : '—'}  ·  ${fmtDateTime(new Date())}`;
+    doc.fillColor('#cccccc').fontSize(7).font('body');
+    txt(doc, metaText, ML, 52, { width: CW, align: 'left', lineBreak: false }, state.lang);
+
+    // Page number (top-right)
+    const pageText = `${L.page} ${state.pageNum}`;
+    doc.fillColor('#aaaaaa').fontSize(7).font('body');
+    txt(doc, pageText, ML, 68, { width: CW, align: 'right', lineBreak: false }, state.lang);
+  }
 
   // Reset cursor
   doc.fillColor(BRAND.text).font('body').fontSize(9);
 }
 
 // ── Page footer ────────────────────────────────────────────────────────────
+/**
+ * Arabic formal style: gold separator line (1.5 pt) + secondary thin line.
+ * English style: original single thin line.
+ */
 function drawFooter(doc, state) {
-  const L    = LABELS[state.lang];
+  const L     = LABELS[state.lang];
+  const isRtl = state.lang === 'ar';
   const lineY = A4H - FOOTER_H;
 
-  doc.moveTo(ML, lineY).lineTo(A4W - MR, lineY)
-    .lineWidth(0.5).stroke(BRAND.line);
+  if (isRtl) {
+    // Gold separator (1.5 pt)
+    doc.moveTo(ML, lineY).lineTo(A4W - MR, lineY)
+      .lineWidth(1.5).stroke(GOLD);
+    // Secondary thin line (0.3 pt), 3 pt below
+    doc.moveTo(ML, lineY + 3).lineTo(A4W - MR, lineY + 3)
+      .lineWidth(0.3).stroke(BRAND.line);
 
-  doc.fillColor(BRAND.muted).fontSize(7).font('body');
-  const footText = `${L.systemName}  ·  ${L.page} ${state.pageNum}  ·  ${L.confidential}`;
-  txt(doc, footText, ML, lineY + 6, { width: CW, align: 'center', lineBreak: false }, state.lang);
+    doc.fillColor(BRAND.muted).fontSize(7).font('body');
+    const footText = `${L.systemName}  ·  ${L.page} ${state.pageNum}  ·  ${L.confidential}`;
+    txt(doc, footText, ML, lineY + 7, { width: CW, align: 'center', lineBreak: false }, state.lang);
+
+    // Bottom thin border line
+    doc.moveTo(ML, lineY + 21).lineTo(A4W - MR, lineY + 21)
+      .lineWidth(0.3).stroke(BRAND.line);
+  } else {
+    doc.moveTo(ML, lineY).lineTo(A4W - MR, lineY)
+      .lineWidth(0.5).stroke(BRAND.line);
+
+    doc.fillColor(BRAND.muted).fontSize(7).font('body');
+    const footText = `${L.systemName}  ·  ${L.page} ${state.pageNum}  ·  ${L.confidential}`;
+    txt(doc, footText, ML, lineY + 6, { width: CW, align: 'center', lineBreak: false }, state.lang);
+  }
 }
 
 // ── Section heading bar ────────────────────────────────────────────────────
 /**
  * Draw a full-width colored heading bar.
+ * Arabic formal style: adds a gold right-side accent strip (4 pt) + subtle outer border.
  * @returns {number} new y position (below the bar)
  */
 function drawSection(doc, title, y, state) {
-  const BAR_H = 18;
+  const BAR_H   = 18;
+  const isRtl   = state.lang === 'ar';
+  const STRIP_W = 4; // gold accent strip width (Arabic only)
+
+  // Main coloured bar
   doc.rect(ML, y, CW, BAR_H).fill(state.theme.table);
+
+  if (isRtl) {
+    // Gold accent strip on the right edge
+    doc.rect(A4W - MR - STRIP_W, y, STRIP_W, BAR_H).fill(GOLD);
+    // Subtle outer border for formality
+    doc.rect(ML, y, CW, BAR_H).lineWidth(0.5).stroke('#00000022');
+  }
+
   doc.fillColor('#ffffff').fontSize(9).font('bold');
-  txt(doc, title, ML + 6, y + 5, { width: CW - 12, lineBreak: false }, state.lang);
+  // Shrink text width slightly to avoid overlapping the gold strip
+  const textW = isRtl ? CW - 12 - STRIP_W : CW - 12;
+  txt(doc, title, ML + 6, y + 5, { width: textW, lineBreak: false }, state.lang);
+
   doc.fillColor(BRAND.text).font('body').fontSize(9);
   return y + BAR_H + 6;
 }
@@ -407,6 +499,7 @@ function drawSection(doc, title, y, state) {
 // ── KPI cards row ──────────────────────────────────────────────────────────
 /**
  * Draw a row of metric cards.
+ * Arabic formal style: gold top stripe (3 pt) + subtle outer border on each card.
  * @param {Array<{label:string, value:string|number, color?:string}>} items
  * @returns {number} new y position
  */
@@ -416,9 +509,10 @@ function drawKpiCards(doc, items, y, state) {
   const n      = items.length;
   const cardW  = (CW - GAP * (n - 1)) / n;
   const theme  = state.theme;
+  const isRtl  = state.lang === 'ar';
 
   // RTL: reverse visual order so "first" KPI is on the right
-  const vis = state.lang === 'ar' ? [...items].reverse() : items;
+  const vis = isRtl ? [...items].reverse() : items;
 
   vis.forEach((item, i) => {
     const cx = ML + i * (cardW + GAP);
@@ -426,8 +520,15 @@ function drawKpiCards(doc, items, y, state) {
     // Card fill
     doc.rect(cx, y, cardW, CARD_H).fill(item.color || theme.kpi);
 
-    // Gold accent stripe at top
-    doc.rect(cx, y, cardW, 3).fillOpacity(0.4).fill('#ffffff').fillOpacity(1);
+    if (isRtl) {
+      // Gold top stripe (formal style)
+      doc.rect(cx, y, cardW, 3).fill(GOLD);
+      // Subtle border for definition
+      doc.rect(cx, y, cardW, CARD_H).lineWidth(0.5).stroke('#00000033');
+    } else {
+      // Original: semi-transparent white stripe
+      doc.rect(cx, y, cardW, 3).fillOpacity(0.4).fill('#ffffff').fillOpacity(1);
+    }
 
     // Value
     doc.fillColor('#ffffff').fontSize(18).font('bold');
@@ -452,9 +553,11 @@ function drawKpiCards(doc, items, y, state) {
  * physically-rightmost column is logically "first".  Column widths are
  * reversed in the same way so proportions are preserved.
  *
- * @param {string[]}   headers   - logical order (LTR: left→right / RTL: right→left)
+ * Arabic formal style: full-grid vertical column dividers on every row.
+ *
+ * @param {string[]}   headers   - logical order (LTR: left to right / RTL: right to left)
  * @param {Array[]}    rows      - array of cell arrays, same logical order
- * @param {number[]}   colWidths - matching widths (must sum to ≤ CW)
+ * @param {number[]}   colWidths - matching widths (must sum to <= CW)
  * @returns {number} new y position
  */
 function drawTable(doc, headers, rows, colWidths, y, state) {
@@ -467,8 +570,27 @@ function drawTable(doc, headers, rows, colWidths, y, state) {
   const visH  = isRtl ? [...headers].reverse()   : headers;
   const visCW = isRtl ? [...colWidths].reverse() : colWidths;
 
+  /** Draw vertical column divider lines across a single row (Arabic formal style). */
+  function drawColDividers(ty, rowH, strokeColor) {
+    let sx = ML;
+    visCW.forEach((w) => {
+      doc.moveTo(sx, ty).lineTo(sx, ty + rowH)
+        .lineWidth(0.4).stroke(strokeColor);
+      sx += w;
+    });
+    // Right outer border
+    doc.moveTo(sx, ty).lineTo(sx, ty + rowH)
+      .lineWidth(0.4).stroke(strokeColor);
+  }
+
   function renderHeader(ty) {
     doc.rect(ML, ty, totalW, ROW_H).fill(theme.table);
+
+    if (isRtl) {
+      // Semi-transparent white dividers inside the header row
+      drawColDividers(ty, ROW_H, '#ffffff55');
+    }
+
     let x = ML;
     visH.forEach((h, i) => {
       const hs = state.lang === 'ar' ? fixBidiForRtl(h) : String(h ?? '');
@@ -495,6 +617,11 @@ function drawTable(doc, headers, rows, colWidths, y, state) {
     const bg = ri % 2 === 0 ? BRAND.white : BRAND.surface;
     doc.rect(ML, y, totalW, ROW_H).fill(bg);
     doc.rect(ML, y, totalW, ROW_H).lineWidth(0.4).stroke(BRAND.line);
+
+    if (isRtl) {
+      // Vertical column dividers for full-grid appearance (Arabic formal)
+      drawColDividers(y, ROW_H, BRAND.line);
+    }
 
     const visRow = isRtl ? [...row].reverse() : row;
     let x = ML;
@@ -523,8 +650,8 @@ function drawTable(doc, headers, rows, colWidths, y, state) {
 // ── Date range subtitle ────────────────────────────────────────────────────
 function drawDateRange(doc, dr, y, state) {
   const L     = LABELS[state.lang];
-  const start = dr?.startDate ? fmtDate(dr.startDate) : L.allTime;
-  const end   = dr?.endDate   ? fmtDate(dr.endDate)   : L.allTime;
+  const start = dr && dr.startDate ? fmtDate(dr.startDate) : L.allTime;
+  const end   = dr && dr.endDate   ? fmtDate(dr.endDate)   : L.allTime;
   const text  = `${L.period}: ${start} — ${end}`;
   doc.fillColor(BRAND.muted).fontSize(8).font('body');
   txt(doc, text, ML, y, { width: CW, lineBreak: false }, state.lang);
@@ -554,7 +681,7 @@ module.exports = {
   A4W, A4H, ML, MR, CW,
   HEADER_H, FOOTER_H, CONTENT_TOP, PAGE_BOTTOM,
   // palettes
-  BRAND, THEMES, LABELS,
+  BRAND, THEMES, LABELS, GOLD,
   // text utilities
   fixBidiForRtl, fmtDate, fmtDateTime, fmtMoney, clip, txt,
   // document setup
