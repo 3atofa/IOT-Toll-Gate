@@ -1,9 +1,10 @@
 import { CommonModule, DatePipe } from '@angular/common';
-import { Component, OnInit, HostListener } from '@angular/core';
+import { Component, OnInit, HostListener, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { IncidentApiService } from '../../core/services/incident-api.service';
 import { TechnicianApiService } from '../../core/services/technician-api.service';
 import { FeedbackService } from '../../core/services/feedback.service';
+import { I18nService } from '../../core/services/i18n.service';
 import { Incident, IncidentSeverity, IncidentStatus, CreateIncidentDto } from '../../core/models/incident.model';
 import { Technician } from '../../core/models/technician.model';
 
@@ -14,6 +15,8 @@ import { Technician } from '../../core/models/technician.model';
   templateUrl: './incidents.component.html',
 })
 export class IncidentsComponent implements OnInit {
+  readonly i18n = inject(I18nService);
+
   incidents: Incident[] = [];
   technicians: Technician[] = [];
   loading = false;
@@ -61,9 +64,9 @@ export class IncidentsComponent implements OnInit {
 
   @HostListener('document:keydown.escape')
   onEscape(): void {
-    this.showFormModal   = false;
-    this.showDetailModal = false;
-    this.showAssignModal = false;
+    this.showFormModal    = false;
+    this.showDetailModal  = false;
+    this.showAssignModal  = false;
     this.showResolveModal = false;
   }
 
@@ -75,11 +78,11 @@ export class IncidentsComponent implements OnInit {
       search:   this.filterSearch   || undefined,
     }).subscribe({
       next:  (data) => { this.incidents = data; this.loading = false; },
-      error: () => { this.feedback.errorToast('Failed to load incidents'); this.loading = false; },
+      error: () => { this.feedback.errorToast(this.i18n.t('incidents.loadFailed')); this.loading = false; },
     });
   }
 
-  // ── Create / Edit ───────────────────────────────────────────────
+  // ── Create / Edit ────────────────────────────────────────────────
   openCreate(): void {
     this.editingId = null;
     this.formData  = this.emptyForm();
@@ -98,7 +101,7 @@ export class IncidentsComponent implements OnInit {
 
   saveForm(): void {
     if (!this.formData.title || !this.formData.gateId) {
-      this.feedback.errorToast('Title and Gate ID are required');
+      this.feedback.errorToast(this.i18n.t('incidents.titleRequired'));
       return;
     }
     const obs = this.editingId
@@ -107,22 +110,22 @@ export class IncidentsComponent implements OnInit {
     obs.subscribe({
       next: () => {
         this.showFormModal = false;
-        this.feedback.successToast(this.editingId ? 'Incident updated' : 'Incident created');
+        this.feedback.successToast(this.i18n.t(this.editingId ? 'incidents.updated' : 'incidents.created'));
         this.load();
       },
-      error: () => this.feedback.errorToast('Failed to save incident'),
+      error: () => this.feedback.errorToast(this.i18n.t('incidents.saveFailed')),
     });
   }
 
-  // ── Detail view ─────────────────────────────────────────────────
+  // ── Detail view ──────────────────────────────────────────────────
   openDetail(id: string): void {
     this.incidentApi.getById(id).subscribe({
       next: (inc) => { this.detailIncident = inc; this.showDetailModal = true; },
-      error: () => this.feedback.errorToast('Failed to load incident details'),
+      error: () => this.feedback.errorToast(this.i18n.t('incidents.loadDetailFailed')),
     });
   }
 
-  // ── Assign technician ───────────────────────────────────────────
+  // ── Assign technician ────────────────────────────────────────────
   openAssign(incidentId: string): void {
     this.assignIncidentId = incidentId;
     this.assignTechId = '';
@@ -136,23 +139,23 @@ export class IncidentsComponent implements OnInit {
     this.incidentApi.assign(this.assignIncidentId, this.assignTechId, this.assignNotes).subscribe({
       next: () => {
         this.showAssignModal = false;
-        this.assignLoading = false;
-        this.feedback.successToast('Technician assigned');
+        this.assignLoading   = false;
+        this.feedback.successToast(this.i18n.t('incidents.techAssigned'));
         this.load();
       },
       error: (err) => {
         this.assignLoading = false;
-        this.feedback.errorToast(err?.error?.error || 'Failed to assign');
+        this.feedback.errorToast(err?.error?.error || this.i18n.t('incidents.assignFailed'));
       },
     });
   }
 
-  // ── Resolve ─────────────────────────────────────────────────────
+  // ── Resolve ──────────────────────────────────────────────────────
   openResolve(incidentId: string, currentCost: number = 0): void {
-    this.resolveIncidentId = incidentId;
-    this.resolveNotes = '';
-    this.resolveRepairCost = currentCost;
-    this.showResolveModal = true;
+    this.resolveIncidentId  = incidentId;
+    this.resolveNotes       = '';
+    this.resolveRepairCost  = currentCost;
+    this.showResolveModal   = true;
   }
 
   doResolve(): void {
@@ -164,44 +167,64 @@ export class IncidentsComponent implements OnInit {
     }).subscribe({
       next: () => {
         this.showResolveModal = false;
-        this.feedback.successToast('Incident resolved');
+        this.feedback.successToast(this.i18n.t('incidents.incidentResolved'));
         this.load();
       },
-      error: () => this.feedback.errorToast('Failed to resolve incident'),
+      error: () => this.feedback.errorToast(this.i18n.t('incidents.resolveFailed')),
     });
   }
 
-  // ── Delete ──────────────────────────────────────────────────────
+  // ── Delete ───────────────────────────────────────────────────────
   deleteIncident(id: string): void {
-    if (!confirm('Delete this incident? This cannot be undone.')) return;
+    if (!confirm(this.i18n.t('incidents.deleteConfirm'))) return;
     this.incidentApi.delete(id).subscribe({
-      next: () => { this.feedback.successToast('Incident deleted'); this.load(); },
-      error: () => this.feedback.errorToast('Failed to delete incident'),
+      next:  () => { this.feedback.successToast(this.i18n.t('incidents.deleted')); this.load(); },
+      error: () => this.feedback.errorToast(this.i18n.t('incidents.deleteFailed')),
     });
   }
 
-  // ── Helpers ─────────────────────────────────────────────────────
+  // ── Helpers ──────────────────────────────────────────────────────
   emptyForm(): CreateIncidentDto & { status?: IncidentStatus; resolutionNotes?: string } {
     return { title: '', description: '', gateId: '', severity: 'medium', status: 'open', reportedBy: '', repairCost: 0, resolutionNotes: '' };
   }
 
   severityClass(s: IncidentSeverity): string {
     const map: Record<IncidentSeverity, string> = {
-      low: 'bg-blue-100 text-blue-700', medium: 'bg-amber-100 text-amber-700',
-      high: 'bg-orange-100 text-orange-700', critical: 'bg-red-100 text-red-700',
+      low: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+      medium: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+      high: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300',
+      critical: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
     };
     return map[s] ?? 'bg-slate-100 text-slate-600';
   }
 
   statusClass(s: IncidentStatus): string {
     const map: Record<IncidentStatus, string> = {
-      open: 'bg-red-100 text-red-700', in_progress: 'bg-amber-100 text-amber-700', resolved: 'bg-emerald-100 text-emerald-700',
+      open: 'bg-red-100 text-red-700',
+      in_progress: 'bg-amber-100 text-amber-700',
+      resolved: 'bg-emerald-100 text-emerald-700',
     };
     return map[s] ?? 'bg-slate-100 text-slate-600';
   }
 
-  get filteredIncidents(): Incident[] { return this.incidents; }
+  sevLabel(s: IncidentSeverity): string {
+    const map: Record<IncidentSeverity, string> = {
+      low: 'incidents.sev.low', medium: 'incidents.sev.medium',
+      high: 'incidents.sev.high', critical: 'incidents.sev.critical',
+    };
+    return this.i18n.t(map[s] ?? s);
+  }
 
+  statusLabel(s: IncidentStatus): string {
+    const map: Record<IncidentStatus, string> = {
+      open: 'incidents.status.open',
+      in_progress: 'incidents.status.inProgress',
+      resolved: 'incidents.status.resolved',
+    };
+    return this.i18n.t(map[s] ?? s);
+  }
+
+  get filteredIncidents(): Incident[] { return this.incidents; }
   get openCount(): number       { return this.incidents.filter(i => i.status === 'open').length; }
   get inProgressCount(): number { return this.incidents.filter(i => i.status === 'in_progress').length; }
   get resolvedCount(): number   { return this.incidents.filter(i => i.status === 'resolved').length; }
