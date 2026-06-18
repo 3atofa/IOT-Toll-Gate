@@ -61,7 +61,7 @@ const Gate = sequelize.define('Gate', {
   tollFeePerPass: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false,
-    defaultValue: 5.00,
+    defaultValue: 30.00,
     comment: 'Fee charged per access_granted event at this gate',
   },
 }, {

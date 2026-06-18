@@ -20,7 +20,7 @@ const { initSocket } = require('./services/socket.service');
 const PENDING_COLUMNS = [
   // gates table (camelCase — Gate model has no underscored:true)
   ['gates', 'pendingCommand',    { type: DataTypes.STRING(10), allowNull: true, defaultValue: 'none' }],
-  ['gates', 'tollFeePerPass',    { type: DataTypes.DECIMAL(10, 2), allowNull: false, defaultValue: 5.00 }],
+  ['gates', 'tollFeePerPass',    { type: DataTypes.DECIMAL(10, 2), allowNull: false, defaultValue: 30.00 }],
   // incidents table (camelCase — Incident model has no underscored:true)
   ['incidents', 'reportedBy',       { type: DataTypes.STRING, allowNull: true }],
   ['incidents', 'repairCost',       { type: DataTypes.DECIMAL(10, 2), allowNull: true, defaultValue: 0.00 }],

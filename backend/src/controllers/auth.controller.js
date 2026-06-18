@@ -3,6 +3,58 @@ const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
 const { User } = require('../models');
 
+// ── Per-IP brute-force protection ─────────────────────────────────────────────
+const _loginAttempts = new Map(); // ip → { count, resetAt, blockedUntil }
+const MAX_FAILS    = 5;
+const WINDOW_MS    = 10 * 60 * 1000; // 10-min rolling window
+const LOCKOUT_MS   = 15 * 60 * 1000; // 15-min lockout after MAX_FAILS
+
+const _getIp = (req) => {
+  const fwd = req.headers['x-forwarded-for'];
+  return fwd ? String(fwd).split(',')[0].trim() : (req.socket?.remoteAddress || req.ip || 'unknown');
+};
+
+const _checkRateLimit = (req, res) => {
+  const ip  = _getIp(req);
+  const now = Date.now();
+  const r   = _loginAttempts.get(ip);
+
+  if (r?.blockedUntil && now < r.blockedUntil) {
+    const secs = Math.ceil((r.blockedUntil - now) / 1000);
+    res.status(429).json({
+      message: `Too many failed login attempts. Try again in ${Math.ceil(secs / 60)} minute(s).`,
+      retryAfterSeconds: secs,
+    });
+    return false;
+  }
+  return true;
+};
+
+const _recordFail = (req) => {
+  const ip  = _getIp(req);
+  const now = Date.now();
+  let r = _loginAttempts.get(ip);
+
+  if (!r || now > r.resetAt) {
+    r = { count: 0, resetAt: now + WINDOW_MS, blockedUntil: null };
+  }
+  r.count += 1;
+  if (r.count >= MAX_FAILS) r.blockedUntil = now + LOCKOUT_MS;
+  _loginAttempts.set(ip, r);
+};
+
+const _clearFails = (req) => { _loginAttempts.delete(_getIp(req)); };
+
+// Purge expired entries every hour to prevent unbounded memory growth
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, r] of _loginAttempts) {
+    if (now > r.resetAt && (!r.blockedUntil || now > r.blockedUntil)) {
+      _loginAttempts.delete(ip);
+    }
+  }
+}, 60 * 60 * 1000);
+
 const sanitizeUser = (user) => ({
   id: user.id,
   fullName: user.fullName,
@@ -24,6 +76,8 @@ const signToken = (user) => {
 };
 
 const login = async (req, res, next) => {
+  if (!_checkRateLimit(req, res)) return;
+
   try {
     const email = String(req.body.email || '').trim().toLowerCase();
     const password = String(req.body.password || '');
@@ -37,14 +91,17 @@ const login = async (req, res, next) => {
     });
 
     if (!user || !user.isActive) {
+      _recordFail(req);
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
     const matches = await bcrypt.compare(password, user.passwordHash);
     if (!matches) {
+      _recordFail(req);
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
+    _clearFails(req);
     await user.update({ lastLoginAt: new Date() });
     const token = signToken(user);
 

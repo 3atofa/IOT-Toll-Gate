@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, OnDestroy, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
@@ -229,17 +229,21 @@ import { TranslatePipe } from '../../core/pipes/translate.pipe';
             <!-- submit -->
             <button
               type="submit"
-              [disabled]="loading"
+              [disabled]="loading || isLockedOut"
               class="w-full rounded-xl font-bold py-3 text-sm text-white transition mt-2 flex items-center justify-center gap-2"
-              style="background:linear-gradient(135deg,#1d4ed8,#0ea5e9)"
-              [style.opacity]="loading ? '0.7' : '1'"
-              [style.cursor]="loading ? 'not-allowed' : 'pointer'"
+              [style.background]="isLockedOut ? '#dc2626' : 'linear-gradient(135deg,#1d4ed8,#0ea5e9)'"
+              [style.opacity]="(loading || isLockedOut) ? '0.75' : '1'"
+              [style.cursor]="(loading || isLockedOut) ? 'not-allowed' : 'pointer'"
             >
-              <ng-container *ngIf="!loading">
+              <ng-container *ngIf="isLockedOut">
+                <i class="fas fa-lock text-xs"></i>
+                <span>Locked — {{ lockedOutSecs() }}s</span>
+              </ng-container>
+              <ng-container *ngIf="!isLockedOut && !loading">
                 <i class="fas fa-right-to-bracket text-xs"></i>
                 <span>{{ 'app.signIn' | t }}</span>
               </ng-container>
-              <ng-container *ngIf="loading">
+              <ng-container *ngIf="!isLockedOut && loading">
                 <svg class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
@@ -279,13 +283,16 @@ import { TranslatePipe } from '../../core/pipes/translate.pipe';
     </div>
   `,
 })
-export class LoginComponent {
+export class LoginComponent implements OnDestroy {
   email    = 'admin@tollgate.iot';
   password = 'Admin@123456';
   loading  = false;
   year     = new Date().getFullYear();
 
-  showPassword = signal(false);
+  showPassword   = signal(false);
+  lockedOutSecs  = signal(0);
+
+  private _countdownTimer: ReturnType<typeof setInterval> | null = null;
 
   readonly i18n  = inject(I18nService);
   readonly theme = inject(ThemeService);
@@ -296,7 +303,29 @@ export class LoginComponent {
     private readonly feedback: FeedbackService,
   ) {}
 
+  ngOnDestroy(): void {
+    if (this._countdownTimer) clearInterval(this._countdownTimer);
+  }
+
+  get isLockedOut(): boolean { return this.lockedOutSecs() > 0; }
+
+  private _startCountdown(seconds: number): void {
+    if (this._countdownTimer) clearInterval(this._countdownTimer);
+    this.lockedOutSecs.set(seconds);
+    this._countdownTimer = setInterval(() => {
+      const remaining = this.lockedOutSecs() - 1;
+      if (remaining <= 0) {
+        this.lockedOutSecs.set(0);
+        clearInterval(this._countdownTimer!);
+        this._countdownTimer = null;
+      } else {
+        this.lockedOutSecs.set(remaining);
+      }
+    }, 1000);
+  }
+
   submit(): void {
+    if (this.isLockedOut || this.loading) return;
     if (!this.email || !this.password) {
       this.feedback.errorToast(this.i18n.t('login.requiredError'));
       return;
@@ -313,8 +342,14 @@ export class LoginComponent {
       },
       error: (error) => {
         this.loading = false;
-        const message = error?.error?.message || this.i18n.t('login.failed');
-        this.feedback.errorToast(message, this.i18n.t('login.authError'));
+        if (error?.status === 429) {
+          const secs = error?.error?.retryAfterSeconds ?? 900;
+          this._startCountdown(secs);
+          this.feedback.errorToast(error?.error?.message, 'Too many attempts');
+        } else {
+          const message = error?.error?.message || this.i18n.t('login.failed');
+          this.feedback.errorToast(message, this.i18n.t('login.authError'));
+        }
       },
     });
   }
