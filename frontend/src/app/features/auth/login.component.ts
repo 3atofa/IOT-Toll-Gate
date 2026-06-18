@@ -253,25 +253,7 @@ import { TranslatePipe } from '../../core/pipes/translate.pipe';
             </button>
           </form>
 
-          <!-- demo credentials -->
-          <div class="mt-5 rounded-xl p-3.5 text-xs"
-               [style.background]="theme.isDark() ? 'rgba(255,255,255,.04)' : '#f1f5f9'"
-               [style.border]="theme.isDark() ? '1px solid rgba(255,255,255,.07)' : '1px solid #e2e8f0'">
-            <div class="flex items-center gap-2 mb-2">
-              <i class="fas fa-circle-info" style="color:#3b82f6;font-size:11px"></i>
-              <span class="font-bold" [style.color]="theme.isDark() ? '#94a3b8' : '#475569'">{{ 'login.demoTitle' | t }}</span>
-            </div>
-            <div class="space-y-1" [style.color]="theme.isDark() ? '#64748b' : '#64748b'">
-              <div class="flex items-center gap-2">
-                <i class="fas fa-at text-xs w-3"></i>
-                <span class="font-mono">admin&#64;tollgate.iot</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <i class="fas fa-key text-xs w-3"></i>
-                <span class="font-mono">Admin&#64;123456</span>
-              </div>
-            </div>
-          </div>
+          
 
           <!-- footer -->
           <p class="text-center text-xs mt-5" style="color:#475569">
