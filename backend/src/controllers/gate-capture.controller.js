@@ -189,6 +189,23 @@ const getCaptures = async (req, res, next) => {
     if (req.query.hasCardUid === 'true')  where.cardUid = { [Op.ne]: null };
     if (req.query.hasCardUid === 'false') where.cardUid = null;
     if (req.query.gateId)                 where.gateId  = req.query.gateId;
+    if (req.query.eventType)              where.eventType = req.query.eventType;
+    if (req.query.securityDecision)       where.securityDecision = req.query.securityDecision;
+
+    if (req.query.plate) {
+      const term = String(req.query.plate).toUpperCase().trim();
+      where.plateText = { [Op.like]: `%${term}%` };
+    }
+
+    if (req.query.dateFrom || req.query.dateTo) {
+      where.capturedAt = {};
+      if (req.query.dateFrom) where.capturedAt[Op.gte] = new Date(req.query.dateFrom);
+      if (req.query.dateTo) {
+        const end = new Date(req.query.dateTo);
+        end.setHours(23, 59, 59, 999);
+        where.capturedAt[Op.lte] = end;
+      }
+    }
 
     const result = await GateCapture.findAndCountAll({
       where,

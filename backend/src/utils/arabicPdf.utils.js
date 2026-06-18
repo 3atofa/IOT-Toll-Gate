@@ -144,12 +144,12 @@ const GOLD = '#c8a84b';
 
 // ── Per-report color themes ────────────────────────────────────────────────
 const THEMES = {
-  summary:   { header: '#1e3a8a', accent: '#bfdbfe', table: '#1d4ed8', kpi: '#1d4ed8', kpiAlt: '#2563eb' },
-  traffic:   { header: '#0c4a6e', accent: '#bae6fd', table: '#0369a1', kpi: '#0891b2', kpiAlt: '#0284c7' },
-  security:  { header: '#7f1d1d', accent: '#fecaca', table: '#b91c1c', kpi: '#dc2626', kpiAlt: '#ef4444' },
-  alpr:      { header: '#4c1d95', accent: '#ddd6fe', table: '#6d28d9', kpi: '#7c3aed', kpiAlt: '#8b5cf6' },
-  financial: { header: '#14532d', accent: '#bbf7d0', table: '#15803d', kpi: '#059669', kpiAlt: '#10b981' },
-  incidents: { header: '#78350f', accent: '#fde68a', table: '#b45309', kpi: '#d97706', kpiAlt: '#f59e0b' },
+  summary:   { header: '#0f172a', accent: '#93c5fd', table: '#1e3a8a', kpi: '#1d4ed8', kpiAlt: '#2563eb' },
+  traffic:   { header: '#0c2a45', accent: '#bae6fd', table: '#0c4a6e', kpi: '#0369a1', kpiAlt: '#0284c7' },
+  security:  { header: '#1a0808', accent: '#fca5a5', table: '#7f1d1d', kpi: '#991b1b', kpiAlt: '#b91c1c' },
+  alpr:      { header: '#1e1b4b', accent: '#c4b5fd', table: '#4c1d95', kpi: '#5b21b6', kpiAlt: '#6d28d9' },
+  financial: { header: '#052e16', accent: '#86efac', table: '#14532d', kpi: '#15803d', kpiAlt: '#16a34a' },
+  incidents: { header: '#1c0a00', accent: '#fde68a', table: '#78350f', kpi: '#92400e', kpiAlt: '#b45309' },
 };
 
 // ── Bilingual label dictionary ─────────────────────────────────────────────
@@ -516,29 +516,34 @@ function drawKpiCards(doc, items, y, state) {
 
   vis.forEach((item, i) => {
     const cx = ML + i * (cardW + GAP);
-
-    // Card fill
-    doc.rect(cx, y, cardW, CARD_H).fill(item.color || theme.kpi);
+    const accentColor = item.color || theme.kpi;
 
     if (isRtl) {
-      // Gold top stripe (formal style)
+      // Arabic formal: solid colored card with gold top stripe
+      doc.rect(cx, y, cardW, CARD_H).fill(accentColor);
       doc.rect(cx, y, cardW, 3).fill(GOLD);
-      // Subtle border for definition
       doc.rect(cx, y, cardW, CARD_H).lineWidth(0.5).stroke('#00000033');
+
+      doc.fillColor('#ffffff').fontSize(18).font('bold');
+      doc.text(String(item.value), cx + 4, y + 10,
+        { width: cardW - 8, align: 'center', lineBreak: false });
+      doc.fillColor('#ffffffcc').fontSize(7).font('body');
+      txt(doc, item.label, cx + 4, y + 35,
+        { width: cardW - 8, align: 'center', lineBreak: false }, state.lang);
     } else {
-      // Original: semi-transparent white stripe
-      doc.rect(cx, y, cardW, 3).fillOpacity(0.4).fill('#ffffff').fillOpacity(1);
+      // English: white card with colored left accent strip
+      const STRIP = 4;
+      doc.rect(cx, y, cardW, CARD_H).fill(BRAND.white);
+      doc.rect(cx, y, cardW, CARD_H).lineWidth(0.5).stroke(BRAND.line);
+      doc.rect(cx, y, STRIP, CARD_H).fill(accentColor);
+
+      doc.fillColor(BRAND.text).fontSize(18).font('bold');
+      doc.text(String(item.value), cx + STRIP + 4, y + 10,
+        { width: cardW - STRIP - 8, align: 'center', lineBreak: false });
+      doc.fillColor(BRAND.muted).fontSize(7).font('body');
+      txt(doc, item.label, cx + STRIP + 4, y + 35,
+        { width: cardW - STRIP - 8, align: 'center', lineBreak: false }, state.lang);
     }
-
-    // Value
-    doc.fillColor('#ffffff').fontSize(18).font('bold');
-    doc.text(String(item.value), cx + 4, y + 10,
-      { width: cardW - 8, align: 'center', lineBreak: false });
-
-    // Label (via txt() for Arabic shaping)
-    doc.fillColor('#ffffffcc').fontSize(7).font('body');
-    txt(doc, item.label, cx + 4, y + 35,
-      { width: cardW - 8, align: 'center', lineBreak: false }, state.lang);
   });
 
   doc.fillColor(BRAND.text).font('body').fontSize(9);

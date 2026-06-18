@@ -128,11 +128,7 @@ import { SecurityAlert } from '../models/security.model';
             <span class="nav-label">{{ 'nav.users' | t }}</span>
             <span class="nav-indicator"></span>
           </a>
-          <a routerLink="/settings" routerLinkActive="nav-active" (click)="closeDrawer()" class="sidebar-nav-item">
-            <span class="nav-icon" style="background: rgba(148,163,184,0.1); color: #94a3b8"><i class="fas fa-cog"></i></span>
-            <span class="nav-label">{{ 'nav.settings' | t }}</span>
-            <span class="nav-indicator"></span>
-          </a>
+         
         </nav>
 
         <!-- User footer -->

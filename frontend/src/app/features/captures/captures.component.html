@@ -1,21 +1,144 @@
-﻿<section class="min-h-full bg-slate-100 p-3 sm:p-5 md:p-8 page-enter">
-  <div class="mx-auto max-w-6xl">
+<section class="min-h-full bg-slate-100 p-3 sm:p-5 md:p-8 page-enter">
+  <div class="mx-auto max-w-6xl space-y-4">
 
     <!-- Page header -->
-    <div class="tg-card p-4 sm:p-6 mb-4 sm:mb-6">
+    <div class="tg-card p-4 sm:p-6">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-0.5">{{ 'captures.title' | t }}</p>
           <h1 class="text-xl sm:text-2xl font-black text-slate-900">{{ 'captures.title' | t }}</h1>
+          <p class="text-sm text-slate-500 mt-0.5">{{ 'captures.subtitle' | t }}</p>
         </div>
-        <button type="button" (click)="loadCaptures()" class="tg-btn tg-btn-secondary text-sm">
-          <i class="fa-solid fa-arrows-rotate text-xs"></i>
+        <button type="button" (click)="loadCaptures()" [disabled]="loading"
+                class="tg-btn tg-btn-secondary text-sm gap-2">
+          <i class="fa-solid fa-arrows-rotate text-xs" [class.animate-spin]="loading"></i>
           <span>{{ 'common.refresh' | t }}</span>
         </button>
       </div>
     </div>
 
-    <!-- Skeleton rows -->
+    <!-- ── Search Panel ──────────────────────────────────────────── -->
+    <div class="tg-card overflow-hidden">
+      <!-- Panel header -->
+      <div class="flex items-center gap-2 px-5 py-3.5 border-b border-slate-100 bg-slate-50">
+        <i class="fa-solid fa-magnifying-glass text-blue-500 text-sm"></i>
+        <span class="text-sm font-bold text-slate-700">{{ 'captures.searchPanel' | t }}</span>
+        <span *ngIf="hasActiveSearch"
+              class="ms-auto text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
+          Active Filter
+        </span>
+      </div>
+
+      <div class="p-4 sm:p-5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+
+          <!-- Plate search -->
+          <div>
+            <label class="flex items-center gap-1.5 text-xs font-semibold text-slate-600 mb-1.5">
+              <i class="fa-solid fa-car text-slate-400 text-[10px]"></i>
+              {{ 'captures.plate' | t }}
+            </label>
+            <div class="relative">
+              <i class="fa-solid fa-car absolute start-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+              <input [(ngModel)]="draftPlate"
+                     [placeholder]="i18n.t('captures.platePlaceholder')"
+                     (keydown.enter)="applySearch()"
+                     class="tg-input ps-9 w-full" />
+            </div>
+          </div>
+
+          <!-- Event type -->
+          <div>
+            <label class="flex items-center gap-1.5 text-xs font-semibold text-slate-600 mb-1.5">
+              <i class="fa-solid fa-bolt text-slate-400 text-[10px]"></i>
+              {{ 'captures.event' | t }}
+            </label>
+            <div class="relative">
+              <i class="fa-solid fa-bolt absolute start-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+              <select [(ngModel)]="draftEventType" class="tg-input ps-9 w-full appearance-auto">
+                <option value="">{{ 'captures.allEvents' | t }}</option>
+                <option *ngFor="let et of eventTypes" [value]="et">{{ eventLabel(et) }}</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Security decision -->
+          <div>
+            <label class="flex items-center gap-1.5 text-xs font-semibold text-slate-600 mb-1.5">
+              <i class="fa-solid fa-shield-halved text-slate-400 text-[10px]"></i>
+              {{ 'captures.security' | t }}
+            </label>
+            <div class="relative">
+              <i class="fa-solid fa-shield-halved absolute start-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+              <select [(ngModel)]="draftSecurityDecision" class="tg-input ps-9 w-full appearance-auto">
+                <option value="">{{ 'captures.allDecisions' | t }}</option>
+                <option *ngFor="let d of secDecisions" [value]="d">{{ i18n.t('captures.dec.' + d) }}</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Gate ID -->
+          <div>
+            <label class="flex items-center gap-1.5 text-xs font-semibold text-slate-600 mb-1.5">
+              <i class="fa-solid fa-door-open text-slate-400 text-[10px]"></i>
+              {{ 'captures.gate' | t }}
+            </label>
+            <div class="relative">
+              <i class="fa-solid fa-door-open absolute start-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+              <input [(ngModel)]="draftGateId"
+                     placeholder="e.g. gate-1"
+                     (keydown.enter)="applySearch()"
+                     class="tg-input ps-9 w-full" />
+            </div>
+          </div>
+
+          <!-- Date from -->
+          <div>
+            <label class="flex items-center gap-1.5 text-xs font-semibold text-slate-600 mb-1.5">
+              <i class="fa-solid fa-calendar-days text-slate-400 text-[10px]"></i>
+              {{ 'captures.dateFrom' | t }}
+            </label>
+            <div class="relative">
+              <i class="fa-solid fa-calendar-days absolute start-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+              <input type="date" [(ngModel)]="draftDateFrom" class="tg-input ps-9 w-full" />
+            </div>
+          </div>
+
+          <!-- Date to -->
+          <div>
+            <label class="flex items-center gap-1.5 text-xs font-semibold text-slate-600 mb-1.5">
+              <i class="fa-solid fa-calendar-check text-slate-400 text-[10px]"></i>
+              {{ 'captures.dateTo' | t }}
+            </label>
+            <div class="relative">
+              <i class="fa-solid fa-calendar-check absolute start-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+              <input type="date" [(ngModel)]="draftDateTo" class="tg-input ps-9 w-full" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="flex items-center gap-2.5 mt-4 pt-4 border-t border-slate-100">
+          <button type="button" (click)="applySearch()" [disabled]="loading"
+                  class="tg-btn tg-btn-primary text-sm gap-2 px-6">
+            <i class="fa-solid fa-magnifying-glass text-xs"></i>
+            {{ 'captures.searchBtn' | t }}
+          </button>
+          <button type="button" (click)="resetSearch()" [disabled]="loading"
+                  class="tg-btn tg-btn-ghost text-sm gap-2">
+            <i class="fa-solid fa-xmark text-xs"></i>
+            {{ 'captures.resetBtn' | t }}
+          </button>
+          <span *ngIf="!loading && totalCount > 0" class="ms-auto text-xs text-slate-500">
+            {{ 'captures.showing' | t }} <strong class="text-slate-700">{{ pageFrom }}–{{ pageTo }}</strong>
+            {{ 'captures.of' | t }} <strong class="text-slate-700">{{ totalCount }}</strong>
+            {{ 'captures.totalRecords' | t }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Skeleton ─────────────────────────────────────────────── -->
     <div *ngIf="loading" class="tg-card p-6 space-y-4">
       <div class="skeleton h-4 w-32 mb-2"></div>
       <div *ngFor="let _ of [1,2,3,4,5,6]" class="flex gap-4 items-center">
@@ -30,7 +153,7 @@
       </div>
     </div>
 
-    <!-- Table -->
+    <!-- ── Table ────────────────────────────────────────────────── -->
     <div *ngIf="!loading" class="tg-card overflow-hidden">
       <div class="overflow-x-auto">
         <table class="tg-table min-w-[880px]">
@@ -44,7 +167,7 @@
               <th>{{ 'captures.security' | t }}</th>
               <th>{{ 'captures.gate' | t }}</th>
               <th>{{ 'captures.capturedAt' | t }}</th>
-              <th class="text-center">Actions</th>
+              <th class="text-center">{{ 'common.actions' | t }}</th>
             </tr>
           </thead>
           <tbody>
@@ -55,7 +178,14 @@
                      (click)="openDetails(item)"
                      class="h-14 w-20 rounded-lg object-cover ring-1 ring-slate-200 cursor-zoom-in hover:ring-2 hover:ring-blue-400 transition" />
               </td>
-              <td><span class="font-semibold text-slate-900">{{ item.eventType }}</span></td>
+              <!-- Event type -->
+              <td>
+                <span class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full"
+                      [ngClass]="eventClass(item.eventType)">
+                  {{ eventLabel(item.eventType) }}
+                </span>
+              </td>
+              <!-- Plate -->
               <td>
                 <div class="flex flex-col items-start gap-0.5">
                   <span class="text-sm font-black text-slate-900 tracking-widest"
@@ -82,7 +212,7 @@
               </td>
               <td class="text-slate-600">{{ item.gateId }}</td>
               <td class="text-slate-500 whitespace-nowrap">{{ item.capturedAt | date:'MMM d, y, h:mm a' }}</td>
-              <!-- Action buttons -->
+              <!-- Actions -->
               <td>
                 <div class="flex items-center justify-center gap-1.5">
                   <button type="button" (click)="openDetails(item)" title="View details"
@@ -104,9 +234,61 @@
       <div *ngIf="captures.length === 0" class="py-16 text-center">
         <div class="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center mb-4"
              style="background: linear-gradient(135deg, rgba(248,113,113,0.12), rgba(251,191,36,0.08))">
-          <i class="fa-solid fa-image text-3xl text-slate-400"></i>
+          <i class="fa-solid fa-magnifying-glass text-3xl text-slate-400"></i>
         </div>
-        <p class="text-slate-500 font-medium">{{ 'captures.empty' | t }}</p>
+        <p class="text-slate-500 font-medium">
+          {{ hasActiveSearch ? ('captures.noResults' | t) : ('captures.empty' | t) }}
+        </p>
+        <button *ngIf="hasActiveSearch" type="button" (click)="resetSearch()"
+                class="mt-3 tg-btn tg-btn-ghost text-sm gap-1.5">
+          <i class="fa-solid fa-xmark text-xs"></i>
+          {{ 'captures.resetBtn' | t }}
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Pagination ───────────────────────────────────────────── -->
+    <div *ngIf="!loading && totalCount > pageSize"
+         class="tg-card px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+
+      <!-- Count info -->
+      <p class="text-xs text-slate-500">
+        {{ 'captures.showing' | t }}
+        <strong class="text-slate-700">{{ pageFrom }}–{{ pageTo }}</strong>
+        {{ 'captures.of' | t }}
+        <strong class="text-slate-700">{{ totalCount }}</strong>
+        {{ 'captures.totalRecords' | t }}
+      </p>
+
+      <!-- Page buttons -->
+      <div class="flex items-center gap-1">
+        <!-- Prev -->
+        <button type="button" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1"
+                class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-500
+                       hover:bg-slate-100 hover:text-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition">
+          <i class="fa-solid fa-chevron-left text-[10px]"></i>
+        </button>
+
+        <!-- Page numbers -->
+        <ng-container *ngFor="let p of visiblePages">
+          <span *ngIf="p === -1" class="w-7 text-center text-slate-400 text-xs select-none">…</span>
+          <button *ngIf="p !== -1"
+                  type="button"
+                  (click)="goToPage(p)"
+                  class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-semibold transition"
+                  [ngClass]="p === currentPage
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'">
+            {{ p }}
+          </button>
+        </ng-container>
+
+        <!-- Next -->
+        <button type="button" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages"
+                class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-500
+                       hover:bg-slate-100 hover:text-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition">
+          <i class="fa-solid fa-chevron-right text-[10px]"></i>
+        </button>
       </div>
     </div>
 
@@ -143,21 +325,19 @@
     <!-- Scrollable body -->
     <div class="overflow-y-auto flex-1">
 
-      <!-- ── Full-width image ─────────────────────────────────────── -->
+      <!-- Full-width image -->
       <div class="relative group cursor-zoom-in bg-slate-950 border-b border-slate-200"
            (click)="openLightbox()">
         <img [src]="displayImageUrl(selectedCapture.imagePath)" alt="capture"
              class="w-full object-contain group-hover:opacity-90 transition"
              style="max-height: 340px; min-height: 200px;" />
 
-        <!-- Hover overlay -->
         <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition pointer-events-none">
           <span class="bg-black/60 text-white text-sm font-semibold px-4 py-2 rounded-full flex items-center gap-2">
             <i class="fas fa-expand text-xs"></i> Open full screen
           </span>
         </div>
 
-        <!-- Plate badge overlay (bottom-left) -->
         <div *ngIf="selectedCapture.plateText || selectedCapture.plateTextArabic"
              class="absolute bottom-3 left-3 bg-black/70 text-white font-bold text-lg px-4 py-1.5 rounded-xl tracking-widest backdrop-blur-sm"
              [class.font-mono]="!selectedCapture.plateTextArabic"
@@ -165,7 +345,6 @@
           {{ selectedCapture.plateTextArabic || formatPlate(selectedCapture.plateText) }}
         </div>
 
-        <!-- Decision badge overlay (bottom-right) -->
         <div class="absolute bottom-3 right-3">
           <span class="tg-badge text-xs font-bold px-3 py-1.5"
                 [ngClass]="secDecisionClass(selectedCapture.securityDecision)">
@@ -174,7 +353,7 @@
         </div>
       </div>
 
-      <!-- ── Action buttons ──────────────────────────────────────── -->
+      <!-- Action buttons -->
       <div class="grid grid-cols-2 gap-3 px-5 py-4 border-b border-slate-100">
         <button type="button" (click)="openLightbox()"
           class="tg-btn tg-btn-secondary text-sm py-2.5 justify-center gap-2">
@@ -186,10 +365,9 @@
         </button>
       </div>
 
-      <!-- ── Detail rows ─────────────────────────────────────────── -->
+      <!-- Detail rows -->
       <div class="px-5 py-4 space-y-1.5">
 
-        <!-- Gate + Event (side by side) -->
         <div class="grid grid-cols-2 gap-1.5">
           <div class="flex items-center gap-3 rounded-xl bg-slate-100 px-4 py-3">
             <span class="tg-icon-sq shrink-0" style="background:rgba(34,197,94,0.12);color:#4ade80;width:2rem;height:2rem;border-radius:0.5rem">
@@ -206,87 +384,83 @@
             </span>
             <div class="min-w-0">
               <p class="text-[10px] uppercase tracking-wide text-slate-500 font-bold">Event</p>
-              <p class="text-sm font-bold text-slate-900 break-all leading-tight">{{ selectedCapture.eventType }}</p>
+              <p class="text-sm font-bold text-slate-900 break-all leading-tight">{{ eventLabel(selectedCapture.eventType) }}</p>
             </div>
           </div>
         </div>
 
-          <!-- Plate + Face (side by side) -->
-          <div class="grid grid-cols-2 gap-1.5">
-            <!-- Plate card -->
-            <div class="rounded-xl bg-slate-100 px-4 py-3">
-              <div class="flex items-center gap-2 mb-2">
-                <span class="tg-icon-sq shrink-0" style="background:rgba(251,191,36,0.12);color:#fbbf24;width:2rem;height:2rem;border-radius:0.5rem">
-                  <i class="fas fa-car text-xs"></i>
+        <div class="grid grid-cols-2 gap-1.5">
+          <!-- Plate card -->
+          <div class="rounded-xl bg-slate-100 px-4 py-3">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="tg-icon-sq shrink-0" style="background:rgba(251,191,36,0.12);color:#fbbf24;width:2rem;height:2rem;border-radius:0.5rem">
+                <i class="fas fa-car text-xs"></i>
+              </span>
+              <div class="flex-1 flex items-center justify-between gap-1">
+                <p class="text-[10px] uppercase tracking-wide text-slate-500 font-bold">Plate</p>
+                <span *ngIf="selectedCapture.plateText"
+                      class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                  {{ plateFormatLabel(selectedCapture.plateText) }}
                 </span>
-                <div class="flex-1 flex items-center justify-between gap-1">
-                  <p class="text-[10px] uppercase tracking-wide text-slate-500 font-bold">Plate</p>
-                  <span *ngIf="selectedCapture.plateText"
-                        class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
-                    {{ plateFormatLabel(selectedCapture.plateText) }}
-                  </span>
-                </div>
               </div>
-              <!-- Styled plate card -->
-              <div *ngIf="selectedCapture.plateText || selectedCapture.plateTextArabic; else noPlate"
-                   class="rounded-lg border-2 border-slate-300 bg-white text-center py-1.5 px-2 shadow-sm">
-                <p class="font-black text-xl text-slate-900 leading-tight"
-                   [class.font-mono]="!selectedCapture.plateTextArabic"
-                   [class.tracking-\[0\.2em\]]="!selectedCapture.plateTextArabic"
-                   [dir]="selectedCapture.plateTextArabic ? 'rtl' : 'ltr'">
-                  {{ selectedCapture.plateTextArabic || formatPlate(selectedCapture.plateText) }}
+            </div>
+            <div *ngIf="selectedCapture.plateText || selectedCapture.plateTextArabic; else noPlate"
+                 class="rounded-lg border-2 border-slate-300 bg-white text-center py-1.5 px-2 shadow-sm">
+              <p class="font-black text-xl text-slate-900 leading-tight"
+                 [class.font-mono]="!selectedCapture.plateTextArabic"
+                 [class.tracking-\[0\.2em\]]="!selectedCapture.plateTextArabic"
+                 [dir]="selectedCapture.plateTextArabic ? 'rtl' : 'ltr'">
+                {{ selectedCapture.plateTextArabic || formatPlate(selectedCapture.plateText) }}
+              </p>
+              <p *ngIf="selectedCapture.plateTextArabic && selectedCapture.plateText"
+                 class="text-[9px] text-slate-400 font-mono font-semibold tracking-widest mt-0.5">
+                {{ formatPlate(selectedCapture.plateText) }}
+              </p>
+              <p class="text-[8px] text-slate-400 font-semibold uppercase tracking-widest">Arab Rep. of Egypt</p>
+            </div>
+            <ng-template #noPlate>
+              <p class="text-sm text-slate-400 italic text-center py-1">Not recognized</p>
+            </ng-template>
+            <div *ngIf="selectedCapture.plateConfidence != null" class="mt-2">
+              <div class="flex items-center justify-between mb-1">
+                <p class="text-[9px] text-slate-500 font-semibold">OCR Confidence</p>
+                <p class="text-[9px] font-black" [ngClass]="confidenceTextClass(selectedCapture.plateConfidence)">
+                  {{ confidencePct(selectedCapture.plateConfidence) }}%
                 </p>
-                <p *ngIf="selectedCapture.plateTextArabic && selectedCapture.plateText"
-                   class="text-[9px] text-slate-400 font-mono font-semibold tracking-widest mt-0.5">
-                  {{ formatPlate(selectedCapture.plateText) }}
-                </p>
-                <p class="text-[8px] text-slate-400 font-semibold uppercase tracking-widest">Arab Rep. of Egypt</p>
               </div>
-              <ng-template #noPlate>
-                <p class="text-sm text-slate-400 italic text-center py-1">Not recognized</p>
-              </ng-template>
-              <!-- Confidence bar -->
-              <div *ngIf="selectedCapture.plateConfidence != null" class="mt-2">
-                <div class="flex items-center justify-between mb-1">
-                  <p class="text-[9px] text-slate-500 font-semibold">OCR Confidence</p>
-                  <p class="text-[9px] font-black" [ngClass]="confidenceTextClass(selectedCapture.plateConfidence)">
-                    {{ confidencePct(selectedCapture.plateConfidence) }}%
+              <div class="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
+                <div class="h-full rounded-full transition-all duration-500"
+                     [ngClass]="confidenceBarClass(selectedCapture.plateConfidence)"
+                     [style.width.%]="confidencePct(selectedCapture.plateConfidence)"></div>
+              </div>
+            </div>
+          </div>
+          <!-- Face card -->
+          <div class="flex items-center gap-3 rounded-xl bg-slate-100 px-4 py-3">
+            <span class="tg-icon-sq shrink-0" style="background:rgba(59,130,246,0.12);color:#60a5fa;width:2rem;height:2rem;border-radius:0.5rem">
+              <i class="fas fa-face-smile text-xs"></i>
+            </span>
+            <div class="min-w-0">
+              <p class="text-[10px] uppercase tracking-wide text-slate-500 font-bold">Face</p>
+              <p class="text-sm font-bold text-slate-900 break-all">{{ selectedCapture.faceName || '—' }}</p>
+              <div *ngIf="selectedCapture.faceConfidence != null" class="mt-1.5">
+                <div class="flex items-center justify-between mb-0.5">
+                  <p class="text-[9px] text-slate-500 font-semibold">Confidence</p>
+                  <p class="text-[9px] font-black" [ngClass]="confidenceTextClass(selectedCapture.faceConfidence)">
+                    {{ confidencePct(selectedCapture.faceConfidence) }}%
                   </p>
                 </div>
                 <div class="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
                   <div class="h-full rounded-full transition-all duration-500"
-                       [ngClass]="confidenceBarClass(selectedCapture.plateConfidence)"
-                       [style.width.%]="confidencePct(selectedCapture.plateConfidence)"></div>
-                </div>
-              </div>
-            </div>
-            <!-- Face card -->
-            <div class="flex items-center gap-3 rounded-xl bg-slate-100 px-4 py-3">
-              <span class="tg-icon-sq shrink-0" style="background:rgba(59,130,246,0.12);color:#60a5fa;width:2rem;height:2rem;border-radius:0.5rem">
-                <i class="fas fa-face-smile text-xs"></i>
-              </span>
-              <div class="min-w-0">
-                <p class="text-[10px] uppercase tracking-wide text-slate-500 font-bold">Face</p>
-                <p class="text-sm font-bold text-slate-900 break-all">{{ selectedCapture.faceName || '—' }}</p>
-                <!-- Face confidence bar -->
-                <div *ngIf="selectedCapture.faceConfidence != null" class="mt-1.5">
-                  <div class="flex items-center justify-between mb-0.5">
-                    <p class="text-[9px] text-slate-500 font-semibold">Confidence</p>
-                    <p class="text-[9px] font-black" [ngClass]="confidenceTextClass(selectedCapture.faceConfidence)">
-                      {{ confidencePct(selectedCapture.faceConfidence) }}%
-                    </p>
-                  </div>
-                  <div class="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
-                    <div class="h-full rounded-full transition-all duration-500"
-                         [ngClass]="confidenceBarClass(selectedCapture.faceConfidence)"
-                         [style.width.%]="confidencePct(selectedCapture.faceConfidence)"></div>
-                  </div>
+                       [ngClass]="confidenceBarClass(selectedCapture.faceConfidence)"
+                       [style.width.%]="confidencePct(selectedCapture.faceConfidence)"></div>
                 </div>
               </div>
             </div>
           </div>
+        </div>
 
-        <!-- Card UID (full width) -->
+        <!-- Card UID -->
         <div class="flex items-center gap-3 rounded-xl bg-slate-100 px-4 py-3">
           <span class="tg-icon-sq shrink-0" style="background:rgba(168,85,247,0.12);color:#c084fc;width:2rem;height:2rem;border-radius:0.5rem">
             <i class="fas fa-id-card text-xs"></i>
@@ -297,7 +471,7 @@
           </div>
         </div>
 
-        <!-- OCR Status (full width) -->
+        <!-- OCR Status -->
         <div class="flex items-center gap-3 rounded-xl bg-slate-100 px-4 py-3">
           <span class="tg-icon-sq shrink-0" style="background:rgba(34,211,238,0.12);color:#22d3ee;width:2rem;height:2rem;border-radius:0.5rem">
             <i class="fas fa-text-slash text-xs"></i>
@@ -313,7 +487,7 @@
           </div>
         </div>
 
-        <!-- Security Decision (full width, colored) -->
+        <!-- Security Decision -->
         <div class="flex items-center gap-3 rounded-xl px-4 py-3"
              [ngClass]="selectedCapture.securityDecision === 'block' ? 'bg-red-50' : selectedCapture.securityDecision === 'review' ? 'bg-amber-50' : 'bg-emerald-50'">
           <span class="tg-icon-sq shrink-0" style="width:2rem;height:2rem;border-radius:0.5rem"

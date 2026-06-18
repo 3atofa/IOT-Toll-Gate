@@ -206,10 +206,11 @@ const exportPdf = async (req, res, next) => {
 
     // ── Design tokens ────────────────────────────────────────────
     const C = {
-      headerBg: '#1e3a8a', primary: '#1d4ed8', green: '#059669', red: '#dc2626',
-      amber: '#d97706', purple: '#7c3aed', cyan: '#0891b2', teal: '#0d9488',
-      textDark: '#111827', textMuted: '#6b7280', rowAlt: '#f8fafc',
-      border: '#e5e7eb', white: '#ffffff',
+      headerBg:  '#0f172a', sectionBg: '#1e293b', tableHead: '#374151',
+      blue: '#2563eb', green: '#059669', red: '#dc2626',
+      amber: '#d97706', purple: '#6d28d9', cyan: '#0369a1', teal: '#0f766e',
+      textDark: '#111827', textMuted: '#6b7280', textLight: '#64748b',
+      kpiBorder: '#e2e8f0', rowAlt: '#f8fafc', border: '#e5e7eb', white: '#ffffff',
     };
     const PW     = doc.page.width;   // 595
     const ML     = 50;
@@ -224,48 +225,53 @@ const exportPdf = async (req, res, next) => {
     // ── Page header ──────────────────────────────────────────────
     const drawPageHeader = (subtitle) => {
       doc.rect(0, 0, PW, 68).fill(C.headerBg);
-      doc.fillColor(C.white).fontSize(15).font('Helvetica-Bold')
-        .text('Intelligent Toll Gate System', ML, 14, { width: 310, lineBreak: false });
-      doc.fillColor('#bfdbfe').fontSize(10).font('Helvetica')
-        .text(subtitle, ML, 37, { width: 310, lineBreak: false });
-      doc.fillColor('#93c5fd').fontSize(7.5)
+      doc.rect(0, 64, PW, 4).fill(C.blue);
+      doc.fillColor(C.white).fontSize(14).font('Helvetica-Bold')
+        .text('Intelligent Toll Gate System', ML, 13, { width: BODY_W, lineBreak: false });
+      doc.fillColor('#94a3b8').fontSize(9.5).font('Helvetica')
+        .text(subtitle, ML, 32, { width: BODY_W, lineBreak: false });
+      doc.fillColor(C.textLight).fontSize(7)
         .text(
-          `${new Date().toLocaleString()}  \u00b7  ${req.user.fullName} (${req.user.role})`,
-          ML, 53, { width: BODY_W, align: 'right', lineBreak: false },
+          `${new Date().toLocaleString('en-GB')}  \u00b7  ${req.user.fullName} (${req.user.role})`,
+          ML, 51, { width: BODY_W, align: 'right', lineBreak: false },
         );
       doc.y = 68 + 18;
       doc.fillColor(C.textDark).font('Helvetica').fontSize(9);
     };
 
     // ── Section title + rule ─────────────────────────────────────
-    const drawSection = (title, color = C.primary) => {
+    const drawSection = (title) => {
       if (doc.y > doc.page.height - 120) {
         doc.addPage();
         drawPageHeader(typeLabels[type]);
       }
-      doc.moveDown(0.4);
-      doc.fillColor(color).fontSize(12).font('Helvetica-Bold').text(title);
-      const ry = doc.y;
-      doc.moveTo(ML, ry).lineTo(PW - ML, ry).lineWidth(1.5).stroke(color);
-      doc.y = ry + 7;
+      doc.moveDown(0.3);
+      const sy = doc.y;
+      doc.rect(ML, sy, BODY_W, 20).fill(C.sectionBg);
+      doc.fillColor(C.white).fontSize(9.5).font('Helvetica-Bold')
+        .text(title, ML + 8, sy + 6, { width: BODY_W - 16, lineBreak: false });
+      doc.y = sy + 20 + 6;
       doc.fillColor(C.textDark).font('Helvetica').fontSize(9);
     };
 
     // ── KPI stat cards ───────────────────────────────────────────
     const drawKpiCards = (items) => {
-      const gap   = 5;
+      const gap   = 8;
+      const STRIP = 4;
       const cardW = (BODY_W - gap * (items.length - 1)) / items.length;
-      const cardH = 52;
+      const cardH = 58;
       const sy    = doc.y;
       items.forEach((item, i) => {
         const cx = ML + i * (cardW + gap);
-        doc.rect(cx, sy, cardW, cardH).fill(item.color || C.primary);
-        doc.fillColor(C.white).fontSize(17).font('Helvetica-Bold')
-          .text(String(item.value), cx, sy + 8, { width: cardW, align: 'center', lineBreak: false });
-        doc.fillColor(C.white).fontSize(7).font('Helvetica')
-          .text(item.label, cx, sy + 33, { width: cardW, align: 'center', lineBreak: false });
+        doc.rect(cx, sy, cardW, cardH).fill(C.white);
+        doc.rect(cx, sy, cardW, cardH).lineWidth(0.5).stroke(C.kpiBorder);
+        doc.rect(cx, sy, STRIP, cardH).fill(item.color || C.blue);
+        doc.fillColor(C.textDark).fontSize(18).font('Helvetica-Bold')
+          .text(String(item.value), cx + STRIP + 4, sy + 10, { width: cardW - STRIP - 8, align: 'center', lineBreak: false });
+        doc.fillColor(C.textMuted).fontSize(7).font('Helvetica')
+          .text(item.label, cx + STRIP + 4, sy + 37, { width: cardW - STRIP - 8, align: 'center', lineBreak: false });
       });
-      doc.y = sy + cardH + 8;
+      doc.y = sy + cardH + 10;
       doc.fillColor(C.textDark).font('Helvetica').fontSize(9);
     };
 
@@ -275,7 +281,7 @@ const exportPdf = async (req, res, next) => {
       const totalW = colWidths.reduce((a, b) => a + b, 0);
 
       const renderHeader = (y) => {
-        doc.rect(ML, y, totalW, rowH).fill(C.primary);
+        doc.rect(ML, y, totalW, rowH).fill(C.tableHead);
         let x = ML;
         headers.forEach((h, i) => {
           doc.fillColor(C.white).fontSize(7.5).font('Helvetica-Bold')
@@ -324,14 +330,14 @@ const exportPdf = async (req, res, next) => {
     // ══════════════════════════════════════════════════════════════
 
     const renderSummary = (d) => {
-      drawSection('System Summary', C.primary);
+      drawSection('System Summary');
       drawDateRange(d.dateRange);
       const t = d.totals;
       drawKpiCards([
-        { label: 'Total Captures',  value: t.totalCaptures, color: C.primary },
-        { label: 'Access Granted',  value: t.accessGranted, color: C.green   },
-        { label: 'Access Denied',   value: t.accessDenied,  color: C.red     },
-        { label: 'Security Alerts', value: t.totalAlerts,   color: C.amber   },
+        { label: 'Total Captures',  value: t.totalCaptures, color: C.blue   },
+        { label: 'Access Granted',  value: t.accessGranted, color: C.green  },
+        { label: 'Access Denied',   value: t.accessDenied,  color: C.red    },
+        { label: 'Security Alerts', value: t.totalAlerts,   color: C.amber  },
       ]);
       drawKpiCards([
         { label: 'Security Checks', value: t.securityChecks, color: C.purple },
@@ -343,18 +349,18 @@ const exportPdf = async (req, res, next) => {
         drawTable(
           ['Captured At', 'Gate', 'Event Type', 'Plate', 'Face', 'Decision'],
           d.recentCaptures.slice(0, 10).map(c => [
-            new Date(c.capturedAt).toLocaleString(), c.gateId, c.eventType,
+            new Date(c.capturedAt).toLocaleString('en-GB'), c.gateId, c.eventType,
             c.plateText || '-', c.faceName || '-', c.securityDecision || '-',
           ]),
           [130, 65, 100, 75, 70, 55], // 495
         );
       }
       if (d.recentAlerts.length > 0) {
-        drawSection('Recent Security Alerts (Last 10)', C.red);
+        drawSection('Recent Security Alerts (Last 10)');
         drawTable(
           ['Created At', 'Alert Type', 'Decision', 'Reason'],
           d.recentAlerts.slice(0, 10).map(a => [
-            new Date(a.createdAt).toLocaleString(), a.alertType, a.decision || '-', a.reason || '-',
+            new Date(a.createdAt).toLocaleString('en-GB'), a.alertType, a.decision || '-', a.reason || '-',
           ]),
           [130, 115, 75, 175], // 495
         );
@@ -362,9 +368,9 @@ const exportPdf = async (req, res, next) => {
     };
 
     const renderTraffic = (d) => {
-      drawSection('Traffic Analysis', C.cyan);
+      drawSection('Traffic Analysis');
       if (d.byGateEvent.length > 0) {
-        doc.fontSize(9).font('Helvetica-Bold').text('Gate & Event Breakdown').moveDown(0.2);
+        drawSection('Gate & Event Breakdown');
         drawTable(
           ['Gate ID', 'Event Type', 'Count'],
           d.byGateEvent.map(r => [r.gateId, r.eventType, r.count]),
@@ -372,8 +378,7 @@ const exportPdf = async (req, res, next) => {
         );
       }
       if (d.topPlates.length > 0) {
-        doc.moveDown(0.3);
-        doc.fontSize(9).font('Helvetica-Bold').text('Top 10 Most Frequent Plates').moveDown(0.2);
+        drawSection('Top 10 Most Frequent Plates');
         drawTable(
           ['Rank', 'Plate Number', 'Occurrences'],
           d.topPlates.map((r, i) => [i + 1, r.plateText, r.count]),
@@ -381,8 +386,7 @@ const exportPdf = async (req, res, next) => {
         );
       }
       if (d.byHour.length > 0) {
-        doc.moveDown(0.3);
-        doc.fontSize(9).font('Helvetica-Bold').text('Hourly Distribution').moveDown(0.2);
+        drawSection('Hourly Distribution');
         drawTable(
           ['Hour', 'Captures'],
           d.byHour.map(r => [`${String(r.hour).padStart(2, '0')}:00`, r.count]),
@@ -390,21 +394,20 @@ const exportPdf = async (req, res, next) => {
         );
       }
       if (d.byDay.length > 0) {
-        doc.moveDown(0.3);
-        doc.fontSize(9).font('Helvetica-Bold').text('Daily Trend').moveDown(0.2);
+        drawSection('Daily Trend');
         drawTable(['Date', 'Captures'], d.byDay.map(r => [r.day, r.count]), [247, 248]);
       }
     };
 
     const renderSecurity = (d) => {
-      drawSection('Security Overview', C.red);
+      drawSection('Security Overview');
       drawKpiCards([
         { label: 'Blocked Captures', value: d.blockedCount, color: C.red    },
         { label: 'Under Review',     value: d.reviewCount,  color: C.amber  },
         { label: 'Total Alerts',     value: d.byType.reduce((s, r) => s + +r.count, 0), color: C.purple },
       ]);
       if (d.byType.length > 0) {
-        drawSection('Alerts by Type', C.red);
+        drawSection('Alerts by Type');
         drawTable(
           ['Alert Type', 'Count'],
           d.byType.map(r => [r.alertType, r.count]),
@@ -412,8 +415,7 @@ const exportPdf = async (req, res, next) => {
         );
       }
       if (d.byDecision.length > 0) {
-        doc.moveDown(0.3);
-        doc.fontSize(9).font('Helvetica-Bold').text('Alerts by Decision').moveDown(0.2);
+        drawSection('Alerts by Decision');
         drawTable(
           ['Decision', 'Count'],
           d.byDecision.map(r => [r.decision || 'unresolved', r.count]),
@@ -421,12 +423,11 @@ const exportPdf = async (req, res, next) => {
         );
       }
       if (d.recentAlerts.length > 0) {
-        doc.moveDown(0.3);
-        doc.fontSize(9).font('Helvetica-Bold').text('Alert Details (Last 30)').moveDown(0.2);
+        drawSection('Alert Details (Last 30)');
         drawTable(
           ['Created At', 'Alert Type', 'Decision', 'Reason'],
           d.recentAlerts.map(a => [
-            new Date(a.createdAt).toLocaleString(), a.alertType, a.decision || '-', a.reason || '-',
+            new Date(a.createdAt).toLocaleString('en-GB'), a.alertType, a.decision || '-', a.reason || '-',
           ]),
           [130, 115, 75, 175], // 495
         );
@@ -434,28 +435,27 @@ const exportPdf = async (req, res, next) => {
     };
 
     const renderAlpr = (d) => {
-      drawSection('ALPR Performance', C.purple);
+      drawSection('ALPR Performance');
       const total     = d.withPlate + d.withoutPlate;
       const plateRate = total     > 0 ? `${((d.withPlate / total) * 100).toFixed(1)}%`      : 'N/A';
       const faceTotal = d.withFace + d.withoutFace;
       const faceRate  = faceTotal > 0 ? `${((d.withFace / faceTotal) * 100).toFixed(1)}%`   : 'N/A';
       const avgConf   = d.avgPlateConfidence ? `${(+d.avgPlateConfidence * 100).toFixed(1)}%` : 'N/A';
       drawKpiCards([
-        { label: 'Plates Detected',      value: d.withPlate, color: C.green   },
-        { label: 'Plate Detection Rate', value: plateRate,   color: C.primary },
-        { label: 'Faces Detected',       value: d.withFace,  color: C.purple  },
-        { label: 'Avg Confidence',       value: avgConf,     color: C.cyan    },
+        { label: 'Plates Detected',      value: d.withPlate, color: C.green  },
+        { label: 'Plate Detection Rate', value: plateRate,   color: C.blue   },
+        { label: 'Faces Detected',       value: d.withFace,  color: C.purple },
+        { label: 'Avg Confidence',       value: avgConf,     color: C.cyan   },
       ]);
       if (d.byOcrStatus.length > 0) {
-        drawSection('OCR Status Breakdown', C.purple);
+        drawSection('OCR Status Breakdown');
         drawTable(
           ['OCR Status', 'Count'],
           d.byOcrStatus.map(r => [r.ocrStatus, r.count]),
           [375, 120],
         );
       }
-      doc.moveDown(0.3);
-      doc.fontSize(9).font('Helvetica-Bold').text('Confidence Score Buckets').moveDown(0.2);
+      drawSection('Confidence Score Buckets');
       drawTable(
         ['Confidence Range', 'Count'],
         [
@@ -467,12 +467,11 @@ const exportPdf = async (req, res, next) => {
         [375, 120],
       );
       if (d.recentPlates.length > 0) {
-        doc.moveDown(0.3);
-        doc.fontSize(9).font('Helvetica-Bold').text('Recent Plates with OCR Data (Last 20)').moveDown(0.2);
+        drawSection('Recent Plates with OCR Data (Last 20)');
         drawTable(
           ['Captured At', 'Gate', 'Plate', 'Confidence', 'OCR Status'],
           d.recentPlates.map(p => [
-            new Date(p.capturedAt).toLocaleString(), p.gateId, p.plateText,
+            new Date(p.capturedAt).toLocaleString('en-GB'), p.gateId, p.plateText,
             p.plateConfidence != null ? `${(+p.plateConfidence * 100).toFixed(1)}%` : '-',
             p.ocrStatus,
           ]),
@@ -502,7 +501,7 @@ const exportPdf = async (req, res, next) => {
     const range = doc.bufferedPageRange();
     for (let i = range.start; i < range.start + range.count; i++) {
       doc.switchToPage(i);
-      doc.fillColor(C.textMuted).fontSize(7.5).font('Helvetica')
+      doc.fillColor(C.textLight).fontSize(7).font('Helvetica')
         .text(
           `Page ${i - range.start + 1} of ${range.count}  \u00b7  Intelligent Toll Gate System`,
           ML, doc.page.height - 28,
@@ -1001,10 +1000,11 @@ const exportFinancialPdf = async (req, res, next) => {
     doc.pipe(res);
 
     const C = {
-      headerBg: '#14532d', primary: '#16a34a', green: '#059669', red: '#dc2626',
-      amber: '#d97706', purple: '#7c3aed', cyan: '#0891b2',
-      textDark: '#111827', textMuted: '#6b7280', rowAlt: '#f0fdf4',
-      border: '#d1fae5', white: '#ffffff',
+      headerBg:  '#0f172a', sectionBg: '#1e293b', tableHead: '#374151',
+      blue: '#2563eb', green: '#059669', red: '#dc2626',
+      amber: '#d97706', cyan: '#0369a1',
+      textDark: '#111827', textMuted: '#6b7280', textLight: '#64748b',
+      kpiBorder: '#e2e8f0', rowAlt: '#f8fafc', border: '#e5e7eb', white: '#ffffff',
     };
     const PW = doc.page.width, ML = 50, BODY_W = PW - ML * 2, SAFE_B = 60;
 
@@ -1015,46 +1015,50 @@ const exportFinancialPdf = async (req, res, next) => {
 
     const drawPageHeader = (subtitle) => {
       doc.rect(0, 0, PW, 68).fill(C.headerBg);
-      doc.fillColor(C.white).fontSize(15).font('Helvetica-Bold')
-        .text('Intelligent Toll Gate System', ML, 14, { width: 310, lineBreak: false });
-      doc.fillColor('#bbf7d0').fontSize(10).font('Helvetica')
-        .text(subtitle, ML, 37, { width: 310, lineBreak: false });
-      doc.fillColor('#86efac').fontSize(7.5)
-        .text(`${new Date().toLocaleString()}  ·  ${req.user.fullName} (${req.user.role})`,
-          ML, 53, { width: BODY_W, align: 'right', lineBreak: false });
+      doc.rect(0, 64, PW, 4).fill(C.green);
+      doc.fillColor(C.white).fontSize(14).font('Helvetica-Bold')
+        .text('Intelligent Toll Gate System', ML, 13, { width: BODY_W, lineBreak: false });
+      doc.fillColor('#94a3b8').fontSize(9.5).font('Helvetica')
+        .text(subtitle, ML, 32, { width: BODY_W, lineBreak: false });
+      doc.fillColor(C.textLight).fontSize(7)
+        .text(`${new Date().toLocaleString('en-GB')}  ·  ${req.user.fullName} (${req.user.role})`,
+          ML, 51, { width: BODY_W, align: 'right', lineBreak: false });
       doc.y = 68 + 18;
       doc.fillColor(C.textDark).font('Helvetica').fontSize(9);
     };
 
-    const drawSection = (title, color = C.primary) => {
-      if (doc.y > doc.page.height - 120) { doc.addPage(); drawPageHeader('Financial Report'); }
-      doc.moveDown(0.4);
-      doc.fillColor(color).fontSize(12).font('Helvetica-Bold').text(title);
-      const ry = doc.y;
-      doc.moveTo(ML, ry).lineTo(PW - ML, ry).lineWidth(1.5).stroke(color);
-      doc.y = ry + 7;
+    const drawSection = (title) => {
+      if (doc.y > doc.page.height - 120) { doc.addPage(); drawPageHeader('Financial & Operations Report'); }
+      doc.moveDown(0.3);
+      const sy = doc.y;
+      doc.rect(ML, sy, BODY_W, 20).fill(C.sectionBg);
+      doc.fillColor(C.white).fontSize(9.5).font('Helvetica-Bold')
+        .text(title, ML + 8, sy + 6, { width: BODY_W - 16, lineBreak: false });
+      doc.y = sy + 20 + 6;
       doc.fillColor(C.textDark).font('Helvetica').fontSize(9);
     };
 
     const drawKpiCards = (items) => {
-      const gap = 5, cardW = (BODY_W - gap * (items.length - 1)) / items.length, cardH = 52;
+      const gap = 8, STRIP = 4, cardW = (BODY_W - gap * (items.length - 1)) / items.length, cardH = 58;
       const sy = doc.y;
       items.forEach((item, i) => {
         const cx = ML + i * (cardW + gap);
-        doc.rect(cx, sy, cardW, cardH).fill(item.color || C.primary);
-        doc.fillColor(C.white).fontSize(17).font('Helvetica-Bold')
-          .text(String(item.value), cx, sy + 8, { width: cardW, align: 'center', lineBreak: false });
-        doc.fillColor(C.white).fontSize(7).font('Helvetica')
-          .text(item.label, cx, sy + 33, { width: cardW, align: 'center', lineBreak: false });
+        doc.rect(cx, sy, cardW, cardH).fill(C.white);
+        doc.rect(cx, sy, cardW, cardH).lineWidth(0.5).stroke(C.kpiBorder);
+        doc.rect(cx, sy, STRIP, cardH).fill(item.color || C.green);
+        doc.fillColor(C.textDark).fontSize(18).font('Helvetica-Bold')
+          .text(String(item.value), cx + STRIP + 4, sy + 10, { width: cardW - STRIP - 8, align: 'center', lineBreak: false });
+        doc.fillColor(C.textMuted).fontSize(7).font('Helvetica')
+          .text(item.label, cx + STRIP + 4, sy + 37, { width: cardW - STRIP - 8, align: 'center', lineBreak: false });
       });
-      doc.y = sy + cardH + 8;
+      doc.y = sy + cardH + 10;
       doc.fillColor(C.textDark).font('Helvetica').fontSize(9);
     };
 
     const drawTable = (headers, rows, colWidths) => {
       const rowH = 17, totalW = colWidths.reduce((a, b) => a + b, 0);
       const renderHeader = (y) => {
-        doc.rect(ML, y, totalW, rowH).fill(C.primary);
+        doc.rect(ML, y, totalW, rowH).fill(C.tableHead);
         let x = ML;
         headers.forEach((h, i) => {
           doc.fillColor(C.white).fontSize(7.5).font('Helvetica-Bold')
@@ -1064,12 +1068,12 @@ const exportFinancialPdf = async (req, res, next) => {
         return y + rowH;
       };
       let y = doc.y;
-      if (y + rowH * 3 > doc.page.height - SAFE_B) { doc.addPage(); drawPageHeader('Financial Report'); y = doc.y; }
+      if (y + rowH * 3 > doc.page.height - SAFE_B) { doc.addPage(); drawPageHeader('Financial & Operations Report'); y = doc.y; }
       y = renderHeader(y);
       rows.forEach((row, ri) => {
-        if (y + rowH > doc.page.height - SAFE_B) { doc.addPage(); drawPageHeader('Financial Report'); y = doc.y; y = renderHeader(y); }
+        if (y + rowH > doc.page.height - SAFE_B) { doc.addPage(); drawPageHeader('Financial & Operations Report'); y = doc.y; y = renderHeader(y); }
         doc.rect(ML, y, totalW, rowH).fill(ri % 2 === 0 ? C.white : C.rowAlt);
-        doc.rect(ML, y, totalW, rowH).stroke(C.border);
+        doc.rect(ML, y, totalW, rowH).lineWidth(0.4).stroke(C.border);
         let x = ML;
         row.forEach((cell, ci) => {
           doc.fillColor(C.textDark).fontSize(7.5).font('Helvetica')
@@ -1084,32 +1088,28 @@ const exportFinancialPdf = async (req, res, next) => {
 
     const fmt = (n) => `EGP ${(+n || 0).toFixed(2)}`;
 
-    // ── RENDER ────────────────────────────────────────────────────
     drawPageHeader('Financial & Operations Report');
 
-    // P&L Summary KPIs
-    drawSection('Profit & Loss Summary', C.primary);
+    drawSection('Profit & Loss Summary');
     const dr = financialData.dateRange;
     doc.fontSize(8).fillColor(C.textMuted)
       .text(`Period: ${dr.startDate?.slice(0,10) || 'All time'} → ${dr.endDate?.slice(0,10) || 'All time'}  (${dr.months} month${dr.months !== 1 ? 's' : ''})`)
       .moveDown(0.3);
     drawKpiCards([
-      { label: 'Total Revenue',    value: fmt(financialData.revenue.total),          color: C.green    },
-      { label: 'Repair Expenses',  value: fmt(financialData.expenses.repairTotal),    color: C.red      },
-      { label: 'Staff Costs',      value: fmt(financialData.expenses.staffPeriodCost), color: C.amber   },
-      { label: 'Net P&L',          value: fmt(financialData.netPnL),                 color: financialData.netPnL >= 0 ? C.green : C.red },
+      { label: 'Total Revenue',    value: fmt(financialData.revenue.total),            color: C.green },
+      { label: 'Repair Expenses',  value: fmt(financialData.expenses.repairTotal),      color: C.red   },
+      { label: 'Staff Costs',      value: fmt(financialData.expenses.staffPeriodCost),  color: C.amber },
+      { label: 'Net P&L',          value: fmt(financialData.netPnL), color: financialData.netPnL >= 0 ? C.green : C.red },
     ]);
 
-    // Revenue by gate
-    drawSection('Gate Pass Revenue', C.cyan);
+    drawSection('Gate Pass Revenue');
     drawTable(
       ['Gate ID', 'Passes', 'Fee / Pass', 'Revenue'],
       financialData.revenue.byGate.map(g => [g.gateId, g.count, fmt(g.feePerPass), fmt(g.revenue)]),
       [155, 110, 110, 120],
     );
 
-    // Expenses breakdown
-    drawSection('Expense Breakdown', C.red);
+    drawSection('Expense Breakdown');
     drawTable(
       ['Category', 'Detail', 'Amount'],
       [
@@ -1120,16 +1120,15 @@ const exportFinancialPdf = async (req, res, next) => {
       [155, 220, 120],
     );
 
-    // Incidents breakdown
-    drawSection('Incidents Overview', C.amber);
+    drawSection('Incidents Overview');
     drawKpiCards([
-      { label: 'Total Incidents', value: incidentData.totals.total,      color: C.amber    },
-      { label: 'Open',            value: incidentData.totals.open,        color: C.red      },
-      { label: 'In Progress',     value: incidentData.totals.inProgress,  color: C.cyan     },
-      { label: 'Resolved',        value: incidentData.totals.resolved,    color: C.green    },
+      { label: 'Total Incidents', value: incidentData.totals.total,      color: C.amber },
+      { label: 'Open',            value: incidentData.totals.open,        color: C.red   },
+      { label: 'In Progress',     value: incidentData.totals.inProgress,  color: C.cyan  },
+      { label: 'Resolved',        value: incidentData.totals.resolved,    color: C.green },
     ]);
     if (incidentData.bySeverity.length > 0) {
-      doc.fontSize(9).font('Helvetica-Bold').text('By Severity').moveDown(0.2);
+      drawSection('By Severity');
       drawTable(
         ['Severity', 'Count'],
         incidentData.bySeverity.map(r => [r.severity.toUpperCase(), r.count]),
@@ -1137,24 +1136,22 @@ const exportFinancialPdf = async (req, res, next) => {
       );
     }
     if (incidentData.recentIncidents.length > 0) {
-      doc.moveDown(0.3);
-      doc.fontSize(9).font('Helvetica-Bold').text('Incident Log (Last 50)').moveDown(0.2);
+      drawSection('Incident Log (Last 50)');
       drawTable(
         ['Reported At', 'Gate', 'Title', 'Severity', 'Status', 'Repair Cost'],
         incidentData.recentIncidents.map(i => [
-          new Date(i.reportedAt).toLocaleString(), i.gateId, i.title,
+          new Date(i.reportedAt).toLocaleString('en-GB'), i.gateId, i.title,
           i.severity, i.status, fmt(i.repairCost),
         ]),
         [110, 60, 140, 55, 65, 65],
       );
     }
 
-    // Page numbers
     const range = doc.bufferedPageRange();
     for (let i = range.start; i < range.start + range.count; i++) {
       doc.switchToPage(i);
-      doc.fillColor(C.textMuted).fontSize(7.5).font('Helvetica')
-        .text(`Page ${i - range.start + 1} of ${range.count}  ·  Intelligent Toll Gate System — Financial Report`,
+      doc.fillColor(C.textLight).fontSize(7).font('Helvetica')
+        .text(`Page ${i - range.start + 1} of ${range.count}  ·  Intelligent Toll Gate System`,
           ML, doc.page.height - 28, { width: BODY_W, align: 'center', lineBreak: false });
     }
     doc.flushPages();

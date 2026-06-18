@@ -3,30 +3,28 @@
   <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
   <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
     <div>
-      <p class="text-xs font-bold text-blue-600 uppercase tracking-[0.25em]">Analytics &amp; Reporting</p>
-      <h1 class="text-3xl font-black text-slate-900 mt-1">Reports</h1>
-      <p class="text-slate-500 mt-1 text-sm">Traffic flow, security incidents, and ALPR performance across all gates.</p>
+      <p class="text-xs font-bold text-blue-600 uppercase tracking-[0.25em]">{{ 'reports.analytics' | t }}</p>
+      <h1 class="text-3xl font-black text-slate-900 mt-1">{{ 'reports.pageTitle' | t }}</h1>
+      <p class="text-slate-500 mt-1 text-sm">{{ 'reports.pageSubtitle' | t }}</p>
     </div>
     <div class="flex items-center gap-2 flex-wrap">
       <!-- Refresh current tab -->
       <button type="button" (click)="refreshTab()" [disabled]="loading"
-        class="tg-btn tg-btn-secondary gap-2 text-sm px-4 py-2.5"
-        title="Refresh current tab">
+        class="tg-btn tg-btn-secondary gap-2 text-sm px-4 py-2.5">
         <i class="fas fa-rotate-right text-xs" [class.animate-spin]="loading"></i>
-        <span class="hidden sm:inline">Refresh</span>
+        <span class="hidden sm:inline">{{ 'reports.refresh' | t }}</span>
       </button>
       <button type="button" (click)="downloadCsv('captures')"
         class="tg-btn tg-btn-secondary gap-2 text-sm px-4 py-2.5">
-        <i class="fas fa-file-csv text-xs"></i> Captures CSV
+        <i class="fas fa-file-csv text-xs"></i> {{ 'reports.capturesCsv' | t }}
       </button>
       <button type="button" (click)="downloadCsv('alerts')"
         class="tg-btn tg-btn-secondary gap-2 text-sm px-4 py-2.5">
-        <i class="fas fa-file-csv text-xs"></i> Alerts CSV
+        <i class="fas fa-file-csv text-xs"></i> {{ 'reports.alertsCsv' | t }}
       </button>
 
       <!-- PDF language toggle -->
       <button type="button" (click)="togglePdfLang()"
-        title="Toggle PDF language (currently {{ pdfLang === 'ar' ? 'Arabic' : 'English' }})"
         class="tg-btn text-sm px-3 py-2.5 font-bold border transition-colors"
         [class]="pdfLang === 'ar'
           ? 'bg-emerald-600 text-white border-emerald-700 hover:bg-emerald-700'
@@ -39,13 +37,12 @@
         <button type="button" (click)="showPdfMenu = !showPdfMenu"
           class="tg-btn tg-btn-primary gap-2 text-sm px-4 py-2.5">
           <i class="fas fa-file-pdf text-xs"></i>
-          {{ pdfLang === 'ar' ? 'تصدير PDF' : 'Export PDF' }}
-          <i class="fas fa-chevron-down text-xs ml-0.5 transition-transform duration-150"
+          {{ 'reports.exportPdf' | t }}
+          <i class="fas fa-chevron-down text-xs ms-0.5 transition-transform duration-150"
             [class.rotate-180]="showPdfMenu"></i>
         </button>
         <div *ngIf="showPdfMenu"
-          class="absolute right-0 top-full mt-1.5 z-50 bg-white border border-slate-200 rounded-2xl shadow-xl py-1.5 w-56">
-          <!-- Language indicator inside menu -->
+          class="absolute end-0 top-full mt-1.5 z-50 bg-white border border-slate-200 rounded-2xl shadow-xl py-1.5 w-56">
           <div class="px-4 py-2 text-[11px] font-bold uppercase tracking-widest text-slate-400 border-b border-slate-100 flex items-center gap-2">
             <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black"
               [class]="pdfLang === 'ar' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'">
@@ -67,24 +64,24 @@
   <!-- ══ FILTERS ════════════════════════════════════════════════════ -->
   <div class="tg-card p-4 sm:p-5 grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
     <div>
-      <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">From Date</label>
+      <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">{{ 'reports.startDate' | t }}</label>
       <input [(ngModel)]="startDate" type="date"
-        class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        class="tg-input w-full" />
     </div>
     <div>
-      <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">To Date</label>
+      <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">{{ 'reports.endDate' | t }}</label>
       <input [(ngModel)]="endDate" type="date"
-        class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        class="tg-input w-full" />
     </div>
     <div>
-      <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Gate ID (optional)</label>
+      <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">{{ 'reports.gateIdOptional' | t }}</label>
       <input [(ngModel)]="gateIdFilter" type="text" placeholder="e.g. gate-1"
-        class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        class="tg-input w-full" />
     </div>
     <div class="flex items-end">
       <button type="button" (click)="applyFilters()"
         class="tg-btn tg-btn-primary w-full justify-center text-sm py-2.5 gap-2">
-        <i class="fas fa-magnifying-glass text-xs"></i> Apply Filters
+        <i class="fas fa-magnifying-glass text-xs"></i> {{ 'reports.applyFilters' | t }}
       </button>
     </div>
   </div>
@@ -92,12 +89,12 @@
   <!-- ══ TABS ════════════════════════════════════════════════════════ -->
   <div class="flex flex-wrap gap-1 bg-white border border-slate-200 rounded-2xl p-1.5 shadow-sm">
     <button *ngFor="let tab of [
-      {id:'summary',   icon:'fa-chart-pie',          label:'Summary'},
-      {id:'traffic',   icon:'fa-chart-bar',           label:'Traffic Flow'},
-      {id:'security',  icon:'fa-shield-halved',        label:'Security'},
-      {id:'alpr',      icon:'fa-camera',               label:'ALPR / OCR'},
-      {id:'financial', icon:'fa-money-bill-trend-up',  label:'Financials'},
-      {id:'incidents', icon:'fa-triangle-exclamation', label:'Incidents'}
+      {id:'summary',   icon:'fa-chart-pie',          key:'reports.tab.summary'},
+      {id:'traffic',   icon:'fa-chart-bar',           key:'reports.tab.traffic'},
+      {id:'security',  icon:'fa-shield-halved',        key:'reports.tab.security'},
+      {id:'alpr',      icon:'fa-camera',               key:'reports.tab.alpr'},
+      {id:'financial', icon:'fa-money-bill-trend-up',  key:'reports.tab.financial'},
+      {id:'incidents', icon:'fa-triangle-exclamation', key:'reports.tab.incidents'}
     ]"
       type="button"
       (click)="setTab($any(tab.id))"
@@ -108,7 +105,7 @@
           : 'bg-blue-600 text-white shadow-md shadow-blue-600/20')
         : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'">
       <i class="fas {{ tab.icon }} text-xs"></i>
-      <span class="hidden sm:inline">{{ tab.label }}</span>
+      <span class="hidden sm:inline">{{ i18n.t(tab.key) }}</span>
     </button>
   </div>
 
@@ -124,40 +121,40 @@
           <span class="tg-icon-sq" style="background:rgba(59,130,246,0.1);color:#3b82f6">
             <i class="fas fa-camera text-sm"></i>
           </span>
-          <span class="tg-badge tg-badge-blue text-xs">Total</span>
+          <span class="tg-badge tg-badge-blue text-xs">{{ 'reports.traffic.total' | t }}</span>
         </div>
         <p class="text-3xl font-black text-slate-900">{{ summary.totals.totalCaptures }}</p>
-        <p class="text-xs text-slate-500 mt-1">Captures</p>
+        <p class="text-xs text-slate-500 mt-1">{{ 'reports.summary.capturesLabel' | t }}</p>
       </div>
       <div class="tg-card p-5">
         <div class="flex items-center justify-between mb-3">
           <span class="tg-icon-sq" style="background:rgba(34,197,94,0.1);color:#22c55e">
             <i class="fas fa-check text-sm"></i>
           </span>
-          <span class="tg-badge tg-badge-green text-xs">Granted</span>
+          <span class="tg-badge tg-badge-green text-xs">{{ 'reports.summary.grantedLabel' | t }}</span>
         </div>
         <p class="text-3xl font-black text-emerald-600">{{ summary.totals.accessGranted }}</p>
-        <p class="text-xs text-slate-500 mt-1">Access granted</p>
+        <p class="text-xs text-slate-500 mt-1">{{ 'reports.summary.accessGranted' | t }}</p>
       </div>
       <div class="tg-card p-5">
         <div class="flex items-center justify-between mb-3">
           <span class="tg-icon-sq" style="background:rgba(239,68,68,0.1);color:#ef4444">
             <i class="fas fa-xmark text-sm"></i>
           </span>
-          <span class="tg-badge tg-badge-red text-xs">Denied</span>
+          <span class="tg-badge tg-badge-red text-xs">{{ 'reports.summary.deniedLabel' | t }}</span>
         </div>
         <p class="text-3xl font-black text-red-600">{{ summary.totals.accessDenied }}</p>
-        <p class="text-xs text-slate-500 mt-1">Access denied</p>
+        <p class="text-xs text-slate-500 mt-1">{{ 'reports.summary.accessDenied' | t }}</p>
       </div>
       <div class="tg-card p-5">
         <div class="flex items-center justify-between mb-3">
           <span class="tg-icon-sq" style="background:rgba(245,158,11,0.1);color:#f59e0b">
             <i class="fas fa-triangle-exclamation text-sm"></i>
           </span>
-          <span class="tg-badge tg-badge-amber text-xs">Alerts</span>
+          <span class="tg-badge tg-badge-amber text-xs">{{ 'reports.securityAlerts' | t }}</span>
         </div>
         <p class="text-3xl font-black text-amber-600">{{ summary.totals.totalAlerts }}</p>
-        <p class="text-xs text-slate-500 mt-1">Security alerts</p>
+        <p class="text-xs text-slate-500 mt-1">{{ 'reports.securityAlerts' | t }}</p>
       </div>
       <div class="tg-card p-5">
         <div class="flex items-center justify-between mb-3">
@@ -166,7 +163,7 @@
           </span>
         </div>
         <p class="text-3xl font-black text-indigo-600">{{ summary.totals.securityChecks }}</p>
-        <p class="text-xs text-slate-500 mt-1">Security checks</p>
+        <p class="text-xs text-slate-500 mt-1">{{ 'reports.summary.securityChecks' | t }}</p>
       </div>
       <div class="tg-card p-5">
         <div class="flex items-center justify-between mb-3">
@@ -175,7 +172,7 @@
           </span>
         </div>
         <p class="text-3xl font-black text-sky-600">{{ summary.totals.totalVehicles }}</p>
-        <p class="text-xs text-slate-500 mt-1">Registered vehicles</p>
+        <p class="text-xs text-slate-500 mt-1">{{ 'reports.summary.registeredVehicles' | t }}</p>
       </div>
       <div class="tg-card p-5 xl:col-span-2">
         <div class="flex items-center justify-between mb-3">
@@ -184,62 +181,54 @@
           </span>
         </div>
         <p class="text-3xl font-black text-purple-600">{{ summary.totals.totalCards }}</p>
-        <p class="text-xs text-slate-500 mt-1">Authorized cards</p>
+        <p class="text-xs text-slate-500 mt-1">{{ 'reports.authorizedCards' | t }}</p>
       </div>
     </div>
 
-    <!-- ── Grant Rate Donut + Access Breakdown ── -->
+    <!-- Grant Rate Donut + Access Breakdown -->
     <div *ngIf="summary" class="grid xl:grid-cols-3 gap-5">
 
-      <!-- Donut chart card -->
       <div class="tg-card p-6 flex flex-col items-center justify-center gap-4">
-        <h2 class="font-bold text-slate-900 self-start">Access Grant Rate</h2>
-        <!-- SVG donut — circumference ≈ 100 via r=15.9155 -->
+        <h2 class="font-bold text-slate-900 self-start">{{ 'reports.summary.grantRate' | t }}</h2>
         <div class="relative w-40 h-40">
           <svg viewBox="0 0 42 42" class="w-full h-full -rotate-90">
-            <!-- track -->
             <circle cx="21" cy="21" r="15.9155" fill="none" stroke="#fee2e2" stroke-width="4" />
-            <!-- denied arc (red, drawn first so green overlays it) -->
             <circle cx="21" cy="21" r="15.9155" fill="none" stroke="#ef4444" stroke-width="4"
               stroke-dasharray="100 0" stroke-dashoffset="0" />
-            <!-- granted arc (green) -->
             <circle cx="21" cy="21" r="15.9155" fill="none" stroke="#22c55e" stroke-width="4"
               [attr.stroke-dasharray]="donutArc(grantRate)"
               stroke-dashoffset="0"
               stroke-linecap="round" />
           </svg>
-          <!-- center label -->
           <div class="absolute inset-0 flex flex-col items-center justify-center">
             <span class="text-2xl font-black"
               [ngClass]="grantRate >= 80 ? 'text-emerald-600' : grantRate >= 50 ? 'text-amber-500' : 'text-red-600'">
               {{ grantRate }}%
             </span>
-            <span class="text-[10px] text-slate-500 font-semibold uppercase tracking-wide">granted</span>
+            <span class="text-[10px] text-slate-500 font-semibold uppercase tracking-wide">{{ 'reports.summary.granted' | t }}</span>
           </div>
         </div>
-        <!-- legend -->
         <div class="flex gap-5 text-xs text-slate-600">
           <span class="flex items-center gap-1.5">
             <span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
-            Granted ({{ summary.totals.accessGranted }})
+            {{ 'reports.summary.grantedLabel' | t }} ({{ summary.totals.accessGranted }})
           </span>
           <span class="flex items-center gap-1.5">
             <span class="w-3 h-3 rounded-full bg-red-500 inline-block"></span>
-            Denied ({{ summary.totals.accessDenied }})
+            {{ 'reports.summary.deniedLabel' | t }} ({{ summary.totals.accessDenied }})
           </span>
         </div>
       </div>
 
       <!-- Access breakdown bars -->
       <div class="tg-card p-6 xl:col-span-2">
-        <h2 class="font-bold text-slate-900 mb-5">Access Decision Breakdown</h2>
+        <h2 class="font-bold text-slate-900 mb-5">{{ 'reports.summary.decisionBreakdown' | t }}</h2>
         <div class="space-y-4">
-          <!-- Granted -->
           <div>
             <div class="flex justify-between text-sm mb-1.5">
-              <span class="font-semibold text-emerald-700">Access Granted</span>
+              <span class="font-semibold text-emerald-700">{{ 'reports.summary.accessGranted' | t }}</span>
               <span class="font-bold text-emerald-600">{{ summary.totals.accessGranted }}
-                <span class="text-slate-400 font-normal text-xs ml-1">({{ grantRate }}%)</span>
+                <span class="text-slate-400 font-normal text-xs ms-1">({{ grantRate }}%)</span>
               </span>
             </div>
             <div class="w-full bg-slate-100 rounded-full h-4">
@@ -247,12 +236,11 @@
                    [style.width.%]="grantRate"></div>
             </div>
           </div>
-          <!-- Denied -->
           <div>
             <div class="flex justify-between text-sm mb-1.5">
-              <span class="font-semibold text-red-700">Access Denied</span>
+              <span class="font-semibold text-red-700">{{ 'reports.summary.accessDenied' | t }}</span>
               <span class="font-bold text-red-600">{{ summary.totals.accessDenied }}
-                <span class="text-slate-400 font-normal text-xs ml-1">({{ 100 - grantRate }}%)</span>
+                <span class="text-slate-400 font-normal text-xs ms-1">({{ 100 - grantRate }}%)</span>
               </span>
             </div>
             <div class="w-full bg-slate-100 rounded-full h-4">
@@ -260,10 +248,9 @@
                    [style.width.%]="100 - grantRate"></div>
             </div>
           </div>
-          <!-- Security checks -->
           <div>
             <div class="flex justify-between text-sm mb-1.5">
-              <span class="font-semibold text-indigo-700">Security Checks</span>
+              <span class="font-semibold text-indigo-700">{{ 'reports.summary.securityChecks' | t }}</span>
               <span class="font-bold text-indigo-600">{{ summary.totals.securityChecks }}</span>
             </div>
             <div class="w-full bg-slate-100 rounded-full h-4">
@@ -271,10 +258,9 @@
                    [style.width.%]="summary.totals.totalCaptures > 0 ? (summary.totals.securityChecks / summary.totals.totalCaptures * 100) : 0"></div>
             </div>
           </div>
-          <!-- Alerts -->
           <div>
             <div class="flex justify-between text-sm mb-1.5">
-              <span class="font-semibold text-amber-700">Security Alerts</span>
+              <span class="font-semibold text-amber-700">{{ 'reports.securityAlerts' | t }}</span>
               <span class="font-bold text-amber-600">{{ summary.totals.totalAlerts }}</span>
             </div>
             <div class="w-full bg-slate-100 rounded-full h-4">
@@ -286,13 +272,12 @@
       </div>
     </div>
 
-    <!-- Two-column: Recent Captures + Recent Alerts -->
+    <!-- Recent Captures + Recent Alerts -->
     <div class="grid xl:grid-cols-2 gap-5">
 
-      <!-- Recent captures -->
       <div class="tg-card overflow-hidden">
         <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-          <h2 class="font-bold text-slate-900">Recent Captures</h2>
+          <h2 class="font-bold text-slate-900">{{ 'reports.recentCaptures' | t }}</h2>
           <span class="tg-badge tg-badge-blue">{{ summary?.recentCaptures?.length ?? 0 }}</span>
         </div>
         <div class="divide-y divide-slate-50">
@@ -302,7 +287,7 @@
               <p class="font-bold text-slate-900 text-sm"
                  [class.font-mono]="!c.plateTextArabic"
                  [dir]="c.plateTextArabic ? 'rtl' : 'ltr'">
-                {{ c.plateTextArabic || c.plateText || '— no plate —' }}
+                {{ c.plateTextArabic || c.plateText || ('reports.unknownPlate' | t) }}
               </p>
               <p class="text-xs text-slate-500 mt-0.5">{{ c.capturedAt | date:'MMM d, y — h:mm a' }} &bull; <span class="font-medium">{{ c.gateId }}</span></p>
             </div>
@@ -311,15 +296,14 @@
             </span>
           </div>
           <div *ngIf="!summary?.recentCaptures?.length" class="px-5 py-6 text-center text-sm text-slate-400">
-            No captures in this period
+            {{ 'reports.summary.noCapturesInPeriod' | t }}
           </div>
         </div>
       </div>
 
-      <!-- Recent alerts -->
       <div class="tg-card overflow-hidden">
         <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-          <h2 class="font-bold text-slate-900">Recent Security Alerts</h2>
+          <h2 class="font-bold text-slate-900">{{ 'reports.recentAlerts' | t }}</h2>
           <span class="tg-badge tg-badge-red">{{ summary?.recentAlerts?.length ?? 0 }}</span>
         </div>
         <div class="divide-y divide-slate-50">
@@ -331,13 +315,13 @@
                 <p class="text-xs text-slate-500 mt-0.5">{{ a.reason }}</p>
               </div>
               <span class="tg-badge text-xs shrink-0" [ngClass]="alertTypeClass(a.alertType)">
-                {{ a.alertType | uppercase }}
+                {{ alertTypeLabel(a.alertType) }}
               </span>
             </div>
             <p class="text-xs text-slate-400 mt-1">{{ a.createdAt | date:'MMM d, y — h:mm a' }}</p>
           </div>
           <div *ngIf="!summary?.recentAlerts?.length" class="px-5 py-6 text-center text-sm text-slate-400">
-            No alerts in this period
+            {{ 'reports.summary.noAlertsInPeriod' | t }}
           </div>
         </div>
       </div>
@@ -350,7 +334,6 @@
   <ng-container *ngIf="activeTab === 'traffic'">
     <ng-container *ngIf="traffic; else loadingTpl">
 
-      <!-- Per-gate cards -->
       <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div *ngFor="let gateId of gateList" class="tg-card p-5">
           <div class="flex items-center gap-3 mb-4">
@@ -358,31 +341,28 @@
               <i class="fas fa-lock text-sm"></i>
             </span>
             <div>
-              <p class="text-xs text-slate-500 font-bold uppercase tracking-wide">Gate</p>
+              <p class="text-xs text-slate-500 font-bold uppercase tracking-wide">{{ 'reports.traffic.gateLabel' | t }}</p>
               <p class="text-base font-black text-slate-900">{{ gateId }}</p>
             </div>
           </div>
           <div class="space-y-2">
-            <!-- Total bar -->
             <div class="flex items-center gap-3">
-              <span class="w-20 text-xs text-slate-500 text-right shrink-0">Total</span>
+              <span class="w-20 text-xs text-slate-500 text-right shrink-0">{{ 'reports.traffic.total' | t }}</span>
               <div class="flex-1 bg-slate-100 rounded-full h-2.5">
                 <div class="bg-blue-500 h-2.5 rounded-full" style="width:100%"></div>
               </div>
               <span class="w-10 text-xs font-bold text-slate-700 text-right shrink-0">{{ gateTotal(gateId) }}</span>
             </div>
-            <!-- Granted bar -->
             <div class="flex items-center gap-3">
-              <span class="w-20 text-xs text-slate-500 text-right shrink-0">Granted</span>
+              <span class="w-20 text-xs text-slate-500 text-right shrink-0">{{ 'reports.traffic.granted' | t }}</span>
               <div class="flex-1 bg-slate-100 rounded-full h-2.5">
                 <div class="bg-emerald-500 h-2.5 rounded-full"
                      [style.width.%]="gateTotal(gateId) > 0 ? (gateGranted(gateId) / gateTotal(gateId) * 100) : 0"></div>
               </div>
               <span class="w-10 text-xs font-bold text-emerald-600 text-right shrink-0">{{ gateGranted(gateId) }}</span>
             </div>
-            <!-- Denied bar -->
             <div class="flex items-center gap-3">
-              <span class="w-20 text-xs text-slate-500 text-right shrink-0">Denied</span>
+              <span class="w-20 text-xs text-slate-500 text-right shrink-0">{{ 'reports.traffic.denied' | t }}</span>
               <div class="flex-1 bg-slate-100 rounded-full h-2.5">
                 <div class="bg-red-500 h-2.5 rounded-full"
                      [style.width.%]="gateTotal(gateId) > 0 ? (gateDenied(gateId) / gateTotal(gateId) * 100) : 0"></div>
@@ -392,15 +372,15 @@
           </div>
         </div>
         <div *ngIf="gateList.length === 0" class="sm:col-span-3 py-12 text-center text-slate-400 tg-card">
-          No gate traffic data for this period.
+          {{ 'reports.traffic.noGateData' | t }}
         </div>
       </div>
 
-      <!-- Hourly distribution chart -->
+      <!-- Hourly distribution -->
       <div class="tg-card overflow-hidden">
         <div class="px-5 py-4 border-b border-slate-100">
-          <h2 class="font-bold text-slate-900">Hourly Traffic Distribution</h2>
-          <p class="text-xs text-slate-500 mt-0.5">Number of captures per hour of day (0 – 23)</p>
+          <h2 class="font-bold text-slate-900">{{ 'reports.traffic.hourlyDist' | t }}</h2>
+          <p class="text-xs text-slate-500 mt-0.5">{{ 'reports.traffic.hourlySubtitle' | t }}</p>
         </div>
         <div class="p-5 overflow-x-auto">
           <div class="flex items-end gap-1 h-32 min-w-[600px]">
@@ -418,7 +398,7 @@
       <!-- Daily trend -->
       <div class="tg-card overflow-hidden">
         <div class="px-5 py-4 border-b border-slate-100">
-          <h2 class="font-bold text-slate-900">Daily Traffic Trend</h2>
+          <h2 class="font-bold text-slate-900">{{ 'reports.traffic.dailyTrend' | t }}</h2>
         </div>
         <div class="p-5 space-y-1.5 max-h-72 overflow-y-auto">
           <div *ngFor="let d of traffic.byDay" class="flex items-center gap-3">
@@ -429,23 +409,23 @@
             </div>
             <span class="w-10 text-xs font-bold text-slate-700 text-right shrink-0">{{ d.count }}</span>
           </div>
-          <div *ngIf="!traffic.byDay.length" class="py-6 text-center text-sm text-slate-400">No daily data.</div>
+          <div *ngIf="!traffic.byDay.length" class="py-6 text-center text-sm text-slate-400">{{ 'reports.traffic.noDailyData' | t }}</div>
         </div>
       </div>
 
       <!-- Top plates -->
       <div class="tg-card overflow-hidden">
         <div class="px-5 py-4 border-b border-slate-100">
-          <h2 class="font-bold text-slate-900">Most Frequent Plates</h2>
-          <p class="text-xs text-slate-500 mt-0.5">Plates with the most passes in the period</p>
+          <h2 class="font-bold text-slate-900">{{ 'reports.traffic.topPlates' | t }}</h2>
+          <p class="text-xs text-slate-500 mt-0.5">{{ 'reports.traffic.topPlatesSubtitle' | t }}</p>
         </div>
         <div class="overflow-x-auto">
           <table class="tg-table w-full">
             <thead>
               <tr>
-                <th>#</th>
-                <th>Plate Number</th>
-                <th class="text-right">Pass Count</th>
+                <th>{{ 'reports.traffic.rank' | t }}</th>
+                <th>{{ 'reports.traffic.plateNumber' | t }}</th>
+                <th class="text-right">{{ 'reports.traffic.passCount' | t }}</th>
               </tr>
             </thead>
             <tbody>
@@ -457,7 +437,7 @@
                 </td>
               </tr>
               <tr *ngIf="!traffic.topPlates.length">
-                <td colspan="3" class="text-center text-slate-400 py-6">No plate data for this period.</td>
+                <td colspan="3" class="text-center text-slate-400 py-6">{{ 'reports.traffic.noPlateData' | t }}</td>
               </tr>
             </tbody>
           </table>
@@ -473,31 +453,30 @@
   <ng-container *ngIf="activeTab === 'security'">
     <ng-container *ngIf="security; else loadingTpl">
 
-      <!-- Stat row -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div class="tg-card p-5">
           <span class="tg-icon-sq mb-3" style="background:rgba(239,68,68,0.1);color:#ef4444"><i class="fas fa-ban text-sm"></i></span>
           <p class="text-3xl font-black text-red-600">{{ security.blockedCount }}</p>
-          <p class="text-xs text-slate-500 mt-1">Vehicles blocked</p>
+          <p class="text-xs text-slate-500 mt-1">{{ 'reports.security.vehiclesBlocked' | t }}</p>
         </div>
         <div class="tg-card p-5">
           <span class="tg-icon-sq mb-3" style="background:rgba(245,158,11,0.1);color:#f59e0b"><i class="fas fa-clock text-sm"></i></span>
           <p class="text-3xl font-black text-amber-600">{{ security.reviewCount }}</p>
-          <p class="text-xs text-slate-500 mt-1">Under review</p>
+          <p class="text-xs text-slate-500 mt-1">{{ 'reports.security.underReview' | t }}</p>
         </div>
         <div class="tg-card p-5">
           <span class="tg-icon-sq mb-3" style="background:rgba(239,68,68,0.1);color:#ef4444"><i class="fas fa-person text-sm"></i></span>
           <p class="text-3xl font-black text-red-600">{{ wantedCount }}</p>
-          <p class="text-xs text-slate-500 mt-1">Wanted persons detected</p>
+          <p class="text-xs text-slate-500 mt-1">{{ 'reports.security.wantedDetected' | t }}</p>
         </div>
         <div class="tg-card p-5">
           <span class="tg-icon-sq mb-3" style="background:rgba(239,68,68,0.1);color:#ef4444"><i class="fas fa-car-burst text-sm"></i></span>
           <p class="text-3xl font-black text-red-600">{{ stolenCount }}</p>
-          <p class="text-xs text-slate-500 mt-1">Stolen cars detected</p>
+          <p class="text-xs text-slate-500 mt-1">{{ 'reports.security.stolenDetected' | t }}</p>
         </div>
       </div>
 
-      <!-- Alert resolution rate card -->
+      <!-- Alert resolution rate -->
       <div class="tg-card p-5 flex items-center gap-6">
         <div class="relative w-20 h-20 shrink-0">
           <svg viewBox="0 0 42 42" class="w-full h-full -rotate-90">
@@ -511,20 +490,24 @@
           </div>
         </div>
         <div>
-          <p class="font-bold text-slate-900">Alert Resolution Rate</p>
+          <p class="font-bold text-slate-900">{{ 'reports.security.alertResolution' | t }}</p>
           <p class="text-sm text-slate-500 mt-0.5">
-            {{ security.recentAlerts.length }} alerts shown &mdash; {{ alertResolutionRate }}% resolved
+            {{ security.recentAlerts.length }} {{ 'reports.security.alertsShown' | t }}
+            &mdash; {{ alertResolutionRate }}{{ 'reports.security.resolvedPct' | t }}
           </p>
-          <p class="text-xs text-slate-400 mt-1">Resolved alerts have a <code class="text-indigo-500">resolvedAt</code> timestamp set.</p>
+          <p class="text-xs text-slate-400 mt-1">
+            {{ 'reports.security.resolvedTimestamp' | t }}
+            <code class="text-indigo-500">resolvedAt</code>
+            {{ 'reports.security.timestampSuffix' | t }}
+          </p>
         </div>
       </div>
 
-      <!-- Alert type breakdown + Decision breakdown -->
+      <!-- Alert breakdown cards -->
       <div class="grid lg:grid-cols-2 gap-5">
-
         <div class="tg-card overflow-hidden">
           <div class="px-5 py-4 border-b border-slate-100">
-            <h2 class="font-bold text-slate-900">Alerts by Type</h2>
+            <h2 class="font-bold text-slate-900">{{ 'reports.security.alertsByType' | t }}</h2>
           </div>
           <div class="p-5 space-y-2">
             <div *ngFor="let row of security.byType" class="flex items-center gap-3">
@@ -538,13 +521,13 @@
               </div>
               <span class="w-8 text-xs font-bold text-right shrink-0">{{ row.count }}</span>
             </div>
-            <div *ngIf="!security.byType.length" class="py-6 text-center text-sm text-slate-400">No alerts.</div>
+            <div *ngIf="!security.byType.length" class="py-6 text-center text-sm text-slate-400">{{ 'reports.security.noAlerts' | t }}</div>
           </div>
         </div>
 
         <div class="tg-card overflow-hidden">
           <div class="px-5 py-4 border-b border-slate-100">
-            <h2 class="font-bold text-slate-900">Alerts by Decision</h2>
+            <h2 class="font-bold text-slate-900">{{ 'reports.security.alertsByDecision' | t }}</h2>
           </div>
           <div class="p-5 space-y-2">
             <div *ngFor="let row of security.byDecision" class="flex items-center gap-3">
@@ -558,7 +541,7 @@
               </div>
               <span class="w-8 text-xs font-bold text-right shrink-0">{{ row.count }}</span>
             </div>
-            <div *ngIf="!security.byDecision.length" class="py-6 text-center text-sm text-slate-400">No decision data.</div>
+            <div *ngIf="!security.byDecision.length" class="py-6 text-center text-sm text-slate-400">{{ 'reports.security.noDecision' | t }}</div>
           </div>
         </div>
       </div>
@@ -566,19 +549,19 @@
       <!-- Recent alerts table -->
       <div class="tg-card overflow-hidden">
         <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-          <h2 class="font-bold text-slate-900">All Security Alerts</h2>
+          <h2 class="font-bold text-slate-900">{{ 'reports.security.allAlerts' | t }}</h2>
           <span class="tg-badge tg-badge-red">{{ security.recentAlerts.length }}</span>
         </div>
         <div class="overflow-x-auto">
           <table class="tg-table w-full">
             <thead>
               <tr>
-                <th>Type</th>
-                <th>Decision</th>
-                <th>Related</th>
-                <th>Reason</th>
-                <th>Date</th>
-                <th>Resolved</th>
+                <th>{{ 'reports.security.col.type' | t }}</th>
+                <th>{{ 'reports.security.col.decision' | t }}</th>
+                <th>{{ 'reports.security.col.related' | t }}</th>
+                <th>{{ 'reports.security.col.reason' | t }}</th>
+                <th>{{ 'reports.security.col.date' | t }}</th>
+                <th>{{ 'reports.security.col.resolved' | t }}</th>
               </tr>
             </thead>
             <tbody>
@@ -589,12 +572,12 @@
                 <td class="text-xs text-slate-600 max-w-[220px] break-words">{{ a.reason }}</td>
                 <td class="text-xs text-slate-500 whitespace-nowrap">{{ a.createdAt | date:'MMM d, y' }}</td>
                 <td>
-                  <span *ngIf="a.resolvedAt" class="tg-badge tg-badge-green text-xs">Resolved</span>
-                  <span *ngIf="!a.resolvedAt" class="tg-badge tg-badge-amber text-xs">Open</span>
+                  <span *ngIf="a.resolvedAt" class="tg-badge tg-badge-green text-xs">{{ 'reports.security.statusResolved' | t }}</span>
+                  <span *ngIf="!a.resolvedAt" class="tg-badge tg-badge-amber text-xs">{{ 'reports.security.statusOpen' | t }}</span>
                 </td>
               </tr>
               <tr *ngIf="!security.recentAlerts.length">
-                <td colspan="6" class="text-center text-slate-400 py-8">No security alerts in this period.</td>
+                <td colspan="6" class="text-center text-slate-400 py-8">{{ 'reports.security.noAlertsInPeriod' | t }}</td>
               </tr>
             </tbody>
           </table>
@@ -610,38 +593,35 @@
   <ng-container *ngIf="activeTab === 'alpr'">
     <ng-container *ngIf="alpr; else loadingTpl">
 
-      <!-- KPI cards -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div class="tg-card p-5">
           <span class="tg-icon-sq mb-3" style="background:rgba(59,130,246,0.1);color:#3b82f6"><i class="fas fa-camera text-sm"></i></span>
           <p class="text-3xl font-black text-slate-900">{{ alprTotal }}</p>
-          <p class="text-xs text-slate-500 mt-1">Total processed</p>
+          <p class="text-xs text-slate-500 mt-1">{{ 'reports.alpr.totalProcessed' | t }}</p>
         </div>
         <div class="tg-card p-5">
           <span class="tg-icon-sq mb-3" style="background:rgba(34,197,94,0.1);color:#22c55e"><i class="fas fa-car text-sm"></i></span>
           <p class="text-3xl font-black text-emerald-600">{{ plateDetectionRate }}%</p>
-          <p class="text-xs text-slate-500 mt-1">Plate detection rate</p>
+          <p class="text-xs text-slate-500 mt-1">{{ 'reports.alpr.plateDetectionRate' | t }}</p>
         </div>
         <div class="tg-card p-5">
           <span class="tg-icon-sq mb-3" style="background:rgba(99,102,241,0.1);color:#6366f1"><i class="fas fa-face-smile text-sm"></i></span>
           <p class="text-3xl font-black text-indigo-600">{{ faceDetectionRate }}%</p>
-          <p class="text-xs text-slate-500 mt-1">Face detection rate</p>
+          <p class="text-xs text-slate-500 mt-1">{{ 'reports.alpr.faceDetectionRate' | t }}</p>
         </div>
         <div class="tg-card p-5">
           <span class="tg-icon-sq mb-3" style="background:rgba(245,158,11,0.1);color:#f59e0b"><i class="fas fa-gauge-high text-sm"></i></span>
           <p class="text-3xl font-black text-amber-600">
             {{ alpr.avgPlateConfidence ? (alpr.avgPlateConfidence | number:'1.2-2') : '—' }}
           </p>
-          <p class="text-xs text-slate-500 mt-1">Avg plate confidence</p>
+          <p class="text-xs text-slate-500 mt-1">{{ 'reports.alpr.avgConfidence' | t }}</p>
         </div>
       </div>
 
-      <!-- Detection rates donut row -->
+      <!-- Detection rate donuts -->
       <div class="grid lg:grid-cols-2 gap-5">
-
-        <!-- Plate detection donut -->
         <div class="tg-card p-6 flex flex-col items-center gap-4">
-          <h2 class="font-bold text-slate-900 self-start">Plate Detection Rate</h2>
+          <h2 class="font-bold text-slate-900 self-start">{{ 'reports.alpr.plateDetectionTitle' | t }}</h2>
           <div class="relative w-32 h-32">
             <svg viewBox="0 0 42 42" class="w-full h-full -rotate-90">
               <circle cx="21" cy="21" r="15.9155" fill="none" stroke="#e2e8f0" stroke-width="4" />
@@ -651,18 +631,17 @@
             </svg>
             <div class="absolute inset-0 flex flex-col items-center justify-center">
               <span class="text-xl font-black text-emerald-600">{{ plateDetectionRate }}%</span>
-              <span class="text-[9px] text-slate-400 font-semibold uppercase">detected</span>
+              <span class="text-[9px] text-slate-400 font-semibold uppercase">{{ 'reports.alpr.detected' | t }}</span>
             </div>
           </div>
           <div class="flex gap-5 text-xs text-slate-600">
-            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>With plate ({{ alpr.withPlate }})</span>
-            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-slate-300 inline-block"></span>No plate ({{ alpr.withoutPlate }})</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>{{ 'reports.alpr.withPlate' | t }} ({{ alpr.withPlate }})</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-slate-300 inline-block"></span>{{ 'reports.alpr.noPlate' | t }} ({{ alpr.withoutPlate }})</span>
           </div>
         </div>
 
-        <!-- Face detection donut -->
         <div class="tg-card p-6 flex flex-col items-center gap-4">
-          <h2 class="font-bold text-slate-900 self-start">Face Detection Rate</h2>
+          <h2 class="font-bold text-slate-900 self-start">{{ 'reports.alpr.faceDetectionTitle' | t }}</h2>
           <div class="relative w-32 h-32">
             <svg viewBox="0 0 42 42" class="w-full h-full -rotate-90">
               <circle cx="21" cy="21" r="15.9155" fill="none" stroke="#e2e8f0" stroke-width="4" />
@@ -672,28 +651,27 @@
             </svg>
             <div class="absolute inset-0 flex flex-col items-center justify-center">
               <span class="text-xl font-black text-indigo-600">{{ faceDetectionRate }}%</span>
-              <span class="text-[9px] text-slate-400 font-semibold uppercase">detected</span>
+              <span class="text-[9px] text-slate-400 font-semibold uppercase">{{ 'reports.alpr.detected' | t }}</span>
             </div>
           </div>
           <div class="flex gap-5 text-xs text-slate-600">
-            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-indigo-500 inline-block"></span>With face ({{ alpr.withFace }})</span>
-            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-slate-300 inline-block"></span>No face ({{ alpr.withoutFace }})</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-indigo-500 inline-block"></span>{{ 'reports.alpr.withFace' | t }} ({{ alpr.withFace }})</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-slate-300 inline-block"></span>{{ 'reports.alpr.noFace' | t }} ({{ alpr.withoutFace }})</span>
           </div>
         </div>
-
       </div>
 
       <!-- Confidence distribution -->
       <div class="tg-card p-5">
-        <h2 class="font-bold text-slate-900 mb-4">Confidence Distribution</h2>
+        <h2 class="font-bold text-slate-900 mb-4">{{ 'reports.alpr.confidenceDist' | t }}</h2>
         <div class="space-y-2">
           <div *ngFor="let bucket of [
-            {label:'Very High (≥0.85)', value: alpr.confidenceBuckets.veryHigh, color:'bg-emerald-500'},
-            {label:'High (0.70–0.85)',  value: alpr.confidenceBuckets.high,     color:'bg-blue-500'},
-            {label:'Medium (0.50–0.70)',value: alpr.confidenceBuckets.medium,   color:'bg-amber-400'},
-            {label:'Low (<0.50)',        value: alpr.confidenceBuckets.low,      color:'bg-red-400'}
+            {labelKey:'reports.alpr.conf.veryHigh', value: alpr.confidenceBuckets.veryHigh, color:'bg-emerald-500'},
+            {labelKey:'reports.alpr.conf.high',     value: alpr.confidenceBuckets.high,     color:'bg-blue-500'},
+            {labelKey:'reports.alpr.conf.medium',   value: alpr.confidenceBuckets.medium,   color:'bg-amber-400'},
+            {labelKey:'reports.alpr.conf.low',      value: alpr.confidenceBuckets.low,      color:'bg-red-400'}
           ]" class="flex items-center gap-3">
-            <span class="w-44 text-xs text-slate-500 text-right shrink-0">{{ bucket.label }}</span>
+            <span class="w-44 text-xs text-slate-500 text-right shrink-0">{{ i18n.t(bucket.labelKey) }}</span>
             <div class="flex-1 bg-slate-100 rounded-full h-3">
               <div class="h-3 rounded-full transition-all" [ngClass]="bucket.color"
                    [style.width.%]="alpr.withPlate > 0 ? (bucket.value / alpr.withPlate * 100) : 0"></div>
@@ -703,10 +681,10 @@
         </div>
       </div>
 
-      <!-- OCR status breakdown -->
+      <!-- OCR status -->
       <div class="tg-card overflow-hidden">
         <div class="px-5 py-4 border-b border-slate-100">
-          <h2 class="font-bold text-slate-900">OCR Processing Status</h2>
+          <h2 class="font-bold text-slate-900">{{ 'reports.alpr.ocrStatus' | t }}</h2>
         </div>
         <div class="p-5 space-y-2">
           <div *ngFor="let row of alpr.byOcrStatus" class="flex items-center gap-3">
@@ -720,26 +698,26 @@
             </div>
             <span class="w-10 text-xs font-bold text-right shrink-0">{{ row.count }}</span>
           </div>
-          <div *ngIf="!alpr.byOcrStatus.length" class="py-6 text-center text-sm text-slate-400">No OCR data.</div>
+          <div *ngIf="!alpr.byOcrStatus.length" class="py-6 text-center text-sm text-slate-400">{{ 'reports.alpr.noOcrData' | t }}</div>
         </div>
       </div>
 
-      <!-- Recent plates table -->
+      <!-- Recent ALPR results -->
       <div class="tg-card overflow-hidden">
         <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-          <h2 class="font-bold text-slate-900">Recent ALPR Results</h2>
+          <h2 class="font-bold text-slate-900">{{ 'reports.alpr.recentResults' | t }}</h2>
           <span class="tg-badge tg-badge-blue">{{ alpr.recentPlates.length }}</span>
         </div>
         <div class="overflow-x-auto">
           <table class="tg-table w-full">
             <thead>
               <tr>
-                <th>Capture ID</th>
-                <th>Gate</th>
-                <th>Plate</th>
-                <th>Confidence</th>
-                <th>OCR Status</th>
-                <th>Captured At</th>
+                <th>{{ 'reports.alpr.col.captureId' | t }}</th>
+                <th>{{ 'reports.alpr.col.gate' | t }}</th>
+                <th>{{ 'reports.alpr.col.plate' | t }}</th>
+                <th>{{ 'reports.alpr.col.confidence' | t }}</th>
+                <th>{{ 'reports.alpr.col.ocrStatus' | t }}</th>
+                <th>{{ 'reports.alpr.col.capturedAt' | t }}</th>
               </tr>
             </thead>
             <tbody>
@@ -759,7 +737,7 @@
                 <td class="text-xs text-slate-500 whitespace-nowrap">{{ p.capturedAt | date:'MMM d, y — h:mm a' }}</td>
               </tr>
               <tr *ngIf="!alpr.recentPlates.length">
-                <td colspan="6" class="text-center text-slate-400 py-8">No ALPR results in this period.</td>
+                <td colspan="6" class="text-center text-slate-400 py-8">{{ 'reports.alpr.noResults' | t }}</td>
               </tr>
             </tbody>
           </table>
@@ -786,16 +764,14 @@
 
     <div *ngIf="!loading && financial" class="space-y-5">
 
-      <!-- Financial PDF download bar -->
+      <!-- Period + PDF bar -->
       <div class="flex items-center justify-between gap-3 flex-wrap">
         <p class="text-xs text-slate-500">
-          <span class="font-semibold">Period:</span>
-          {{ financial.dateRange.startDate ? (financial.dateRange.startDate | date:'MMM d, y') : 'All time' }}
-          → {{ financial.dateRange.endDate ? (financial.dateRange.endDate | date:'MMM d, y') : 'All time' }}
-          ({{ financial.dateRange.months }} month{{ financial.dateRange.months !== 1 ? 's' : '' }})
+          <span class="font-semibold">{{ 'reports.financial.period' | t }}:</span>
+          {{ financialPeriodLabel() }}
         </p>
         <div class="flex gap-2">
-          <button type="button" (click)="togglePdfLang()" title="Toggle PDF language"
+          <button type="button" (click)="togglePdfLang()"
             class="tg-btn text-sm px-3 py-2 font-bold border transition-colors"
             [class]="pdfLang === 'ar' ? 'bg-emerald-600 text-white border-emerald-700' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'">
             {{ pdfLang === 'ar' ? 'ع' : 'EN' }}
@@ -803,7 +779,8 @@
           <button type="button" (click)="downloadFinancialPdf()"
             class="tg-btn tg-btn-primary text-sm gap-2 px-4 py-2">
             <i class="fas fa-file-pdf text-xs"></i>
-            {{ pdfLang === 'ar' ? 'تحميل التقرير المالي' : 'Download Financial PDF' }}
+            {{ 'reports.financial.downloadPdf' | t }}
+            <span class="ms-1 text-[10px] font-bold opacity-75">({{ pdfLang | uppercase }})</span>
           </button>
         </div>
       </div>
@@ -811,38 +788,47 @@
       <!-- P&L KPI cards -->
       <div class="grid grid-cols-2 xl:grid-cols-4 gap-3">
         <div class="tg-card p-5 text-center">
-          <p class="text-xs font-bold uppercase tracking-wide text-emerald-600 mb-1">Total Revenue</p>
+          <p class="text-xs font-bold uppercase tracking-wide text-emerald-600 mb-1">{{ 'reports.financial.totalRevenue' | t }}</p>
           <p class="text-2xl font-black text-emerald-700">EGP {{ financial.revenue.total | number:'1.2-2' }}</p>
-          <p class="text-xs text-slate-400 mt-1">{{ financial.revenue.byGate.length }} gate(s)</p>
+          <p class="text-xs text-slate-400 mt-1">{{ financial.revenue.byGate.length }} {{ 'reports.financial.gate' | t }}</p>
         </div>
         <div class="tg-card p-5 text-center">
-          <p class="text-xs font-bold uppercase tracking-wide text-red-500 mb-1">Repair Expenses</p>
+          <p class="text-xs font-bold uppercase tracking-wide text-red-500 mb-1">{{ 'reports.financial.repairExpenses' | t }}</p>
           <p class="text-2xl font-black text-red-600">EGP {{ financial.expenses.repairTotal | number:'1.2-2' }}</p>
-          <p class="text-xs text-slate-400 mt-1">{{ financial.expenses.incidentCount }} incident(s)</p>
+          <p class="text-xs text-slate-400 mt-1">{{ financial.expenses.incidentCount }} {{ 'reports.financial.incident' | t }}</p>
         </div>
         <div class="tg-card p-5 text-center">
-          <p class="text-xs font-bold uppercase tracking-wide text-amber-600 mb-1">Staff Costs</p>
+          <p class="text-xs font-bold uppercase tracking-wide text-amber-600 mb-1">{{ 'reports.financial.staffCosts' | t }}</p>
           <p class="text-2xl font-black text-amber-700">EGP {{ financial.expenses.staffPeriodCost | number:'1.2-2' }}</p>
-          <p class="text-xs text-slate-400 mt-1">{{ financial.expenses.activeTechCount }} technician(s) · {{ financial.dateRange.months }} mo.</p>
+          <p class="text-xs text-slate-400 mt-1">{{ financial.expenses.activeTechCount }} {{ 'reports.financial.technician' | t }}</p>
         </div>
         <div class="tg-card p-5 text-center border-2"
           [ngClass]="netPnLPositive ? 'border-emerald-400' : 'border-red-400'">
-          <p class="text-xs font-bold uppercase tracking-wide mb-1" [ngClass]="netPnLPositive ? 'text-emerald-600' : 'text-red-500'">Net P&amp;L</p>
+          <p class="text-xs font-bold uppercase tracking-wide mb-1" [ngClass]="netPnLPositive ? 'text-emerald-600' : 'text-red-500'">
+            {{ 'reports.financial.netPnL' | t }}
+          </p>
           <p class="text-2xl font-black" [ngClass]="netPnLPositive ? 'text-emerald-700' : 'text-red-600'">
             {{ netPnLPositive ? '+' : '' }}EGP {{ financial.netPnL | number:'1.2-2' }}
           </p>
-          <p class="text-xs text-slate-400 mt-1">{{ netPnLPositive ? '▲ Profitable' : '▼ Loss' }}</p>
+          <p class="text-xs text-slate-400 mt-1">{{ (netPnLPositive ? 'reports.financial.profitable' : 'reports.financial.loss') | t }}</p>
         </div>
       </div>
 
       <!-- Revenue by Gate -->
       <div class="tg-card p-5">
         <h3 class="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
-          <i class="fas fa-car-side text-emerald-500 text-xs"></i> Revenue by Gate
+          <i class="fas fa-car-side text-emerald-500 text-xs"></i> {{ 'reports.financial.revenueByGate' | t }}
         </h3>
         <div class="overflow-x-auto">
           <table class="tg-table min-w-[500px]">
-            <thead><tr><th>Gate ID</th><th>Pass Count</th><th>Fee / Pass</th><th>Revenue</th></tr></thead>
+            <thead>
+              <tr>
+                <th>{{ 'reports.financial.col.gateId' | t }}</th>
+                <th>{{ 'reports.financial.col.passCount' | t }}</th>
+                <th>{{ 'reports.financial.col.feePerPass' | t }}</th>
+                <th>{{ 'reports.financial.col.revenue' | t }}</th>
+              </tr>
+            </thead>
             <tbody>
               <tr *ngFor="let g of financial.revenue.byGate" class="hover:bg-slate-50">
                 <td><span class="font-mono text-xs bg-slate-100 px-2 py-0.5 rounded">{{ g.gateId }}</span></td>
@@ -851,7 +837,7 @@
                 <td class="font-bold text-emerald-700 font-mono">EGP {{ g.revenue | number:'1.2-2' }}</td>
               </tr>
               <tr *ngIf="financial.revenue.byGate.length === 0">
-                <td colspan="4" class="text-center py-6 text-slate-400">No pass revenue in this period</td>
+                <td colspan="4" class="text-center py-6 text-slate-400">{{ 'reports.financial.noPassRevenue' | t }}</td>
               </tr>
             </tbody>
           </table>
@@ -861,43 +847,49 @@
       <!-- Expense Breakdown -->
       <div class="tg-card p-5">
         <h3 class="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
-          <i class="fas fa-receipt text-red-500 text-xs"></i> Expense Breakdown
+          <i class="fas fa-receipt text-red-500 text-xs"></i> {{ 'reports.financial.expenseBreakdown' | t }}
         </h3>
         <div class="space-y-3">
           <div class="flex items-center justify-between p-3 bg-red-50 rounded-xl">
             <div>
-              <p class="text-sm font-semibold text-slate-800">Repair &amp; Maintenance</p>
-              <p class="text-xs text-slate-500">{{ financial.expenses.incidentCount }} incidents · {{ financial.expenses.resolvedCount }} resolved</p>
+              <p class="text-sm font-semibold text-slate-800">{{ 'reports.financial.repairMaint' | t }}</p>
+              <p class="text-xs text-slate-500">
+                {{ financial.expenses.incidentCount }} {{ 'reports.financial.incident' | t }}
+                · {{ financial.expenses.resolvedCount }} {{ 'reports.security.statusResolved' | t }}
+              </p>
             </div>
             <p class="text-lg font-black text-red-600">EGP {{ financial.expenses.repairTotal | number:'1.2-2' }}</p>
           </div>
           <div class="flex items-center justify-between p-3 bg-amber-50 rounded-xl">
             <div>
-              <p class="text-sm font-semibold text-slate-800">Staff Salaries</p>
-              <p class="text-xs text-slate-500">{{ financial.expenses.activeTechCount }} active × {{ financial.dateRange.months }} month(s) · EGP {{ financial.expenses.staffMonthlyCost | number:'1.2-2' }}/mo</p>
+              <p class="text-sm font-semibold text-slate-800">{{ 'reports.financial.staffSalaries' | t }}</p>
+              <p class="text-xs text-slate-500">
+                {{ financial.expenses.activeTechCount }} {{ 'reports.financial.technician' | t }}
+                × {{ financial.dateRange.months }} {{ (financial.dateRange.months !== 1 ? 'reports.financial.months' : 'reports.financial.month') | t }}
+                · EGP {{ financial.expenses.staffMonthlyCost | number:'1.2-2' }}/mo
+              </p>
             </div>
             <p class="text-lg font-black text-amber-700">EGP {{ financial.expenses.staffPeriodCost | number:'1.2-2' }}</p>
           </div>
           <div class="flex items-center justify-between p-3 bg-slate-100 rounded-xl">
-            <p class="text-sm font-bold text-slate-700">Total Expenses</p>
+            <p class="text-sm font-bold text-slate-700">{{ 'reports.financial.totalExpenses' | t }}</p>
             <p class="text-lg font-black text-slate-800">EGP {{ financial.expenses.total | number:'1.2-2' }}</p>
           </div>
         </div>
       </div>
 
-      <!-- Download Financial PDF (now uses pdfLang toggle at top) -->
       <div class="flex justify-end">
         <button (click)="downloadFinancialPdf()" class="tg-btn tg-btn-primary gap-2">
           <i class="fas fa-file-pdf text-xs"></i>
-          {{ pdfLang === 'ar' ? 'تحميل PDF المالي' : 'Download Financial PDF' }}
-          <span class="ml-1 text-[10px] font-bold opacity-75">({{ pdfLang | uppercase }})</span>
+          {{ 'reports.financial.downloadPdf' | t }}
+          <span class="ms-1 text-[10px] font-bold opacity-75">({{ pdfLang | uppercase }})</span>
         </button>
       </div>
     </div>
 
     <div *ngIf="!loading && !financial" class="text-center py-16 text-slate-400">
       <i class="fas fa-money-bill-trend-up text-4xl text-slate-200 mb-3 block"></i>
-      <p>Click Refresh to load financial data</p>
+      <p>{{ 'reports.financial.noData' | t }}</p>
     </div>
   </ng-container>
 
@@ -909,22 +901,21 @@
 
     <div *ngIf="!loading && incidents" class="space-y-5">
 
-      <!-- KPI Cards -->
       <div class="grid grid-cols-2 xl:grid-cols-4 gap-3">
         <div class="tg-card p-5 text-center">
-          <p class="text-xs font-bold uppercase tracking-wide text-slate-500 mb-1">Total</p>
+          <p class="text-xs font-bold uppercase tracking-wide text-slate-500 mb-1">{{ 'reports.incidents.totalLabel' | t }}</p>
           <p class="text-3xl font-black text-slate-800">{{ incidents.totals.total }}</p>
         </div>
         <div class="tg-card p-5 text-center border-l-4 border-red-400">
-          <p class="text-xs font-bold uppercase tracking-wide text-red-500 mb-1">Open</p>
+          <p class="text-xs font-bold uppercase tracking-wide text-red-500 mb-1">{{ 'reports.incidents.openLabel' | t }}</p>
           <p class="text-3xl font-black text-red-600">{{ incidents.totals.open }}</p>
         </div>
         <div class="tg-card p-5 text-center border-l-4 border-amber-400">
-          <p class="text-xs font-bold uppercase tracking-wide text-amber-500 mb-1">In Progress</p>
+          <p class="text-xs font-bold uppercase tracking-wide text-amber-500 mb-1">{{ 'reports.incidents.inProgressLabel' | t }}</p>
           <p class="text-3xl font-black text-amber-600">{{ incidents.totals.inProgress }}</p>
         </div>
         <div class="tg-card p-5 text-center border-l-4 border-emerald-400">
-          <p class="text-xs font-bold uppercase tracking-wide text-emerald-500 mb-1">Resolved</p>
+          <p class="text-xs font-bold uppercase tracking-wide text-emerald-500 mb-1">{{ 'reports.incidents.resolvedLabel' | t }}</p>
           <p class="text-3xl font-black text-emerald-600">{{ incidents.totals.resolved }}</p>
         </div>
       </div>
@@ -936,7 +927,7 @@
             <i class="fas fa-wrench text-red-500 text-lg"></i>
           </div>
           <div>
-            <p class="text-xs text-slate-500">Total Repair Cost</p>
+            <p class="text-xs text-slate-500">{{ 'reports.incidents.totalRepairCost' | t }}</p>
             <p class="text-2xl font-black text-red-600">EGP {{ incidents.totalRepairCost | number:'1.2-2' }}</p>
           </div>
         </div>
@@ -945,9 +936,9 @@
             <i class="fas fa-clock text-blue-500 text-lg"></i>
           </div>
           <div>
-            <p class="text-xs text-slate-500">Avg Resolution Time</p>
+            <p class="text-xs text-slate-500">{{ 'reports.incidents.avgResolutionTime' | t }}</p>
             <p class="text-2xl font-black text-blue-700">
-              {{ incidents.avgResolutionHours != null ? (incidents.avgResolutionHours | number:'1.1-1') + ' hrs' : '—' }}
+              {{ incidents.avgResolutionHours != null ? (incidents.avgResolutionHours | number:'1.1-1') + ' ' + i18n.t('reports.incidents.hrs') : '—' }}
             </p>
           </div>
         </div>
@@ -955,12 +946,13 @@
 
       <!-- Severity breakdown -->
       <div class="tg-card p-5">
-        <h3 class="text-sm font-bold text-slate-700 mb-4">Severity Breakdown</h3>
+        <h3 class="text-sm font-bold text-slate-700 mb-4">{{ 'reports.incidents.severityBreakdown' | t }}</h3>
         <div class="space-y-3">
           <div *ngFor="let sev of ['critical','high','medium','low']" class="flex items-center gap-3">
-            <span class="w-16 text-xs font-semibold text-slate-600 capitalize">{{ sev }}</span>
+            <span class="w-20 text-xs font-semibold text-slate-600">{{ severityLabel(sev) }}</span>
             <div class="flex-1 bg-slate-100 rounded-full h-4 overflow-hidden">
-              <div class="h-4 rounded-full transition-all {{ severityBarClass(sev) }}"
+              <div class="h-4 rounded-full transition-all"
+                [ngClass]="severityBarClass(sev)"
                 [style.width.%]="maxSeverityCount() > 0 ? (incidentsSeverityCount(sev) / maxSeverityCount()) * 100 : 0">
               </div>
             </div>
@@ -971,10 +963,15 @@
 
       <!-- By Gate -->
       <div *ngIf="incidents.byGate.length > 0" class="tg-card p-5">
-        <h3 class="text-sm font-bold text-slate-700 mb-4">Incidents by Gate</h3>
+        <h3 class="text-sm font-bold text-slate-700 mb-4">{{ 'reports.incidents.byGate' | t }}</h3>
         <div class="overflow-x-auto">
           <table class="tg-table">
-            <thead><tr><th>Gate ID</th><th>Incidents</th></tr></thead>
+            <thead>
+              <tr>
+                <th>{{ 'reports.incidents.col.gateId' | t }}</th>
+                <th>{{ 'reports.incidents.col.incidents' | t }}</th>
+              </tr>
+            </thead>
             <tbody>
               <tr *ngFor="let g of incidents.byGate" class="hover:bg-slate-50">
                 <td><span class="font-mono text-xs bg-slate-100 px-2 py-0.5 rounded">{{ g.gateId }}</span></td>
@@ -988,31 +985,40 @@
       <!-- Recent incidents log -->
       <div *ngIf="incidents.recentIncidents.length > 0" class="tg-card overflow-hidden">
         <div class="px-5 py-3 border-b border-slate-100">
-          <h3 class="text-sm font-bold text-slate-700">Recent Incidents (Last 50)</h3>
+          <h3 class="text-sm font-bold text-slate-700">{{ 'reports.incidents.recentLog' | t }}</h3>
         </div>
         <div class="overflow-x-auto">
           <table class="tg-table min-w-[700px]">
-            <thead><tr><th>Reported</th><th>Gate</th><th>Title</th><th>Severity</th><th>Status</th><th>Cost</th></tr></thead>
+            <thead>
+              <tr>
+                <th>{{ 'reports.incidents.col.reported' | t }}</th>
+                <th>{{ 'reports.incidents.col.gate' | t }}</th>
+                <th>{{ 'reports.incidents.col.title' | t }}</th>
+                <th>{{ 'reports.incidents.col.severity' | t }}</th>
+                <th>{{ 'reports.incidents.col.status' | t }}</th>
+                <th>{{ 'reports.incidents.col.cost' | t }}</th>
+              </tr>
+            </thead>
             <tbody>
-              <tr *ngFor="let i of incidents.recentIncidents" class="hover:bg-slate-50">
-                <td class="text-xs text-slate-500">{{ i.reportedAt | date:'dd MMM yy' }}</td>
-                <td><span class="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">{{ i.gateId }}</span></td>
-                <td class="font-medium text-sm text-slate-800">{{ i.title }}</td>
+              <tr *ngFor="let inc of incidents.recentIncidents" class="hover:bg-slate-50">
+                <td class="text-xs text-slate-500">{{ inc.reportedAt | date:'dd MMM yy' }}</td>
+                <td><span class="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">{{ inc.gateId }}</span></td>
+                <td class="font-medium text-sm text-slate-800">{{ inc.title }}</td>
                 <td>
                   <span class="text-[11px] px-2 py-0.5 rounded-full font-bold"
-                    [ngClass]="i.severity === 'critical' ? 'bg-red-100 text-red-700' :
-                                i.severity === 'high' ? 'bg-orange-100 text-orange-700' :
-                                i.severity === 'medium' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'">
-                    {{ i.severity }}
+                    [ngClass]="inc.severity === 'critical' ? 'bg-red-100 text-red-700' :
+                                inc.severity === 'high' ? 'bg-orange-100 text-orange-700' :
+                                inc.severity === 'medium' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'">
+                    {{ severityLabel(inc.severity) }}
                   </span>
                 </td>
                 <td>
                   <span class="text-[11px] px-2 py-0.5 rounded-full font-semibold"
-                    [ngClass]="i.status === 'resolved' ? 'bg-emerald-100 text-emerald-700' : i.status === 'in_progress' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'">
-                    {{ i.status }}
+                    [ngClass]="inc.status === 'resolved' ? 'bg-emerald-100 text-emerald-700' : inc.status === 'in_progress' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'">
+                    {{ inc.status === 'resolved' ? i18n.t('reports.incidents.resolvedLabel') : inc.status === 'in_progress' ? i18n.t('reports.incidents.inProgressLabel') : i18n.t('reports.incidents.openLabel') }}
                   </span>
                 </td>
-                <td class="font-mono text-sm text-red-600">{{ i.repairCost > 0 ? 'EGP ' + (i.repairCost | number:'1.2-2') : '—' }}</td>
+                <td class="font-mono text-sm text-red-600">{{ inc.repairCost > 0 ? 'EGP ' + (inc.repairCost | number:'1.2-2') : '—' }}</td>
               </tr>
             </tbody>
           </table>
@@ -1024,15 +1030,15 @@
         <button (click)="downloadIncidentsPdf()" class="tg-btn tg-btn-primary gap-2"
           style="background-color:#b45309; border-color:#92400e;">
           <i class="fas fa-file-pdf text-xs"></i>
-          {{ pdfLang === 'ar' ? 'تحميل PDF الحوادث' : 'Download Incidents PDF' }}
-          <span class="ml-1 text-[10px] font-bold opacity-75">({{ pdfLang | uppercase }})</span>
+          {{ 'reports.financial.downloadPdf' | t }}
+          <span class="ms-1 text-[10px] font-bold opacity-75">({{ pdfLang | uppercase }})</span>
         </button>
       </div>
     </div>
 
     <div *ngIf="!loading && !incidents" class="text-center py-16 text-slate-400">
       <i class="fas fa-triangle-exclamation text-4xl text-slate-200 mb-3 block"></i>
-      <p>Click Refresh to load incidents report</p>
+      <p>{{ 'reports.incidents.noData' | t }}</p>
     </div>
   </ng-container>
 
